@@ -1,0 +1,21 @@
+import { Account, AccountIdentification, Agent, MessageHeader, Party, StructuredAddress } from 'lib/types';
+import { Currency } from 'dinero.js';
+export declare const parseAccount: (account: any) => Account;
+export declare const exportAccount: (account: Account) => any;
+export declare const parseAccountIdentification: (accountId: any) => AccountIdentification;
+export declare const exportAccountIdentification: (accountId: AccountIdentification) => any;
+export declare const parseAgent: (agent: any) => Agent;
+export declare const exportAgent: (agent: Agent) => any;
+export declare const parseAmountToMinorUnits: (rawAmount: number, currency?: Currency) => number;
+export declare const exportAmountToString: (amount: number, currency?: Currency) => string;
+export declare const parseDate: (dateElement: any) => Date;
+export declare const parseParty: (party: any) => Party;
+export declare const parseRecipient: (recipient: any) => {
+    id?: string;
+    name?: string;
+    address?: StructuredAddress;
+};
+export declare const exportRecipient: (recipient: ReturnType<typeof parseRecipient>) => any;
+export declare const parseAdditionalInformation: (additionalInformation: any) => string | undefined;
+export declare const parseMessageHeader: (rawHeader: any) => MessageHeader;
+export declare const exportMessageHeader: (header: MessageHeader) => any;

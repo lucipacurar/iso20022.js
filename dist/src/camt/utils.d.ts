@@ -1,0 +1,12 @@
+import { Balance, BalanceInReport, BusinessError, Entry, Statement } from 'camt/types';
+import { Currency } from 'dinero.js';
+export declare const parseStatement: (stmt: any) => Statement;
+export declare const exportStatement: (stmt: Statement) => any;
+export declare const parseBalance: (balance: any) => Balance;
+export declare const exportBalance: (balance: Balance) => any;
+export declare const parseBalanceReport: (currency: Currency, balance: any) => BalanceInReport;
+export declare const exportBalanceReport: (currency: Currency, balance: BalanceInReport) => any;
+export declare const parseEntry: (entry: any) => Entry;
+export declare const exportEntry: (entry: Entry) => any;
+export declare const parseBusinessError: (bizErr: any) => BusinessError;
+export declare const exportBusinessError: (bizErr: BusinessError) => any;
