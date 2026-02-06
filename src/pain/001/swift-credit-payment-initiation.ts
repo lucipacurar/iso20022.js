@@ -1,6 +1,5 @@
 import Dinero, { Currency } from 'dinero.js';
 import { XMLBuilder, XMLParser } from 'fast-xml-parser';
-import { v4 as uuidv4 } from 'uuid';
 import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
 import { Alpha2Country } from '../../lib/countries';
 import {
@@ -11,7 +10,7 @@ import {
   SWIFTCreditPaymentInstruction,
 } from '../../lib/types.js';
 import { parseAccount, parseAmountToMinorUnits } from '../../parseUtils';
-import { sanitize } from '../../utils/format';
+import { sanitize, generateId } from '../../utils/format';
 import { PaymentInitiation } from './payment-initiation';
 
 type AtLeastOne<T> = [T, ...T[]];
@@ -69,10 +68,9 @@ export class SWIFTCreditPaymentInitiation extends PaymentInitiation {
     super({ type: 'swift' });
     this.initiatingParty = config.initiatingParty;
     this.paymentInstructions = config.paymentInstructions;
-    this.messageId =
-      config.messageId || uuidv4().replace(/-/g, '').substring(0, 35);
+    this.messageId = config.messageId || generateId();
     this.creationDate = config.creationDate || new Date();
-    this.paymentInformationId = sanitize(uuidv4(), 35);
+    this.paymentInformationId = generateId();
     this.validate();
   }
 
@@ -114,7 +112,7 @@ export class SWIFTCreditPaymentInitiation extends PaymentInitiation {
     paymentInstruction: SWIFTCreditPaymentInstruction,
   ): Record<string, any> {
     const paymentInstructionId = sanitize(
-      paymentInstruction.id || uuidv4(),
+      paymentInstruction.id || generateId(),
       35,
     );
     const amount = Dinero({

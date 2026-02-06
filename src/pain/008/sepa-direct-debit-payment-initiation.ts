@@ -10,9 +10,8 @@ import type {
   SEPASequenceType,
 } from '../../lib/types';
 import { PaymentInitiation } from '../001/payment-initiation';
-import { sanitize } from '../../utils/format';
+import { sanitize, generateId } from '../../utils/format';
 import Dinero, { type Currency } from 'dinero.js';
-import { v4 as uuidv4 } from 'uuid';
 import { XMLParser } from 'fast-xml-parser';
 import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
 import {
@@ -102,7 +101,6 @@ export class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
   public messageId: string;
   public creationDate: Date;
   public paymentInstructions: AtLeastOne<SEPADirectDebitPaymentInstructionGroup>;
-  public paymentInformationIdBase: string;
   private formattedPaymentSum: string;
   private totalTransactionCount: number;
 
@@ -114,9 +112,8 @@ export class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
     super({ type: 'sepa' });
     this.initiatingParty = config.initiatingParty;
     this.paymentInstructions = config.paymentInstructions;
-    this.messageId = config.messageId || uuidv4().replace(/-/g, '');
+    this.messageId = config.messageId || generateId();
     this.creationDate = config.creationDate || new Date();
-    this.paymentInformationIdBase = sanitize(uuidv4(), 35);
     this.totalTransactionCount = this.countAllTransactions();
     this.formattedPaymentSum = this.sumAllPayments();
     this.validate();
@@ -202,7 +199,7 @@ export class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
    */
   directDebitTransfer(instruction: SEPADirectDebitPaymentInstruction) {
     const endToEndId = sanitize(
-      instruction.endToEndId || instruction.id || uuidv4(),
+      instruction.endToEndId || instruction.id || generateId(),
       35,
     );
     const dinero = Dinero({
@@ -279,11 +276,8 @@ export class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
 
     // Generate one PmtInf entry per creditor group
     const paymentInfoEntries = this.paymentInstructions.map(
-      (group, groupIndex) => {
-        const pmtInfId = sanitize(
-          `${this.paymentInformationIdBase}-${groupIndex + 1}`,
-          35,
-        );
+      (group) => {
+        const pmtInfId = generateId();
         const localInstrument = group.localInstrument || 'CORE';
         const batchBooking =
           group.batchBooking !== undefined ? group.batchBooking : false;

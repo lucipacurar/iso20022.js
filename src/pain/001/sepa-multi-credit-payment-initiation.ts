@@ -8,9 +8,8 @@ import type {
   SEPACreditPaymentInstruction,
 } from '../../lib/types';
 import { PaymentInitiation } from './payment-initiation';
-import { sanitize } from '../../utils/format';
+import { sanitize, generateId } from '../../utils/format';
 import Dinero, { type Currency } from 'dinero.js';
-import { v4 as uuidv4 } from 'uuid';
 import { XMLParser } from 'fast-xml-parser';
 import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
 import {
@@ -36,6 +35,8 @@ export interface SEPAMultiCreditPaymentInstructionGroup {
   payments: AtLeastOne<SEPACreditPaymentInstruction>;
   /** Optional category purpose code for this payment information block. */
   categoryPurpose?: ExternalCategoryPurpose;
+  /** Indicates whether transactions should be booked in batch. Defaults to false. */
+  batchBooking?: boolean;
 }
 
 /**
@@ -87,7 +88,6 @@ export class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
   public messageId: string;
   public creationDate: Date;
   public paymentInstructions: AtLeastOne<SEPAMultiCreditPaymentInstructionGroup>;
-  public paymentInformationIdBase: string;
   private formattedPaymentSum: string;
   private totalTransactionCount: number;
 
@@ -99,9 +99,8 @@ export class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
     super({ type: 'sepa' });
     this.initiatingParty = config.initiatingParty;
     this.paymentInstructions = config.paymentInstructions;
-    this.messageId = config.messageId || uuidv4().replace(/-/g, '');
+    this.messageId = config.messageId || generateId();
     this.creationDate = config.creationDate || new Date();
-    this.paymentInformationIdBase = sanitize(uuidv4(), 35);
     this.totalTransactionCount = this.countAllTransactions();
     this.formattedPaymentSum = this.sumAllPayments();
     this.validate();
@@ -186,9 +185,9 @@ export class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
    * @returns {Object} The payment information object formatted according to SEPA specifications.
    */
   creditTransfer(instruction: SEPACreditPaymentInstruction) {
-    const paymentInstructionId = sanitize(instruction.id || uuidv4(), 35);
+    const paymentInstructionId = sanitize(instruction.id || generateId(), 35);
     const endToEndId = sanitize(
-      instruction.endToEndId || instruction.id || uuidv4(),
+      instruction.endToEndId || instruction.id || generateId(),
       35,
     );
     const dinero = Dinero({
@@ -232,22 +231,23 @@ export class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
 
     // Generate one PmtInf entry per individual payment
     const paymentInfoEntries = this.paymentInstructions.flatMap(
-      (group, groupIndex) => {
-        return group.payments.map((payment, paymentIndex) => {
+      (group) => {
+        return group.payments.map((payment) => {
           const dinero = Dinero({
             amount: payment.amount,
             currency: payment.currency,
           });
-          const pmtInfId = sanitize(
-            `${this.paymentInformationIdBase}-${groupIndex + 1}-${paymentIndex + 1}`,
-            35,
-          );
+          const pmtInfId = generateId();
           const requestedExecutionDate =
             payment.requestedPaymentExecutionDate || new Date();
+
+          const batchBooking =
+            group.batchBooking !== undefined ? group.batchBooking : false;
 
           return {
             PmtInfId: pmtInfId,
             PmtMtd: 'TRF',
+            BtchBookg: batchBooking,
             NbOfTxs: '1',
             CtrlSum: dinero.toFormat('0.00'),
             PmtTpInf: {
@@ -438,10 +438,15 @@ export class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
         };
       }) as AtLeastOne<SEPACreditPaymentInstruction>;
 
+      // Extract batch booking
+      const batchBooking =
+        pmtInf.BtchBookg === 'true' || pmtInf.BtchBookg === true;
+
       return {
         initiatingParty: groupInitiatingParty,
         payments: payments,
         ...(categoryPurpose && { categoryPurpose }),
+        batchBooking: batchBooking,
       };
     }) as AtLeastOne<SEPAMultiCreditPaymentInstructionGroup>;
 

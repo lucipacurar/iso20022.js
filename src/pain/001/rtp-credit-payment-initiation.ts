@@ -6,9 +6,8 @@ import {
   Party,
   RTPCreditPaymentInstruction,
 } from '../../lib/types';
-import { v4 as uuidv4 } from 'uuid';
 import Dinero, { Currency } from 'dinero.js';
-import { sanitize } from '../../utils/format';
+import { sanitize, generateId } from '../../utils/format';
 import { PaymentInitiation } from './payment-initiation';
 import { XMLParser } from 'fast-xml-parser';
 import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
@@ -72,9 +71,9 @@ export class RTPCreditPaymentInitiation extends PaymentInitiation {
     super({ type: 'rtp' });
     this.initiatingParty = config.initiatingParty;
     this.paymentInstructions = config.paymentInstructions;
-    this.messageId = config.messageId || uuidv4().replace(/-/g, '');
+    this.messageId = config.messageId || generateId();
     this.creationDate = config.creationDate || new Date();
-    this.paymentInformationId = sanitize(uuidv4(), 35);
+    this.paymentInformationId = generateId();
     this.formattedPaymentSum = this.sumPaymentInstructions(
       this.paymentInstructions as AtLeastOne<RTPCreditPaymentInstruction>,
     );
@@ -122,9 +121,9 @@ export class RTPCreditPaymentInitiation extends PaymentInitiation {
    * @returns {Object} The payment information object formatted according to SEPA specifications.
    */
   creditTransfer(instruction: RTPCreditPaymentInstruction) {
-    const paymentInstructionId = sanitize(instruction.id || uuidv4(), 35);
+    const paymentInstructionId = sanitize(instruction.id || generateId(), 35);
     const endToEndId = sanitize(
-      instruction.endToEndId || instruction.id || uuidv4(),
+      instruction.endToEndId || instruction.id || generateId(),
       35,
     );
     const dinero = Dinero({

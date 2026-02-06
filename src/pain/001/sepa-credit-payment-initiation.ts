@@ -8,9 +8,8 @@ import {
   SEPACreditPaymentInstruction,
 } from '../../lib/types';
 import { PaymentInitiation } from './payment-initiation';
-import { sanitize } from '../../utils/format';
+import { sanitize, generateId } from '../../utils/format';
 import Dinero, { Currency } from 'dinero.js';
-import { v4 as uuidv4 } from 'uuid';
 import { XMLParser } from 'fast-xml-parser';
 import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
 import {
@@ -82,12 +81,12 @@ export class SEPACreditPaymentInitiation extends PaymentInitiation {
     super({ type: 'sepa' });
     this.initiatingParty = config.initiatingParty;
     this.paymentInstructions = config.paymentInstructions;
-    this.messageId = config.messageId || uuidv4().replace(/-/g, '');
+    this.messageId = config.messageId || generateId();
     this.creationDate = config.creationDate || new Date();
     this.formattedPaymentSum = this.sumPaymentInstructions(
       this.paymentInstructions as AtLeastOne<SEPACreditPaymentInstruction>,
     );
-    this.paymentInformationId = sanitize(uuidv4(), 35);
+    this.paymentInformationId = generateId();
     this.categoryPurpose = config.categoryPurpose;
     this.validate();
   }
@@ -154,9 +153,9 @@ export class SEPACreditPaymentInitiation extends PaymentInitiation {
    * @returns {Object} The payment information object formatted according to SEPA specifications.
    */
   creditTransfer(instruction: SEPACreditPaymentInstruction) {
-    const paymentInstructionId = sanitize(instruction.id || uuidv4(), 35);
+    const paymentInstructionId = sanitize(instruction.id || generateId(), 35);
     const endToEndId = sanitize(
-      instruction.endToEndId || instruction.id || uuidv4(),
+      instruction.endToEndId || instruction.id || generateId(),
       35,
     );
     const dinero = Dinero({
