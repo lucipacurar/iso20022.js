@@ -58,23 +58,14 @@ export class XML {
       ignoreAttributes: false,
       attributeNamePrefix: '@_',
       textNodeName: '#text',
-      tagValueProcessor: (
-        tagName,
-        tagValue,
-        _jPath,
-        _hasAttributes,
-        isLeafNode,
-      ) => {
-        /**
-         * Codes and Entry References can look like numbers and get parsed
-         * appropriately. We don't want this to happen, as they contain leading
-         * zeros or are too long and overflow.
-         *
-         * Ex. <Cd>0001234<Cd> Should resolve to "0001234"
-         */
-        if (isLeafNode && ['Cd', 'NtryRef'].includes(tagName)) return undefined;
-        return tagValue;
-      },
+      /**
+       * Disable automatic numeric parsing. ISO 20022 fields are semantically
+       * strings (Max35Text, etc.). Numeric-looking values like AcctSvcrRef,
+       * EndToEndId, NtryRef, and Cd must stay as strings to preserve leading
+       * zeros and avoid precision loss on large numbers. Amounts are explicitly
+       * converted to numbers downstream via parseAmountToMinorUnits.
+       */
+      parseTagValue: false,
     });
   }
 

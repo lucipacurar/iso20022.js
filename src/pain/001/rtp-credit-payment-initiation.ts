@@ -9,7 +9,7 @@ import {
 import Dinero, { Currency } from 'dinero.js';
 import { sanitize, generateId } from '../../utils/format';
 import { PaymentInitiation } from './payment-initiation';
-import { XMLParser } from 'fast-xml-parser';
+import { XML } from '../../lib/interfaces';
 import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
 import {
   parseAccount,
@@ -217,7 +217,7 @@ export class RTPCreditPaymentInitiation extends PaymentInitiation {
   }
 
   public static fromXML(rawXml: string): RTPCreditPaymentInitiation {
-    const parser = new XMLParser({ ignoreAttributes: false });
+    const parser = XML.getParser();
     const xml = parser.parse(rawXml);
 
     if (!xml.Document) {

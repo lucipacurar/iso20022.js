@@ -1,5 +1,6 @@
 import Dinero, { Currency } from 'dinero.js';
-import { XMLBuilder, XMLParser } from 'fast-xml-parser';
+import { XMLBuilder } from 'fast-xml-parser';
+import { XML } from '../../lib/interfaces';
 import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
 import { Alpha2Country } from '../../lib/countries';
 import {
@@ -152,7 +153,7 @@ export class SWIFTCreditPaymentInitiation extends PaymentInitiation {
    * @returns {string} The XML representation of the payment initiation.
    */
   public static fromXML(rawXml: string): SWIFTCreditPaymentInitiation {
-    const parser = new XMLParser({ ignoreAttributes: false });
+    const parser = XML.getParser();
     const xml = parser.parse(rawXml);
 
     if (!xml.Document) {

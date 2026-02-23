@@ -24,8 +24,8 @@ import { Currency } from 'dinero.js';
 
 export const parseStatement = (stmt: any): Statement => {
   const id = stmt.Id.toString();
-  const electronicSequenceNumber = stmt.ElctrncSeqNb;
-  const legalSequenceNumber = stmt.LglSeqNb;
+  const electronicSequenceNumber = stmt.ElctrncSeqNb ? Number(stmt.ElctrncSeqNb) : undefined;
+  const legalSequenceNumber = stmt.LglSeqNb ? Number(stmt.LglSeqNb) : undefined;
   const creationDate = new Date(stmt.CreDtTm);
 
   let fromDate;
@@ -36,8 +36,8 @@ export const parseStatement = (stmt: any): Statement => {
   }
 
   // Txn Summaries
-  const numOfEntries = stmt.TxsSummry?.TtlNtries.NbOfNtries;
-  const sumOfEntries = stmt.TxsSummry?.TtlNtries.Sum;
+  const numOfEntries = stmt.TxsSummry?.TtlNtries.NbOfNtries != null ? Number(stmt.TxsSummry.TtlNtries.NbOfNtries) : undefined;
+  const sumOfEntries = stmt.TxsSummry?.TtlNtries.Sum != null ? Number(stmt.TxsSummry.TtlNtries.Sum) : undefined;
   const rawNetAmountOfEntries = stmt.TxsSummry?.TtlNtries.TtlNetNtryAmt;
   let netAmountOfEntries;
   // No currency information, default to USD
@@ -45,11 +45,11 @@ export const parseStatement = (stmt: any): Statement => {
     netAmountOfEntries = parseAmountToMinorUnits(rawNetAmountOfEntries);
   }
 
-  const numOfCreditEntries = stmt.TxsSummry?.TtlCdtNtries.NbOfNtries;
-  const sumOfCreditEntries = stmt.TxsSummry?.TtlCdtNtries.Sum;
+  const numOfCreditEntries = stmt.TxsSummry?.TtlCdtNtries.NbOfNtries != null ? Number(stmt.TxsSummry.TtlCdtNtries.NbOfNtries) : undefined;
+  const sumOfCreditEntries = stmt.TxsSummry?.TtlCdtNtries.Sum != null ? Number(stmt.TxsSummry.TtlCdtNtries.Sum) : undefined;
 
-  const numOfDebitEntries = stmt.TxsSummry?.TtlDbtNtries.NbOfNtries;
-  const sumOfDebitEntries = stmt.TxsSummry?.TtlDbtNtries.Sum;
+  const numOfDebitEntries = stmt.TxsSummry?.TtlDbtNtries.NbOfNtries != null ? Number(stmt.TxsSummry.TtlDbtNtries.NbOfNtries) : undefined;
+  const sumOfDebitEntries = stmt.TxsSummry?.TtlDbtNtries.Sum != null ? Number(stmt.TxsSummry.TtlDbtNtries.Sum) : undefined;
 
   // Get account information
   // TODO: Save account types here
@@ -217,7 +217,7 @@ export const parseEntry = (entry: any): Entry => {
   const referenceId = entry.NtryRef;
   const creditDebitIndicator = entry.CdtDbtInd === 'CRDT' ? 'credit' : 'debit';
   const bookingDate = parseDate(entry.BookgDt);
-  const reversal = entry.RvslInd === true;
+  const reversal = entry.RvslInd === true || entry.RvslInd === 'true';
   const rawAmount = entry.Amt['#text'];
   const currency = entry.Amt['@_Ccy'];
   const amount = parseAmountToMinorUnits(rawAmount, currency);

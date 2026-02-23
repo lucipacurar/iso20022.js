@@ -12,7 +12,7 @@ import type {
 import { PaymentInitiation } from '../001/payment-initiation';
 import { sanitize, generateId } from '../../utils/format';
 import Dinero, { type Currency } from 'dinero.js';
-import { XMLParser } from 'fast-xml-parser';
+import { XML } from '../../lib/interfaces';
 import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
 import {
   parseAccount,
@@ -376,7 +376,7 @@ export class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
    * @throws {InvalidXmlNamespaceError} If the namespace is not pain.008.
    */
   public static fromXML(rawXml: string): SEPADirectDebitPaymentInitiation {
-    const parser = new XMLParser({ ignoreAttributes: false });
+    const parser = XML.getParser();
     const xml = parser.parse(rawXml);
 
     // Validate XML structure

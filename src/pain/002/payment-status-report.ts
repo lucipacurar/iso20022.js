@@ -1,4 +1,4 @@
-import { XMLParser } from 'fast-xml-parser';
+import { XML } from '../../lib/interfaces';
 import { Party } from '../../lib/types';
 import { parseParty } from '../../parseUtils';
 import {
@@ -52,7 +52,7 @@ export class PaymentStatusReport {
    * @returns {PaymentStatusReport} A new PaymentStatusReport instance.
    */
   static fromXML(rawXml: string): PaymentStatusReport {
-    const parser = new XMLParser({ ignoreAttributes: false });
+    const parser = XML.getParser();
     const xml = parser.parse(rawXml);
     const customerPaymentStatusReport = xml.Document.CstmrPmtStsRpt;
     const rawCreationDate = customerPaymentStatusReport.GrpHdr.CreDtTm;

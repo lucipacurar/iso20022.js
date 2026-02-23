@@ -10,7 +10,7 @@ import {
 import { PaymentInitiation } from './payment-initiation';
 import { sanitize, generateId } from '../../utils/format';
 import Dinero, { Currency } from 'dinero.js';
-import { XMLParser } from 'fast-xml-parser';
+import { XML } from '../../lib/interfaces';
 import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
 import {
   parseAccount,
@@ -252,7 +252,7 @@ export class SEPACreditPaymentInitiation extends PaymentInitiation {
   }
 
   public static fromXML(rawXml: string): SEPACreditPaymentInitiation {
-    const parser = new XMLParser({ ignoreAttributes: false });
+    const parser = XML.getParser();
     const xml = parser.parse(rawXml);
 
     if (!xml.Document) {

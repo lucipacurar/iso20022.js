@@ -115,7 +115,7 @@ export const exportAgent = (agent: Agent): any => {
 
 // Parse raw currency data, turn into Dinero object and turn into minor units
 export const parseAmountToMinorUnits = (
-  rawAmount: number,
+  rawAmount: number | string,
   currency: Currency = 'USD',
 ): number => {
   const currencyObject = Dinero({

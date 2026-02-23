@@ -15,7 +15,7 @@ describe('parseAmountToMinorUnits', () => {
   });
 
   test('handles string input for amount', () => {
-    expect(parseAmountToMinorUnits('10.50' as any, 'USD')).toBe(1050);
+    expect(parseAmountToMinorUnits('10.50', 'USD')).toBe(1050);
   });
 
   test('uses USD as default currency', () => {

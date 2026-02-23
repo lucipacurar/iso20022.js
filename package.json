@@ -1,6 +1,6 @@
 {
   "name": "@lucianpacurar/iso20022.js",
-  "version": "0.2.13",
+  "version": "0.2.14",
   "readme": "README.md",
   "description": "Library to create payment messages.",
   "main": "dist/index.js",
@@ -76,7 +76,7 @@
   "dependencies": {
     "decimal.js": "^10.6.0",
     "dinero.js": "^1.9.1",
-    "fast-xml-parser": "^4.4.1",
+    "fast-xml-parser": "^5.3.7",
     "uuid": "^10.0.0"
   }
 }
