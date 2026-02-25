@@ -1681,6 +1681,93 @@ declare const BalanceTypeCodeDescriptionMap: {
 };
 type BalanceType = (typeof BalanceTypeCode)[keyof typeof BalanceTypeCode];
 
+/**
+ * Configuration interface for creating a CashManagementAccountReport instance.
+ */
+interface CashManagementAccountReportConfig {
+    /** Unique identifier for the message */
+    messageId: string;
+    /** Date and time when the report was created */
+    creationDate: Date;
+    /** Recipient (party without bank and institution) receiving the report */
+    recipient?: {
+        id?: string;
+        name?: string;
+        address?: StructuredAddress;
+    };
+    /** Array of bank account reports included in the report */
+    statements: Statement[];
+}
+/**
+ * Represents a Cash Management Account Report (CAMT.052.x).
+ * This class encapsulates the data and functionality related to processing
+ * and accessing information from a CAMT.052 XML file.
+ */
+declare class CashManagementAccountReport implements GenericISO20022Message {
+    private _messageId;
+    private _creationDate;
+    private _recipient?;
+    private _statements;
+    constructor(config: CashManagementAccountReportConfig);
+    static supportedMessages(): ISO20022MessageTypeName[];
+    get data(): CashManagementAccountReportConfig;
+    static fromDocumentObject(obj: {
+        Document: any;
+    }): CashManagementAccountReport;
+    /**
+     * Creates a CashManagementAccountReport instance from a raw XML string.
+     *
+     * @param {string} rawXml - The raw XML string containing the CAMT.052 data.
+     * @returns {CashManagementAccountReport} A new instance of CashManagementAccountReport.
+     * @throws {Error} If the XML parsing fails or required data is missing.
+     */
+    static fromXML(rawXml: string): CashManagementAccountReport;
+    /**
+     *
+     * @param json - JSON string representing a CashManagementAccountReport
+     * @returns {CashManagementAccountReport} A new instance of CashManagementAccountReport
+     * @throws {Error} If the JSON parsing fails or required data is missing.
+     */
+    static fromJSON(json: string): CashManagementAccountReport;
+    toJSON(): any;
+    serialize(): string;
+    /**
+     * Retrieves all balances from all statements in the report.
+     * @returns {Balance[]} An array of all balances across all statements.
+     */
+    get balances(): Balance[];
+    /**
+     * Retrieves all transactions from all statements in the report.
+     * @returns {Transaction[]} An array of all transactions across all statements.
+     */
+    get transactions(): Transaction[];
+    /**
+     * Retrieves all entries from all statements in the report.
+     * @returns {Entry[]} An array of all entries across all statements.
+     */
+    get entries(): Entry[];
+    /**
+     * Gets the unique identifier for the message.
+     * @returns {string} The message ID.
+     */
+    get messageId(): string;
+    /**
+     * Gets the party receiving the report.
+     * @returns {Party | undefined} The recipient party information, or undefined if no recipient is set.
+     */
+    get recipient(): Party | undefined;
+    /**
+     * Gets the date and time when the report was created.
+     * @returns {Date} The creation date of the report.
+     */
+    get creationDate(): Date;
+    /**
+     * Gets all statements included in the report.
+     * @returns {Statement[]} An array of all statements in the report.
+     */
+    get statements(): Statement[];
+}
+
 type AtLeastOne<T> = [T, ...T[]];
 /**
  * Configuration interface for the ISO20022 class.
@@ -2500,4 +2587,4 @@ declare class InvalidXmlNamespaceError extends Iso20022JsError {
     constructor(message: string);
 }
 
-export { type ABAAgent, ACHCreditPaymentInitiation, type ACHCreditPaymentInitiationConfig$1 as ACHCreditPaymentInitiationConfig, type ACHCreditPaymentInstruction, type ACHLocalInstrument, ACHLocalInstrumentCode, ACHLocalInstrumentCodeDescriptionMap, type Account, type Agent, type BICAgent, type Balance, type BalanceType, BalanceTypeCode, BalanceTypeCodeDescriptionMap, type BaseAccount, type BaseStatusInformation as BaseStatus, CashManagementEndOfDayReport, type Entry, type GroupStatusInformation as GroupStatus, type IBANAccount, ISO20022, InvalidXmlError, InvalidXmlNamespaceError, Iso20022JsError, type MandateAmendmentInformation, type MandateInformation, type OriginalGroupInformation, type Party, type PaymentStatusInformation as PaymentStatus, PaymentStatusCode, PaymentStatusReport, RTPCreditPaymentInitiation, type RTPCreditPaymentInitiationConfig$1 as RTPCreditPaymentInitiationConfig, type RTPCreditPaymentInstruction, SEPACreditPaymentInitiation, type SEPACreditPaymentInitiationConfig$1 as SEPACreditPaymentInitiationConfig, type SEPACreditPaymentInstruction, SEPADirectDebitPaymentInitiation, type SEPADirectDebitPaymentInitiationConfig$1 as SEPADirectDebitPaymentInitiationConfig, type SEPADirectDebitPaymentInstruction, type SEPADirectDebitPaymentInstructionGroup, type SEPALocalInstrument, SEPAMultiCreditPaymentInitiation, type SEPAMultiCreditPaymentInitiationConfig$1 as SEPAMultiCreditPaymentInitiationConfig, type SEPAMultiCreditPaymentInstructionGroup, type SEPASequenceType, SWIFTCreditPaymentInitiation, type SWIFTCreditPaymentInitiationConfig$1 as SWIFTCreditPaymentInitiationConfig, type SWIFTCreditPaymentInstruction, type Statement, type PaymentStatus as Status, type StatusInformation, type StatusType, type StructuredAddress, type Transaction, type TransactionStatusInformation as TransactionStatus };
+export { type ABAAgent, ACHCreditPaymentInitiation, type ACHCreditPaymentInitiationConfig$1 as ACHCreditPaymentInitiationConfig, type ACHCreditPaymentInstruction, type ACHLocalInstrument, ACHLocalInstrumentCode, ACHLocalInstrumentCodeDescriptionMap, type Account, type Agent, type BICAgent, type Balance, type BalanceType, BalanceTypeCode, BalanceTypeCodeDescriptionMap, type BaseAccount, type BaseStatusInformation as BaseStatus, CashManagementAccountReport, CashManagementEndOfDayReport, type Entry, type GroupStatusInformation as GroupStatus, type IBANAccount, ISO20022, InvalidXmlError, InvalidXmlNamespaceError, Iso20022JsError, type MandateAmendmentInformation, type MandateInformation, type OriginalGroupInformation, type Party, type PaymentStatusInformation as PaymentStatus, PaymentStatusCode, PaymentStatusReport, RTPCreditPaymentInitiation, type RTPCreditPaymentInitiationConfig$1 as RTPCreditPaymentInitiationConfig, type RTPCreditPaymentInstruction, SEPACreditPaymentInitiation, type SEPACreditPaymentInitiationConfig$1 as SEPACreditPaymentInitiationConfig, type SEPACreditPaymentInstruction, SEPADirectDebitPaymentInitiation, type SEPADirectDebitPaymentInitiationConfig$1 as SEPADirectDebitPaymentInitiationConfig, type SEPADirectDebitPaymentInstruction, type SEPADirectDebitPaymentInstructionGroup, type SEPALocalInstrument, SEPAMultiCreditPaymentInitiation, type SEPAMultiCreditPaymentInitiationConfig$1 as SEPAMultiCreditPaymentInitiationConfig, type SEPAMultiCreditPaymentInstructionGroup, type SEPASequenceType, SWIFTCreditPaymentInitiation, type SWIFTCreditPaymentInitiationConfig$1 as SWIFTCreditPaymentInitiationConfig, type SWIFTCreditPaymentInstruction, type Statement, type PaymentStatus as Status, type StatusInformation, type StatusType, type StructuredAddress, type Transaction, type TransactionStatusInformation as TransactionStatus };

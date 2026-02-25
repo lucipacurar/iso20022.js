@@ -7,6 +7,7 @@ export const ISO20022Messages: { [msg: string]: ISO20022MessageTypeName } = {
   CAMT_004: 'CAMT.004',
   CAMT_005: 'CAMT.005',
   CAMT_006: 'CAMT.006',
+  CAMT_052: 'CAMT.052',
   CAMT_053: 'CAMT.053',
 
   PAIN_001: 'PAIN.001',

@@ -2397,6 +2397,7 @@ const ISO20022Messages = {
     CAMT_004: 'CAMT.004',
     CAMT_005: 'CAMT.005',
     CAMT_006: 'CAMT.006',
+    CAMT_052: 'CAMT.052',
     CAMT_053: 'CAMT.053',
     PAIN_001: 'PAIN.001',
     PAIN_002: 'PAIN.002',
@@ -10668,6 +10669,161 @@ class CashManagementReturnTransaction {
 }
 registerISO20022Implementation(CashManagementReturnTransaction);
 
+/**
+ * Represents a Cash Management Account Report (CAMT.052.x).
+ * This class encapsulates the data and functionality related to processing
+ * and accessing information from a CAMT.052 XML file.
+ */
+class CashManagementAccountReport {
+    _messageId;
+    _creationDate;
+    _recipient;
+    _statements;
+    constructor(config) {
+        this._messageId = config.messageId;
+        this._creationDate = config.creationDate;
+        this._recipient = config.recipient;
+        this._statements = config.statements;
+    }
+    static supportedMessages() {
+        return [ISO20022Messages.CAMT_052];
+    }
+    get data() {
+        return {
+            messageId: this._messageId,
+            creationDate: this._creationDate,
+            recipient: this._recipient,
+            statements: this._statements,
+        };
+    }
+    static fromDocumentObject(obj) {
+        const bankToCustomerAcctRpt = obj.Document.BkToCstmrAcctRpt;
+        const rawCreationDate = bankToCustomerAcctRpt.GrpHdr.CreDtTm;
+        const creationDate = new Date(rawCreationDate);
+        let statements = [];
+        if (Array.isArray(bankToCustomerAcctRpt.Rpt)) {
+            statements = bankToCustomerAcctRpt.Rpt.map((stmt) => parseStatement(stmt));
+        }
+        else {
+            statements = [parseStatement(bankToCustomerAcctRpt.Rpt)];
+        }
+        const rawRecipient = bankToCustomerAcctRpt.GrpHdr.MsgRcpt;
+        return new CashManagementAccountReport({
+            messageId: bankToCustomerAcctRpt.GrpHdr.MsgId.toString(),
+            creationDate,
+            recipient: rawRecipient ? parseRecipient(rawRecipient) : undefined,
+            statements: statements,
+        });
+    }
+    /**
+     * Creates a CashManagementAccountReport instance from a raw XML string.
+     *
+     * @param {string} rawXml - The raw XML string containing the CAMT.052 data.
+     * @returns {CashManagementAccountReport} A new instance of CashManagementAccountReport.
+     * @throws {Error} If the XML parsing fails or required data is missing.
+     */
+    static fromXML(rawXml) {
+        const parser = XML.getParser();
+        const xml = parser.parse(rawXml);
+        if (!xml.Document) {
+            throw new InvalidXmlError('Invalid XML format');
+        }
+        const namespace = (xml.Document['@_xmlns'] ||
+            xml.Document['@_Xmlns']);
+        if (!namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:camt.052.001.')) {
+            throw new InvalidXmlNamespaceError('Invalid CAMT.052 namespace');
+        }
+        return CashManagementAccountReport.fromDocumentObject(xml);
+    }
+    /**
+     *
+     * @param json - JSON string representing a CashManagementAccountReport
+     * @returns {CashManagementAccountReport} A new instance of CashManagementAccountReport
+     * @throws {Error} If the JSON parsing fails or required data is missing.
+     */
+    static fromJSON(json) {
+        const obj = JSON.parse(json);
+        if (!obj.Document) {
+            throw new InvalidXmlError('Invalid JSON format');
+        }
+        return CashManagementAccountReport.fromDocumentObject(obj);
+    }
+    toJSON() {
+        const Document = {
+            BkToCstmrAcctRpt: {
+                GrpHdr: {
+                    MsgId: this._messageId,
+                    CreDtTm: this._creationDate.toISOString(),
+                    MsgRcpt: this._recipient
+                        ? exportRecipient(this._recipient)
+                        : undefined,
+                },
+                Rpt: this._statements.map(stmt => exportStatement(stmt)),
+            },
+        };
+        return { Document };
+    }
+    serialize() {
+        const builder = XML.getBuilder();
+        const obj = this.toJSON();
+        obj.Document['@_xmlns'] = 'urn:iso:std:iso:20022:tech:xsd:camt.052.001.02';
+        obj.Document['@_xmlns:xsi'] = 'http://www.w3.org/2001/XMLSchema-instance';
+        return builder.build(obj);
+    }
+    /**
+     * Retrieves all balances from all statements in the report.
+     * @returns {Balance[]} An array of all balances across all statements.
+     */
+    get balances() {
+        return this._statements.flatMap(statement => statement.balances);
+    }
+    /**
+     * Retrieves all transactions from all statements in the report.
+     * @returns {Transaction[]} An array of all transactions across all statements.
+     */
+    get transactions() {
+        return this._statements
+            .flatMap(statement => statement.entries)
+            .flatMap(entry => entry.transactions);
+    }
+    /**
+     * Retrieves all entries from all statements in the report.
+     * @returns {Entry[]} An array of all entries across all statements.
+     */
+    get entries() {
+        return this._statements.flatMap(statement => statement.entries);
+    }
+    /**
+     * Gets the unique identifier for the message.
+     * @returns {string} The message ID.
+     */
+    get messageId() {
+        return this._messageId;
+    }
+    /**
+     * Gets the party receiving the report.
+     * @returns {Party | undefined} The recipient party information, or undefined if no recipient is set.
+     */
+    get recipient() {
+        return this._recipient;
+    }
+    /**
+     * Gets the date and time when the report was created.
+     * @returns {Date} The creation date of the report.
+     */
+    get creationDate() {
+        return this._creationDate;
+    }
+    /**
+     * Gets all statements included in the report.
+     * @returns {Statement[]} An array of all statements in the report.
+     */
+    get statements() {
+        return this._statements;
+    }
+}
+registerISO20022Implementation(CashManagementAccountReport);
+
 // Types related to CAMT 053
 /**
  * Balance types as defined in ISO 20022.
@@ -11383,6 +11539,7 @@ exports.ACHLocalInstrumentCode = ACHLocalInstrumentCode;
 exports.ACHLocalInstrumentCodeDescriptionMap = ACHLocalInstrumentCodeDescriptionMap;
 exports.BalanceTypeCode = BalanceTypeCode;
 exports.BalanceTypeCodeDescriptionMap = BalanceTypeCodeDescriptionMap;
+exports.CashManagementAccountReport = CashManagementAccountReport;
 exports.CashManagementEndOfDayReport = CashManagementEndOfDayReport;
 exports.ISO20022 = ISO20022;
 exports.InvalidXmlError = InvalidXmlError;

@@ -106,6 +106,9 @@ export type {
 } from './pain/008/sepa-direct-debit-payment-initiation';
 export { SEPADirectDebitPaymentInitiation } from './pain/008/sepa-direct-debit-payment-initiation';
 
+// camt.052
+export { CashManagementAccountReport } from './camt/052/cash-management-account-report';
+
 // camt.053
 export type {
   Statement,

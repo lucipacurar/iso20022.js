@@ -59,6 +59,7 @@ export { PaymentStatusCode } from './pain/002/types';
 export { PaymentStatusReport } from './pain/002/payment-status-report';
 export type { SEPADirectDebitPaymentInitiationConfig, SEPADirectDebitPaymentInstructionGroup, } from './pain/008/sepa-direct-debit-payment-initiation';
 export { SEPADirectDebitPaymentInitiation } from './pain/008/sepa-direct-debit-payment-initiation';
+export { CashManagementAccountReport } from './camt/052/cash-management-account-report';
 export type { Statement, Balance, Entry, Transaction, BalanceType, } from './camt/types';
 export { BalanceTypeCode, BalanceTypeCodeDescriptionMap } from './camt/types';
 export { CashManagementEndOfDayReport } from './camt/053/cash-management-end-of-day-report';
