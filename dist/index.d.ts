@@ -1425,6 +1425,34 @@ declare class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
         RmtInf?: {
             Ustrd: string;
         } | undefined;
+        Dbtr: any;
+        DbtrAcct: {
+            Id: {
+                IBAN: string;
+            };
+        } | {
+            Id: {
+                Othr: {
+                    Id: string;
+                };
+            };
+        };
+        DbtrAgt?: {
+            FinInstnId: {
+                BIC: string;
+                ClrSysMmbId?: undefined;
+            };
+        } | {
+            FinInstnId: {
+                ClrSysMmbId: {
+                    ClrSysId: {
+                        Cd: string;
+                    };
+                    MmbId: string;
+                };
+                BIC?: undefined;
+            };
+        } | undefined;
         PmtId: {
             EndToEndId: string;
         };
@@ -1453,34 +1481,6 @@ declare class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
                 MndtId: string;
                 DtOfSgntr: string;
                 AmdmntInd: boolean;
-            };
-        };
-        DbtrAgt: {
-            FinInstnId: {
-                BIC: string;
-                ClrSysMmbId?: undefined;
-            };
-        } | {
-            FinInstnId: {
-                ClrSysMmbId: {
-                    ClrSysId: {
-                        Cd: string;
-                    };
-                    MmbId: string;
-                };
-                BIC?: undefined;
-            };
-        };
-        Dbtr: any;
-        DbtrAcct: {
-            Id: {
-                IBAN: string;
-            };
-        } | {
-            Id: {
-                Othr: {
-                    Id: string;
-                };
             };
         };
     };

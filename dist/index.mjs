@@ -8176,7 +8176,9 @@ class SEPACreditPaymentInitiation extends PaymentInitiation {
                         ReqdExctnDt: this.creationDate.toISOString().split('T').at(0),
                         Dbtr: this.party(this.initiatingParty),
                         DbtrAcct: this.account(this.initiatingParty.account),
-                        DbtrAgt: this.agent(this.initiatingParty.agent),
+                        ...(this.initiatingParty.agent && {
+                            DbtrAgt: this.agent(this.initiatingParty.agent),
+                        }),
                         ChrgBr: 'SLEV',
                         // payments[]
                         CdtTrfTxInf: this.paymentInstructions.map(p => this.creditTransfer(p)),
@@ -9371,7 +9373,9 @@ class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
                     }),
                 },
             },
-            DbtrAgt: this.agent(instruction.debtor.agent),
+            ...(instruction.debtor.agent && {
+                DbtrAgt: this.agent(instruction.debtor.agent),
+            }),
             Dbtr: this.party(instruction.debtor),
             DbtrAcct: this.account(instruction.debtor.account),
             ...(instruction.remittanceInformation && {
@@ -9420,7 +9424,9 @@ class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
                     .split('T')[0],
                 Cdtr: this.party(group.creditor),
                 CdtrAcct: this.account(group.creditor.account),
-                CdtrAgt: this.agent(group.creditor.agent),
+                ...(group.creditor.agent && {
+                    CdtrAgt: this.agent(group.creditor.agent),
+                }),
                 ChrgBr: 'SLEV',
                 CdtrSchmeId: {
                     Id: {

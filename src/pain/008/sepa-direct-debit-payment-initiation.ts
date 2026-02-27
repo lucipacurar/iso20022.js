@@ -256,7 +256,9 @@ export class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
             }),
         },
       },
-      DbtrAgt: this.agent(instruction.debtor.agent as Agent),
+      ...(instruction.debtor.agent && {
+        DbtrAgt: this.agent(instruction.debtor.agent as Agent),
+      }),
       Dbtr: this.party(instruction.debtor as Party),
       DbtrAcct: this.account(instruction.debtor.account as Account),
       ...(instruction.remittanceInformation && {
@@ -311,7 +313,9 @@ export class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
             .split('T')[0],
           Cdtr: this.party(group.creditor),
           CdtrAcct: this.account(group.creditor.account as Account),
-          CdtrAgt: this.agent(group.creditor.agent as Agent),
+          ...(group.creditor.agent && {
+            CdtrAgt: this.agent(group.creditor.agent as Agent),
+          }),
           ChrgBr: 'SLEV',
           CdtrSchmeId: {
             Id: {

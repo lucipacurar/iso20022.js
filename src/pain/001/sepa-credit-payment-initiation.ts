@@ -237,7 +237,9 @@ export class SEPACreditPaymentInitiation extends PaymentInitiation {
             ReqdExctnDt: this.creationDate.toISOString().split('T').at(0),
             Dbtr: this.party(this.initiatingParty),
             DbtrAcct: this.account(this.initiatingParty.account as Account),
-            DbtrAgt: this.agent(this.initiatingParty.agent as Agent),
+            ...(this.initiatingParty.agent && {
+              DbtrAgt: this.agent(this.initiatingParty.agent as Agent),
+            }),
             ChrgBr: 'SLEV',
             // payments[]
             CdtTrfTxInf: this.paymentInstructions.map(p =>
