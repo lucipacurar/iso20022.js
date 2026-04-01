@@ -1528,7 +1528,7 @@ interface Statement {
     /** Account details for which the statement is generated. */
     account: Account;
     /** Financial institution details. */
-    agent: Agent;
+    agent?: Agent;
     /** Total number of entries in the statement. */
     numOfEntries?: number;
     /** Sum of all entries in the statement. */

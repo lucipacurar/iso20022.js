@@ -9816,7 +9816,7 @@ const parseStatement = (stmt) => {
     // Get account information
     // TODO: Save account types here
     const account = parseAccount(stmt.Acct);
-    const agent = parseAgent(stmt.Acct.Svcr);
+    const agent = stmt.Acct.Svcr ? parseAgent(stmt.Acct.Svcr) : undefined;
     let balances = [];
     if (Array.isArray(stmt.Bal)) {
         balances = stmt.Bal.map(parseBalance);
@@ -9882,7 +9882,7 @@ const exportStatement = (stmt) => {
         },
         Acct: {
             ...exportAccount(stmt.account),
-            Svcr: exportAgent(stmt.agent),
+            Svcr: stmt.agent ? exportAgent(stmt.agent) : undefined,
         },
         Bal: stmt.balances.map(bal => exportBalance(bal)),
         Ntry: stmt.entries.map(entry => exportEntry(entry)),
