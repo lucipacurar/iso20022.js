@@ -7494,15 +7494,15 @@ const exportAccountIdentification = (accountId) => {
 };
 // TODO: Add both BIC and ABA routing numbers at the same time
 const parseAgent = (agent) => {
-    // Get BIC if it exists first
-    if (agent.FinInstnId.BIC) {
-        return {
-            bic: agent.FinInstnId.BIC,
-        };
+    const bic = agent.FinInstnId.BICFI || agent.FinInstnId.BIC;
+    if (bic) {
+        return { bic };
     }
-    return {
-        abaRoutingNumber: (agent.FinInstnId.Othr?.Id || agent.FinInstnId.ClrSysMmbId.MmbId).toString(),
-    };
+    const aba = agent.FinInstnId.Othr?.Id || agent.FinInstnId.ClrSysMmbId?.MmbId;
+    if (aba != null) {
+        return { abaRoutingNumber: String(aba) };
+    }
+    throw new Error('Unable to parse agent: no BIC, BICFI, Othr.Id, or ClrSysMmbId.MmbId present');
 };
 const exportAgent = (agent) => {
     const obj = {

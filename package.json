@@ -1,6 +1,6 @@
 {
   "name": "@lucianpacurar/iso20022.js",
-  "version": "0.2.17",
+  "version": "0.2.18",
   "readme": "README.md",
   "description": "Library to create payment messages.",
   "main": "dist/index.js",

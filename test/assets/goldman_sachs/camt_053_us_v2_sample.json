@@ -3,7 +3,7 @@
     "BkToCstmrStmt": {
       "GrpHdr": {
         "MsgId": "235549650",
-        "CreDtTm": "2023-10-05T12:43:51.979Z",
+        "CreDtTm": "2023-10-05T11:43:51.979Z",
         "MsgRcpt": {
           "Id": {
             "OrgId": {
@@ -20,7 +20,7 @@
           "Id": "258158850",
           "ElctrncSeqNb": 1,
           "LglSeqNb": 1,
-          "CreDtTm": "2023-10-05T12:43:52.098Z",
+          "CreDtTm": "2023-10-05T11:43:52.098Z",
           "FrToDt": {
             "FrDtTm": "2023-09-30",
             "ToDtTm": "2023-10-01"
@@ -67,7 +67,7 @@
                 }
               },
               "Dt": {
-                "DtTm": "2023-09-30T18:00:00.000Z"
+                "DtTm": "2023-09-30T17:00:00.000Z"
               }
             },
             {
@@ -82,7 +82,7 @@
                 }
               },
               "Dt": {
-                "DtTm": "2023-09-30T18:00:00.000Z"
+                "DtTm": "2023-09-30T17:00:00.000Z"
               }
             },
             {
@@ -121,7 +121,7 @@
               "NtryRef": "52198201",
               "CdtDbtInd": "CRDT",
               "BookgDt": {
-                "DtTm": "2023-10-01T11:37:14.000Z"
+                "DtTm": "2023-10-01T10:37:14.000Z"
               },
               "RvslInd": true,
               "Amt": {
@@ -160,7 +160,7 @@
               "NtryRef": "52198251",
               "CdtDbtInd": "DBIT",
               "BookgDt": {
-                "DtTm": "2023-10-01T11:37:11.000Z"
+                "DtTm": "2023-10-01T10:37:11.000Z"
               },
               "RvslInd": false,
               "Amt": {
@@ -207,7 +207,7 @@
               "NtryRef": "52198301",
               "CdtDbtInd": "CRDT",
               "BookgDt": {
-                "DtTm": "2023-10-01T11:36:04.000Z"
+                "DtTm": "2023-10-01T10:36:04.000Z"
               },
               "RvslInd": false,
               "Amt": {
@@ -320,7 +320,7 @@
                       "DbtrAcct": {
                         "Id": {
                           "Othr": {
-                            "Id": "6883105620"
+                            "Id": "06883105620"
                           }
                         },
                         "Nm": "TEST CLIENT"
@@ -461,10 +461,10 @@
                 {
                   "TxDtls": {
                     "Refs": {
-                      "MsgId": 5741312,
+                      "MsgId": "5741312",
                       "AcctSvcrRef": "GI2321400001068",
-                      "PmtInfId": 1,
-                      "EndToEndId": 5741412
+                      "PmtInfId": "1",
+                      "EndToEndId": "5741412"
                     },
                     "RmtInf": {
                       "Ustrd": "FFC"
@@ -545,7 +545,7 @@
                       "CdtrAgt": {
                         "FinInstnId": {
                           "Othr": {
-                            "Id": "10"
+                            "Id": "000000010"
                           }
                         }
                       }
@@ -654,7 +654,7 @@
               "NtryRef": "52198401",
               "CdtDbtInd": "CRDT",
               "BookgDt": {
-                "DtTm": "2023-10-01T16:39:54.000Z"
+                "DtTm": "2023-10-01T15:39:54.000Z"
               },
               "RvslInd": false,
               "Amt": {
@@ -675,8 +675,8 @@
                     "Refs": {
                       "MsgId": "FEDACHIN092820P",
                       "AcctSvcrRef": "B20092800009509",
-                      "PmtInfId": 1,
-                      "EndToEndId": 21000020000017
+                      "PmtInfId": "0000001",
+                      "EndToEndId": "021000020000017"
                     },
                     "RmtInf": {},
                     "Purp": {},
@@ -695,7 +695,7 @@
               "NtryRef": "52198451",
               "CdtDbtInd": "CRDT",
               "BookgDt": {
-                "DtTm": "2023-10-01T14:27:53.000Z"
+                "DtTm": "2023-10-01T13:27:53.000Z"
               },
               "RvslInd": true,
               "Amt": {
@@ -716,7 +716,7 @@
                     "Refs": {
                       "MsgId": "FEDACHIN092820G",
                       "AcctSvcrRef": "B20092800008542",
-                      "PmtInfId": 1,
+                      "PmtInfId": "0000001",
                       "EndToEndId": "GSKWTHM25VCGE5"
                     },
                     "RmtInf": {},
@@ -743,7 +743,7 @@
                       "DbtrAgt": {
                         "FinInstnId": {
                           "Othr": {
-                            "Id": "82000549"
+                            "Id": "082000549"
                           }
                         }
                       }
@@ -756,7 +756,7 @@
               "NtryRef": "52198501",
               "CdtDbtInd": "CRDT",
               "BookgDt": {
-                "DtTm": "2023-10-01T11:35:06.000Z"
+                "DtTm": "2023-10-01T10:35:06.000Z"
               },
               "RvslInd": false,
               "Amt": {
@@ -790,7 +790,7 @@
               "NtryRef": "52198551",
               "CdtDbtInd": "DBIT",
               "BookgDt": {
-                "DtTm": "2023-10-01T08:17:07.000Z"
+                "DtTm": "2023-10-01T07:17:07.000Z"
               },
               "RvslInd": false,
               "Amt": {
@@ -809,7 +809,7 @@
                 {
                   "TxDtls": {
                     "Refs": {
-                      "MsgId": 1058863,
+                      "MsgId": "1058863",
                       "AcctSvcrRef": "PB20092845805853",
                       "PmtInfId": "CLIENTID200928A0000001"
                     },

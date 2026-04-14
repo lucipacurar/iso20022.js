@@ -87,18 +87,20 @@ export const exportAccountIdentification = (
 
 // TODO: Add both BIC and ABA routing numbers at the same time
 export const parseAgent = (agent: any): Agent => {
-  // Get BIC if it exists first
-  if (agent.FinInstnId.BIC) {
-    return {
-      bic: agent.FinInstnId.BIC,
-    } as Agent;
+  const bic = agent.FinInstnId.BICFI || agent.FinInstnId.BIC;
+  if (bic) {
+    return { bic } as Agent;
   }
 
-  return {
-    abaRoutingNumber: (
-      agent.FinInstnId.Othr?.Id || agent.FinInstnId.ClrSysMmbId.MmbId
-    ).toString(),
-  } as Agent;
+  const aba =
+    agent.FinInstnId.Othr?.Id || agent.FinInstnId.ClrSysMmbId?.MmbId;
+  if (aba != null) {
+    return { abaRoutingNumber: String(aba) } as Agent;
+  }
+
+  throw new Error(
+    'Unable to parse agent: no BIC, BICFI, Othr.Id, or ClrSysMmbId.MmbId present',
+  );
 };
 
 export const exportAgent = (agent: Agent): any => {
