@@ -1,7 +1,7 @@
 import { SWIFTCreditPaymentInitiation } from '../../../src/pain/001/swift-credit-payment-initiation';
 import ISO20022 from '../../../src/iso20022';
 import fs from 'fs';
-import libxmljs from 'libxmljs';
+import libxmljs from 'libxmljs2';
 import { SWIFTCreditPaymentInstruction } from 'index';
 
 describe('SWIFTCreditPaymentInitiation', () => {
@@ -165,8 +165,8 @@ describe('SWIFTCreditPaymentInitiation', () => {
             },
             address: {
               streetName: "Hauptstraße",
-              buildingNumber: 42,
-              postalCode: 10115,
+              buildingNumber: "42",
+              postalCode: "10115",
               townName: "Berlin",
               country: "DE"
             }

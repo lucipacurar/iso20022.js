@@ -1,5 +1,5 @@
 import { ACHCreditPaymentInitiation, ACHCreditPaymentInitiationConfig } from "../../../src/pain/001/ach-credit-payment-initiation";
-import libxmljs from 'libxmljs';
+import libxmljs from 'libxmljs2';
 import * as fs from 'fs';
 import { Alpha2Country } from "../../../src/lib/countries";
 import ISO20022 from '../../../src/iso20022';
@@ -199,7 +199,7 @@ describe('ACHCreditPaymentInitiation', () => {
             expect(achPayment.paymentInstructions[0].amount).toBe(1);
             expect(achPayment.paymentInstructions[0].currency).toBe("USD");
             expect(achPayment.paymentInstructions[0].creditor.name).toBe("John Doe Funding LLC");
-            expect((achPayment.paymentInstructions[0]?.creditor?.account as BaseAccount)?.accountNumber).toBe("123456789");
+            expect((achPayment.paymentInstructions[0]?.creditor?.account as BaseAccount)?.accountNumber).toBe("0123456789");
             expect((achPayment.paymentInstructions[0]?.creditor.agent as ABAAgent)?.abaRoutingNumber ).toBe("123456789");
             expect(achPayment.paymentInstructions[0]?.creditor.address?.streetName).toBe("999 Any Avenue");
             expect(achPayment.paymentInstructions[0]?.creditor.address?.postalCode).toBe("10000");
