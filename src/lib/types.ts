@@ -495,6 +495,12 @@ export interface SEPADirectDebitPaymentInstruction extends PaymentInstruction {
   type?: 'sepa';
   direction?: 'debit';
   currency: 'EUR';
+  /**
+   * Optional instruction identification. When provided, emitted as `<InstrId>`
+   * inside `<PmtId>` (before `<EndToEndId>`). Max 35 characters. Required to
+   * echo as `OrgnlInstrId` in pain.007 reversals.
+   */
+  instrId?: string;
   /** The party being debited (money is collected from this party) */
   debtor: Party;
   /** Mandate information authorizing the direct debit */

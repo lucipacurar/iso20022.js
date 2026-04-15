@@ -51,6 +51,11 @@ export interface SEPADirectDebitPaymentInstructionGroup {
   categoryPurpose?: ExternalCategoryPurpose;
   /** Indicates whether transactions should be booked in batch. Defaults to false. */
   batchBooking?: boolean;
+  /**
+   * Optional override for `<PmtInfId>`. When omitted, a UUID is generated.
+   * Max 35 characters. Required to echo as `OrgnlPmtInfId` in pain.007 reversals.
+   */
+  paymentInformationId?: string;
 }
 
 /**
@@ -166,8 +171,27 @@ export class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
       throw new Error('messageId must not exceed 35 characters');
     }
 
-    // Validate each group has same currency within its payments
     for (const group of this.paymentInstructions) {
+      if (group.paymentInformationId !== undefined) {
+        if (group.paymentInformationId.length === 0) {
+          throw new Error('paymentInformationId must not be empty');
+        }
+        if (group.paymentInformationId.length > 35) {
+          throw new Error('paymentInformationId must not exceed 35 characters');
+        }
+      }
+
+      for (const payment of group.payments) {
+        if (payment.instrId !== undefined) {
+          if (payment.instrId.length === 0) {
+            throw new Error('instrId must not be empty');
+          }
+          if (payment.instrId.length > 35) {
+            throw new Error('instrId must not exceed 35 characters');
+          }
+        }
+      }
+
       this.validateGroupInstructionsHaveSameCurrency(group.payments);
     }
   }
@@ -209,6 +233,9 @@ export class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
 
     return {
       PmtId: {
+        ...(instruction.instrId && {
+          InstrId: instruction.instrId,
+        }),
         EndToEndId: endToEndId,
       },
       InstdAmt: {
@@ -279,7 +306,7 @@ export class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
     // Generate one PmtInf entry per creditor group
     const paymentInfoEntries = this.paymentInstructions.map(
       (group) => {
-        const pmtInfId = generateId();
+        const pmtInfId = group.paymentInformationId ?? generateId();
         const localInstrument = group.localInstrument || 'CORE';
         const batchBooking =
           group.batchBooking !== undefined ? group.batchBooking : false;
@@ -493,6 +520,9 @@ export class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
         };
 
         return {
+          ...(inst.PmtId?.InstrId && {
+            instrId: inst.PmtId.InstrId.toString() as string,
+          }),
           ...(inst.PmtId.EndToEndId && {
             endToEndId: inst.PmtId.EndToEndId.toString() as string,
           }),
@@ -512,6 +542,10 @@ export class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
         };
       }) as AtLeastOne<SEPADirectDebitPaymentInstruction>;
 
+      const paymentInformationId = pmtInf.PmtInfId?.toString() as
+        | string
+        | undefined;
+
       return {
         creditor: groupCreditor,
         creditorSchemeId: creditorSchemeId,
@@ -521,6 +555,7 @@ export class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
         localInstrument: localInstrument,
         ...(categoryPurpose && { categoryPurpose }),
         batchBooking: batchBooking,
+        ...(paymentInformationId && { paymentInformationId }),
       };
     }) as AtLeastOne<SEPADirectDebitPaymentInstructionGroup>;
 
