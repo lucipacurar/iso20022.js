@@ -17,7 +17,8 @@
     "example:sepa": "npx tsx examples/sepa-credit-transfer.ts",
     "example:rtp": "npx tsx examples/rtp-credit-transfer.ts",
     "example:ach": "npx tsx examples/ach-credit-transfer.ts",
-    "coveralls": "npm run coverage && coveralls report"
+    "coveralls": "npm run coverage && coveralls report",
+    "prepare": "husky"
   },
   "exports": {
     ".": {
@@ -36,11 +37,6 @@
     "fintech",
     "payments"
   ],
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
-  },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,css,scss,md}": [
       "prettier --write"
