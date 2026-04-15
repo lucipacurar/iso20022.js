@@ -6,7 +6,7 @@ import {
   Party,
   RTPCreditPaymentInstruction,
 } from '../../lib/types';
-import Dinero, { Currency } from 'dinero.js';
+import { Currency, formatMinorUnits } from '../../lib/currencies';
 import { sanitize, generateId } from '../../utils/format';
 import { PaymentInitiation } from './payment-initiation';
 import { XML } from '../../lib/interfaces';
@@ -89,17 +89,8 @@ export class RTPCreditPaymentInitiation extends PaymentInitiation {
   private sumPaymentInstructions(
     instructions: AtLeastOne<RTPCreditPaymentInstruction>,
   ): string {
-    const instructionDineros = instructions.map(instruction =>
-      Dinero({ amount: instruction.amount, currency: instruction.currency }),
-    );
-    return instructionDineros
-      .reduce(
-        (acc: Dinero.Dinero, next): Dinero.Dinero => {
-          return acc.add(next as Dinero.Dinero);
-        },
-        Dinero({ amount: 0, currency: instructions[0].currency }),
-      )
-      .toFormat('0.00');
+    const total = instructions.reduce((acc, i) => acc + i.amount, 0);
+    return formatMinorUnits(total, instructions[0].currency);
   }
 
   /**
@@ -126,11 +117,6 @@ export class RTPCreditPaymentInitiation extends PaymentInitiation {
       instruction.endToEndId || instruction.id || generateId(),
       35,
     );
-    const dinero = Dinero({
-      amount: instruction.amount,
-      currency: instruction.currency,
-    });
-
     return {
       PmtId: {
         InstrId: paymentInstructionId,
@@ -138,7 +124,7 @@ export class RTPCreditPaymentInitiation extends PaymentInitiation {
       },
       Amt: {
         InstdAmt: {
-          '#': dinero.toFormat('0.00'),
+          '#': formatMinorUnits(instruction.amount, instruction.currency),
           '@Ccy': instruction.currency,
         },
       },

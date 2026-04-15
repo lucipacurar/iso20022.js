@@ -10,8 +10,11 @@ import {
   Party,
   StructuredAddress,
 } from 'lib/types';
-import { getCurrencyPrecision } from './lib/currencies';
-import Dinero, { Currency } from 'dinero.js';
+import {
+  Currency,
+  formatMinorUnits,
+  getCurrencyPrecision,
+} from './lib/currencies';
 import { Decimal } from 'decimal.js';
 
 export const parseAccount = (account: any): Account => {
@@ -115,33 +118,21 @@ export const exportAgent = (agent: Agent): any => {
   return obj;
 };
 
-// Parse raw currency data, turn into Dinero object and turn into minor units
+// Parse raw decimal currency data into integer minor units.
 export const parseAmountToMinorUnits = (
   rawAmount: number | string,
   currency: Currency = 'USD',
 ): number => {
-  const currencyObject = Dinero({
-    currency: currency,
-    precision: getCurrencyPrecision(currency),
-  });
-  // Also make sure Javascript number parsing error do not happen.
-  return new Decimal(rawAmount)
-    .mul(10 ** currencyObject.getPrecision())
-    .toNumber();
+  const precision = getCurrencyPrecision(currency);
+  // Decimal.js guards against JS float parsing errors (e.g. 0.29 * 100).
+  return new Decimal(rawAmount).mul(new Decimal(10).pow(precision)).toNumber();
 };
 
 export const exportAmountToString = (
   amount: number,
   currency: Currency = 'USD',
 ): string => {
-  const currencyObject = Dinero({
-    amount,
-    currency: currency,
-    precision: getCurrencyPrecision(currency),
-  });
-  const precision = currencyObject.getPrecision();
-  const zeroes = '0'.repeat(precision);
-  return currencyObject.toFormat('0' + (zeroes.length > 0 ? '.' + zeroes : ''));
+  return formatMinorUnits(amount, currency);
 };
 
 export const parseDate = (dateElement: any): Date => {

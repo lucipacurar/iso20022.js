@@ -1,5 +1,6 @@
-import { Currency } from 'dinero.js';
 import { XMLBuilder } from 'fast-xml-parser';
+
+type Currency = 'AED' | 'AFN' | 'ALL' | 'AMD' | 'ANG' | 'AOA' | 'ARS' | 'AUD' | 'AWG' | 'AZN' | 'BAM' | 'BBD' | 'BDT' | 'BGN' | 'BHD' | 'BIF' | 'BMD' | 'BND' | 'BOB' | 'BOV' | 'BRL' | 'BSD' | 'BTN' | 'BWP' | 'BYN' | 'BZD' | 'CAD' | 'CDF' | 'CHE' | 'CHF' | 'CHW' | 'CLF' | 'CLP' | 'CNY' | 'COP' | 'COU' | 'CRC' | 'CUC' | 'CUP' | 'CVE' | 'CZK' | 'DJF' | 'DKK' | 'DOP' | 'DZD' | 'EGP' | 'ERN' | 'ETB' | 'EUR' | 'FJD' | 'FKP' | 'GBP' | 'GEL' | 'GHS' | 'GIP' | 'GMD' | 'GNF' | 'GTQ' | 'GYD' | 'HKD' | 'HNL' | 'HTG' | 'HUF' | 'IDR' | 'ILS' | 'INR' | 'IQD' | 'IRR' | 'ISK' | 'JMD' | 'JOD' | 'JPY' | 'KES' | 'KGS' | 'KHR' | 'KMF' | 'KPW' | 'KRW' | 'KWD' | 'KYD' | 'KZT' | 'LAK' | 'LBP' | 'LKR' | 'LRD' | 'LSL' | 'LYD' | 'MAD' | 'MDL' | 'MGA' | 'MKD' | 'MMK' | 'MNT' | 'MOP' | 'MRU' | 'MUR' | 'MVR' | 'MWK' | 'MXN' | 'MXV' | 'MYR' | 'MZN' | 'NAD' | 'NGN' | 'NIO' | 'NOK' | 'NPR' | 'NZD' | 'OMR' | 'PAB' | 'PEN' | 'PGK' | 'PHP' | 'PKR' | 'PLN' | 'PYG' | 'QAR' | 'RON' | 'RSD' | 'RUB' | 'RWF' | 'SAR' | 'SBD' | 'SCR' | 'SDG' | 'SEK' | 'SGD' | 'SHP' | 'SLE' | 'SLL' | 'SOS' | 'SRD' | 'SSP' | 'STN' | 'SVC' | 'SYP' | 'SZL' | 'THB' | 'TJS' | 'TMT' | 'TND' | 'TOP' | 'TRY' | 'TTD' | 'TWD' | 'TZS' | 'UAH' | 'UGX' | 'USD' | 'USN' | 'UYI' | 'UYU' | 'UYW' | 'UZS' | 'VED' | 'VES' | 'VND' | 'VUV' | 'WST' | 'XAF' | 'XCD' | 'XOF' | 'XPF' | 'XSU' | 'XUA' | 'YER' | 'ZAR' | 'ZMW' | 'ZWL';
 
 declare const Alpha2CountryCode: {
     readonly AF: "AF";
@@ -570,6 +571,12 @@ interface SEPADirectDebitPaymentInstruction extends PaymentInstruction {
     type?: 'sepa';
     direction?: 'debit';
     currency: 'EUR';
+    /**
+     * Optional instruction identification. When provided, emitted as `<InstrId>`
+     * inside `<PmtId>` (before `<EndToEndId>`). Max 35 characters. Required to
+     * echo as `OrgnlInstrId` in pain.007 reversals.
+     */
+    instrId?: string;
     /** The party being debited (money is collected from this party) */
     debtor: Party;
     /** Mandate information authorizing the direct debit */
@@ -1335,6 +1342,11 @@ interface SEPADirectDebitPaymentInstructionGroup {
     categoryPurpose?: ExternalCategoryPurpose;
     /** Indicates whether transactions should be booked in batch. Defaults to false. */
     batchBooking?: boolean;
+    /**
+     * Optional override for `<PmtInfId>`. When omitted, a UUID is generated.
+     * Max 35 characters. Required to echo as `OrgnlPmtInfId` in pain.007 reversals.
+     */
+    paymentInformationId?: string;
 }
 /**
  * Configuration for SEPA Direct Debit Payment Initiation.
@@ -1455,6 +1467,7 @@ declare class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
         } | undefined;
         PmtId: {
             EndToEndId: string;
+            InstrId?: string | undefined;
         };
         InstdAmt: {
             '#': string;
@@ -2587,4 +2600,5 @@ declare class InvalidXmlNamespaceError extends Iso20022JsError {
     constructor(message: string);
 }
 
-export { type ABAAgent, ACHCreditPaymentInitiation, type ACHCreditPaymentInitiationConfig$1 as ACHCreditPaymentInitiationConfig, type ACHCreditPaymentInstruction, type ACHLocalInstrument, ACHLocalInstrumentCode, ACHLocalInstrumentCodeDescriptionMap, type Account, type Agent, type BICAgent, type Balance, type BalanceType, BalanceTypeCode, BalanceTypeCodeDescriptionMap, type BaseAccount, type BaseStatusInformation as BaseStatus, CashManagementAccountReport, CashManagementEndOfDayReport, type Entry, type GroupStatusInformation as GroupStatus, type IBANAccount, ISO20022, InvalidXmlError, InvalidXmlNamespaceError, Iso20022JsError, type MandateAmendmentInformation, type MandateInformation, type OriginalGroupInformation, type Party, type PaymentStatusInformation as PaymentStatus, PaymentStatusCode, PaymentStatusReport, RTPCreditPaymentInitiation, type RTPCreditPaymentInitiationConfig$1 as RTPCreditPaymentInitiationConfig, type RTPCreditPaymentInstruction, SEPACreditPaymentInitiation, type SEPACreditPaymentInitiationConfig$1 as SEPACreditPaymentInitiationConfig, type SEPACreditPaymentInstruction, SEPADirectDebitPaymentInitiation, type SEPADirectDebitPaymentInitiationConfig$1 as SEPADirectDebitPaymentInitiationConfig, type SEPADirectDebitPaymentInstruction, type SEPADirectDebitPaymentInstructionGroup, type SEPALocalInstrument, SEPAMultiCreditPaymentInitiation, type SEPAMultiCreditPaymentInitiationConfig$1 as SEPAMultiCreditPaymentInitiationConfig, type SEPAMultiCreditPaymentInstructionGroup, type SEPASequenceType, SWIFTCreditPaymentInitiation, type SWIFTCreditPaymentInitiationConfig$1 as SWIFTCreditPaymentInitiationConfig, type SWIFTCreditPaymentInstruction, type Statement, type PaymentStatus as Status, type StatusInformation, type StatusType, type StructuredAddress, type Transaction, type TransactionStatusInformation as TransactionStatus };
+export { ACHCreditPaymentInitiation, ACHLocalInstrumentCode, ACHLocalInstrumentCodeDescriptionMap, BalanceTypeCode, BalanceTypeCodeDescriptionMap, CashManagementAccountReport, CashManagementEndOfDayReport, ISO20022, InvalidXmlError, InvalidXmlNamespaceError, Iso20022JsError, PaymentStatusCode, PaymentStatusReport, RTPCreditPaymentInitiation, SEPACreditPaymentInitiation, SEPADirectDebitPaymentInitiation, SEPAMultiCreditPaymentInitiation, SWIFTCreditPaymentInitiation };
+export type { ABAAgent, ACHCreditPaymentInitiationConfig$1 as ACHCreditPaymentInitiationConfig, ACHCreditPaymentInstruction, ACHLocalInstrument, Account, Agent, BICAgent, Balance, BalanceType, BaseAccount, BaseStatusInformation as BaseStatus, Entry, GroupStatusInformation as GroupStatus, IBANAccount, MandateAmendmentInformation, MandateInformation, OriginalGroupInformation, Party, PaymentStatusInformation as PaymentStatus, RTPCreditPaymentInitiationConfig$1 as RTPCreditPaymentInitiationConfig, RTPCreditPaymentInstruction, SEPACreditPaymentInitiationConfig$1 as SEPACreditPaymentInitiationConfig, SEPACreditPaymentInstruction, SEPADirectDebitPaymentInitiationConfig$1 as SEPADirectDebitPaymentInitiationConfig, SEPADirectDebitPaymentInstruction, SEPADirectDebitPaymentInstructionGroup, SEPALocalInstrument, SEPAMultiCreditPaymentInitiationConfig$1 as SEPAMultiCreditPaymentInitiationConfig, SEPAMultiCreditPaymentInstructionGroup, SEPASequenceType, SWIFTCreditPaymentInitiationConfig$1 as SWIFTCreditPaymentInitiationConfig, SWIFTCreditPaymentInstruction, Statement, PaymentStatus as Status, StatusInformation, StatusType, StructuredAddress, Transaction, TransactionStatusInformation as TransactionStatus };

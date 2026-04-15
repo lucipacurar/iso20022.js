@@ -1,4 +1,4 @@
-import Dinero, { Currency } from 'dinero.js';
+import { Currency, minorUnitsToNumber } from '../../lib/currencies';
 import { XMLBuilder } from 'fast-xml-parser';
 import { XML } from '../../lib/interfaces';
 import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
@@ -116,10 +116,10 @@ export class SWIFTCreditPaymentInitiation extends PaymentInitiation {
       paymentInstruction.id || generateId(),
       35,
     );
-    const amount = Dinero({
-      amount: paymentInstruction.amount,
-      currency: paymentInstruction.currency,
-    }).toUnit();
+    const amount = minorUnitsToNumber(
+      paymentInstruction.amount,
+      paymentInstruction.currency,
+    );
 
     return {
       PmtId: {

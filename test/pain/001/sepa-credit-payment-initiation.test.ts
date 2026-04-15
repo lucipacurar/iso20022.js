@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { Alpha2Country } from "lib/countries";
 import libxmljs from 'libxmljs2';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID as uuidv4 } from 'node:crypto';
 import ISO20022 from '../../../src/iso20022';
 import { ExternalCategoryPurposeCode } from "../../../src/lib/types";
 import { SEPACreditPaymentInitiation, SEPACreditPaymentInitiationConfig } from "../../../src/pain/001/sepa-credit-payment-initiation";

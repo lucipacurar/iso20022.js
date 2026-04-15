@@ -1,7 +1,7 @@
 import { BusinessError } from '../types';
 import { GenericISO20022Message, ISO20022MessageTypeName } from '../../lib/interfaces';
 import { Agent, MessageHeader, Party } from '../../lib/types';
-import { Currency } from 'dinero.js';
+import { Currency } from '../../lib/currencies';
 export interface TransactionReport {
     msgId?: string;
     reqExecutionDate?: Date;

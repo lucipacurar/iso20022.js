@@ -1,5 +1,5 @@
 import { Account, AccountIdentification, Agent, MessageHeader, Party, StructuredAddress } from 'lib/types';
-import { Currency } from 'dinero.js';
+import { Currency } from './lib/currencies';
 export declare const parseAccount: (account: any) => Account;
 export declare const exportAccount: (account: Account) => any;
 export declare const parseAccountIdentification: (accountId: any) => AccountIdentification;

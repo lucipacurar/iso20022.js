@@ -1,4 +1,4 @@
-import { Currency } from 'dinero.js';
+import { Currency } from './currencies';
 import { Alpha2Country } from './countries';
 
 /**

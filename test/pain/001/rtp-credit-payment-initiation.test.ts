@@ -3,7 +3,7 @@ import libxmljs from 'libxmljs2';
 import fs from 'fs';
 import { Alpha2Country } from "lib/countries";
 import ISO20022 from '../../../src/iso20022';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID as uuidv4 } from 'node:crypto';
 import { ABAAgent, BaseAccount } from "index";
 
 describe('RTPCreditPaymentInitiation', () => {

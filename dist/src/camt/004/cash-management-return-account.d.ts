@@ -1,7 +1,7 @@
 import { BalanceInReport, BusinessError } from '../types';
 import { GenericISO20022Message, ISO20022MessageTypeName } from '../../lib/interfaces';
 import { AccountIdentification, CashAccountType, MessageHeader } from '../../lib/types';
-import { Currency } from 'dinero.js';
+import { Currency } from '../../lib/currencies';
 export interface AccountReport {
     currency: Currency;
     name?: string;

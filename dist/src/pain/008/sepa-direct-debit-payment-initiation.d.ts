@@ -30,6 +30,11 @@ export interface SEPADirectDebitPaymentInstructionGroup {
     categoryPurpose?: ExternalCategoryPurpose;
     /** Indicates whether transactions should be booked in batch. Defaults to false. */
     batchBooking?: boolean;
+    /**
+     * Optional override for `<PmtInfId>`. When omitted, a UUID is generated.
+     * Max 35 characters. Required to echo as `OrgnlPmtInfId` in pain.007 reversals.
+     */
+    paymentInformationId?: string;
 }
 /**
  * Configuration for SEPA Direct Debit Payment Initiation.
@@ -150,6 +155,7 @@ export declare class SEPADirectDebitPaymentInitiation extends PaymentInitiation 
         } | undefined;
         PmtId: {
             EndToEndId: string;
+            InstrId?: string | undefined;
         };
         InstdAmt: {
             '#': string;

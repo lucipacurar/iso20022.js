@@ -11,7 +11,7 @@ import type {
 } from '../../lib/types';
 import { PaymentInitiation } from '../001/payment-initiation';
 import { sanitize, generateId } from '../../utils/format';
-import Dinero, { type Currency } from 'dinero.js';
+import { type Currency, formatMinorUnits } from '../../lib/currencies';
 import { XML } from '../../lib/interfaces';
 import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
 import {
@@ -157,7 +157,7 @@ export class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
       throw new Error('No payments found');
     }
 
-    return Dinero({ amount: totalAmount, currency }).toFormat('0.00');
+    return formatMinorUnits(totalAmount, currency);
   }
 
   /**
@@ -226,11 +226,6 @@ export class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
       instruction.endToEndId || instruction.id || generateId(),
       35,
     );
-    const dinero = Dinero({
-      amount: instruction.amount,
-      currency: instruction.currency,
-    });
-
     return {
       PmtId: {
         ...(instruction.instrId && {
@@ -239,7 +234,7 @@ export class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
         EndToEndId: endToEndId,
       },
       InstdAmt: {
-        '#': dinero.toFormat('0.00'),
+        '#': formatMinorUnits(instruction.amount, instruction.currency),
         '@Ccy': instruction.currency,
       },
       DrctDbtTx: {
@@ -316,10 +311,7 @@ export class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
         for (const payment of group.payments) {
           groupSum += payment.amount;
         }
-        const groupCtrlSum = Dinero({
-          amount: groupSum,
-          currency: 'EUR',
-        }).toFormat('0.00');
+        const groupCtrlSum = formatMinorUnits(groupSum, 'EUR');
 
         return {
           PmtInfId: pmtInfId,

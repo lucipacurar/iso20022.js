@@ -1,4 +1,4 @@
-import { Currency } from 'dinero.js';
+import { Currency } from '../lib/currencies';
 import { Account, Agent, Party } from '../lib/types';
 /**
  * Represents a bank statement in the CAMT.053 format.

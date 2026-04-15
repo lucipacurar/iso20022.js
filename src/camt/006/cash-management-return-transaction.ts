@@ -17,7 +17,7 @@ import {
   parseParty as parsePartyExt,
 } from '../../parseUtils';
 import { exportBusinessError, parseBusinessError } from '../utils';
-import { Currency } from 'dinero.js';
+import { Currency } from '../../lib/currencies';
 
 export interface TransactionReport {
   msgId?: string;

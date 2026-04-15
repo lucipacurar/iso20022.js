@@ -24,7 +24,7 @@ import {
   parseBalanceReport,
   parseBusinessError,
 } from '../utils';
-import { Currency } from 'dinero.js';
+import { Currency } from '../../lib/currencies';
 
 export interface AccountReport {
   currency: Currency;

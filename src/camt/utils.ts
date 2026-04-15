@@ -20,7 +20,7 @@ import {
   parseAgent,
   parseAmountToMinorUnits,
 } from '../parseUtils';
-import { Currency } from 'dinero.js';
+import { Currency } from '../lib/currencies';
 
 export const parseStatement = (stmt: any): Statement => {
   const id = stmt.Id.toString();
