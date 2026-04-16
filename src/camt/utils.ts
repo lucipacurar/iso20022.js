@@ -24,7 +24,9 @@ import { Currency } from '../lib/currencies';
 
 export const parseStatement = (stmt: any): Statement => {
   const id = stmt.Id.toString();
-  const electronicSequenceNumber = stmt.ElctrncSeqNb ? Number(stmt.ElctrncSeqNb) : undefined;
+  const electronicSequenceNumber = stmt.ElctrncSeqNb
+    ? Number(stmt.ElctrncSeqNb)
+    : undefined;
   const legalSequenceNumber = stmt.LglSeqNb ? Number(stmt.LglSeqNb) : undefined;
   const creationDate = new Date(stmt.CreDtTm);
 
@@ -36,8 +38,14 @@ export const parseStatement = (stmt: any): Statement => {
   }
 
   // Txn Summaries
-  const numOfEntries = stmt.TxsSummry?.TtlNtries.NbOfNtries != null ? Number(stmt.TxsSummry.TtlNtries.NbOfNtries) : undefined;
-  const sumOfEntries = stmt.TxsSummry?.TtlNtries.Sum != null ? Number(stmt.TxsSummry.TtlNtries.Sum) : undefined;
+  const numOfEntries =
+    stmt.TxsSummry?.TtlNtries.NbOfNtries != null
+      ? Number(stmt.TxsSummry.TtlNtries.NbOfNtries)
+      : undefined;
+  const sumOfEntries =
+    stmt.TxsSummry?.TtlNtries.Sum != null
+      ? Number(stmt.TxsSummry.TtlNtries.Sum)
+      : undefined;
   const rawNetAmountOfEntries = stmt.TxsSummry?.TtlNtries.TtlNetNtryAmt;
   let netAmountOfEntries;
   // No currency information, default to USD
@@ -45,11 +53,23 @@ export const parseStatement = (stmt: any): Statement => {
     netAmountOfEntries = parseAmountToMinorUnits(rawNetAmountOfEntries);
   }
 
-  const numOfCreditEntries = stmt.TxsSummry?.TtlCdtNtries.NbOfNtries != null ? Number(stmt.TxsSummry.TtlCdtNtries.NbOfNtries) : undefined;
-  const sumOfCreditEntries = stmt.TxsSummry?.TtlCdtNtries.Sum != null ? Number(stmt.TxsSummry.TtlCdtNtries.Sum) : undefined;
+  const numOfCreditEntries =
+    stmt.TxsSummry?.TtlCdtNtries.NbOfNtries != null
+      ? Number(stmt.TxsSummry.TtlCdtNtries.NbOfNtries)
+      : undefined;
+  const sumOfCreditEntries =
+    stmt.TxsSummry?.TtlCdtNtries.Sum != null
+      ? Number(stmt.TxsSummry.TtlCdtNtries.Sum)
+      : undefined;
 
-  const numOfDebitEntries = stmt.TxsSummry?.TtlDbtNtries.NbOfNtries != null ? Number(stmt.TxsSummry.TtlDbtNtries.NbOfNtries) : undefined;
-  const sumOfDebitEntries = stmt.TxsSummry?.TtlDbtNtries.Sum != null ? Number(stmt.TxsSummry.TtlDbtNtries.Sum) : undefined;
+  const numOfDebitEntries =
+    stmt.TxsSummry?.TtlDbtNtries.NbOfNtries != null
+      ? Number(stmt.TxsSummry.TtlDbtNtries.NbOfNtries)
+      : undefined;
+  const sumOfDebitEntries =
+    stmt.TxsSummry?.TtlDbtNtries.Sum != null
+      ? Number(stmt.TxsSummry.TtlDbtNtries.Sum)
+      : undefined;
 
   // Get account information
   // TODO: Save account types here
@@ -299,7 +319,9 @@ const parseTransactionDetail = (transactionDetail: any): Transaction => {
   let debtorAccount;
   let debtorAgent;
   if (transactionDetail.RltdPties?.Dbtr) {
-    debtorName = transactionDetail.RltdPties.Dbtr.Nm;
+    debtorName =
+      transactionDetail.RltdPties.Dbtr.Nm ??
+      transactionDetail.RltdPties.Dbtr.Pty?.Nm;
   }
   if (transactionDetail.RltdPties?.DbtrAcct) {
     debtorAccount = parseAccount(transactionDetail.RltdPties.DbtrAcct);
@@ -322,7 +344,9 @@ const parseTransactionDetail = (transactionDetail: any): Transaction => {
   let creditorAccount;
   let creditorAgent;
   if (transactionDetail.RltdPties?.Cdtr) {
-    creditorName = transactionDetail.RltdPties.Cdtr.Nm;
+    creditorName =
+      transactionDetail.RltdPties.Cdtr.Nm ??
+      transactionDetail.RltdPties.Cdtr.Pty?.Nm;
   }
   if (transactionDetail.RltdPties?.CdtrAcct) {
     creditorAccount = parseAccount(transactionDetail.RltdPties.CdtrAcct);

@@ -7219,7 +7219,7 @@ const parseTransactionDetail = (transactionDetail) => {
     let debtorAccount;
     let debtorAgent;
     if (transactionDetail.RltdPties?.Dbtr) {
-        debtorName = transactionDetail.RltdPties.Dbtr.Nm;
+        debtorName = transactionDetail.RltdPties.Dbtr.Nm ?? transactionDetail.RltdPties.Dbtr.Pty?.Nm;
     }
     if (transactionDetail.RltdPties?.DbtrAcct) {
         debtorAccount = parseAccount(transactionDetail.RltdPties.DbtrAcct);
@@ -7240,7 +7240,7 @@ const parseTransactionDetail = (transactionDetail) => {
     let creditorAccount;
     let creditorAgent;
     if (transactionDetail.RltdPties?.Cdtr) {
-        creditorName = transactionDetail.RltdPties.Cdtr.Nm;
+        creditorName = transactionDetail.RltdPties.Cdtr.Nm ?? transactionDetail.RltdPties.Cdtr.Pty?.Nm;
     }
     if (transactionDetail.RltdPties?.CdtrAcct) {
         creditorAccount = parseAccount(transactionDetail.RltdPties.CdtrAcct);

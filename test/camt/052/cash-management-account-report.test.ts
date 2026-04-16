@@ -43,5 +43,19 @@ describe('CashManagementAccountReport', () => {
       expect(debit).toBeDefined();
       expect(debit?.creditor?.agent).toEqual({ bic: 'OTHRDEFFXXX' });
     });
+
+    it('parses debtor name from Pty wrapper', () => {
+      const credit = report.transactions.find(
+        t => t.remittanceInformation === 'Sample remittance credit',
+      );
+      expect(credit?.debtor?.name).toBe('Sample Debtor');
+    });
+
+    it('parses creditor name from Pty wrapper', () => {
+      const debit = report.transactions.find(
+        t => t.remittanceInformation === 'Sample remittance debit',
+      );
+      expect(debit?.creditor?.name).toBe('Sample Creditor');
+    });
   });
 });
