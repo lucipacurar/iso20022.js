@@ -7,7 +7,9 @@ import {
   BaseAccount,
   Agent,
   ABAAgent,
+  MandateInformation,
 } from '../../lib/types';
+import { XMLNS_PREFIX } from '../../lib/interfaces';
 
 /**
  * Abstract base class for ISO20022 payment initiation (PAIN) messages.
@@ -18,6 +20,19 @@ export abstract class PaymentInitiation {
 
   constructor({ type }: { type: 'swift' | 'rtp' | 'sepa' | 'ach' }) {
     this.type = type;
+  }
+
+  /**
+   * The schema identifier for this message type (e.g. 'pain.007.001.02').
+   */
+  abstract get schemaId(): string;
+
+  /**
+   * Returns the full XML namespace URI for this message type
+   * (e.g. 'urn:iso:std:iso:20022:tech:xsd:pain.007.001.02').
+   */
+  get namespace(): string {
+    return `${XMLNS_PREFIX}${this.schemaId}`;
   }
 
   /**
@@ -135,6 +150,56 @@ export abstract class PaymentInitiation {
         },
       };
     }
+  }
+
+  buildMandateRelatedInfo(mandate: MandateInformation) {
+    return {
+      MndtId: mandate.mandateId,
+      DtOfSgntr: mandate.dateOfSignature.toISOString().split('T')[0],
+      AmdmntInd: mandate.amendmentIndicator,
+      ...(mandate.amendmentIndicator &&
+        mandate.amendmentInformation && {
+          AmdmntInfDtls: {
+            ...(mandate.amendmentInformation.originalMandateId && {
+              OrgnlMndtId: mandate.amendmentInformation.originalMandateId,
+            }),
+            ...(mandate.amendmentInformation.originalCreditorSchemeId && {
+              OrgnlCdtrSchmeId: {
+                ...(mandate.amendmentInformation.originalCreditorSchemeId
+                  .name && {
+                  Nm: mandate.amendmentInformation.originalCreditorSchemeId
+                    .name,
+                }),
+                ...(mandate.amendmentInformation.originalCreditorSchemeId
+                  .id && {
+                  Id: {
+                    PrvtId: {
+                      Othr: {
+                        Id: mandate.amendmentInformation
+                          .originalCreditorSchemeId.id,
+                        SchmeNm: { Prtry: 'SEPA' },
+                      },
+                    },
+                  },
+                }),
+              },
+            }),
+          },
+        }),
+    };
+  }
+
+  buildCreditorSchemeId(schemeId: string) {
+    return {
+      Id: {
+        PrvtId: {
+          Othr: {
+            Id: schemeId,
+            SchmeNm: { Prtry: 'SEPA' },
+          },
+        },
+      },
+    };
   }
 
   /**

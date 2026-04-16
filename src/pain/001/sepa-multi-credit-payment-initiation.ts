@@ -10,7 +10,7 @@ import type {
 import { PaymentInitiation } from './payment-initiation';
 import { sanitize, generateId } from '../../utils/format';
 import { type Currency, formatMinorUnits } from '../../lib/currencies';
-import { XML } from '../../lib/interfaces';
+import { XML, XMLNS_PREFIX, ISO20022SchemaId } from '../../lib/interfaces';
 import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
 import {
   parseAccount,
@@ -90,6 +90,10 @@ export class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
   public paymentInstructions: AtLeastOne<SEPAMultiCreditPaymentInstructionGroup>;
   private formattedPaymentSum: string;
   private totalTransactionCount: number;
+
+  get schemaId(): string {
+    return ISO20022SchemaId.PAIN_001_001_03;
+  }
 
   /**
    * Creates an instance of SEPAMultiCreditPaymentInitiation.
@@ -225,38 +229,36 @@ export class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
     const builder = PaymentInitiation.getBuilder();
 
     // Generate one PmtInf entry per individual payment
-    const paymentInfoEntries = this.paymentInstructions.flatMap(
-      (group) => {
-        return group.payments.map((payment) => {
-          const pmtInfId = generateId();
-          const requestedExecutionDate =
-            payment.requestedPaymentExecutionDate || new Date();
+    const paymentInfoEntries = this.paymentInstructions.flatMap(group => {
+      return group.payments.map(payment => {
+        const pmtInfId = generateId();
+        const requestedExecutionDate =
+          payment.requestedPaymentExecutionDate || new Date();
 
-          const batchBooking =
-            group.batchBooking !== undefined ? group.batchBooking : false;
+        const batchBooking =
+          group.batchBooking !== undefined ? group.batchBooking : false;
 
-          return {
-            PmtInfId: pmtInfId,
-            PmtMtd: 'TRF',
-            BtchBookg: batchBooking,
-            NbOfTxs: '1',
-            CtrlSum: formatMinorUnits(payment.amount, payment.currency),
-            PmtTpInf: {
-              SvcLvl: { Cd: 'SEPA' },
-              ...(group.categoryPurpose && {
-                CtgyPurp: { Cd: group.categoryPurpose },
-              }),
-            },
-            ReqdExctnDt: requestedExecutionDate.toISOString().split('T')[0],
-            Dbtr: this.party(group.initiatingParty),
-            DbtrAcct: this.account(group.initiatingParty.account as Account),
-            DbtrAgt: this.agent(group.initiatingParty.agent as Agent),
-            ChrgBr: 'SLEV',
-            CdtTrfTxInf: this.creditTransfer(payment),
-          };
-        });
-      },
-    );
+        return {
+          PmtInfId: pmtInfId,
+          PmtMtd: 'TRF',
+          BtchBookg: batchBooking,
+          NbOfTxs: '1',
+          CtrlSum: formatMinorUnits(payment.amount, payment.currency),
+          PmtTpInf: {
+            SvcLvl: { Cd: 'SEPA' },
+            ...(group.categoryPurpose && {
+              CtgyPurp: { Cd: group.categoryPurpose },
+            }),
+          },
+          ReqdExctnDt: requestedExecutionDate.toISOString().split('T')[0],
+          Dbtr: this.party(group.initiatingParty),
+          DbtrAcct: this.account(group.initiatingParty.account as Account),
+          DbtrAgt: this.agent(group.initiatingParty.agent as Agent),
+          ChrgBr: 'SLEV',
+          CdtTrfTxInf: this.creditTransfer(payment),
+        };
+      });
+    });
 
     const xml = {
       '?xml': {
@@ -264,10 +266,9 @@ export class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
         '@encoding': 'UTF-8',
       },
       Document: {
-        '@xmlns': 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.03',
+        '@xmlns': this.namespace,
         '@xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-        '@xsi:schemaLocation':
-          'urn:iso:std:iso:20022:tech:xsd:pain.001.001.03 pain.001.001.03.xsd',
+        '@xsi:schemaLocation': `${this.namespace} ${this.schemaId}.xsd`,
         CstmrCdtTrfInitn: {
           GrpHdr: {
             MsgId: this.messageId,
@@ -316,7 +317,9 @@ export class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
     const namespace = (xml.Document['@_xmlns'] ||
       xml.Document['@_Xmlns']) as string;
     if (
-      !namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:pain.001.001.03')
+      !namespace.startsWith(
+        `${XMLNS_PREFIX}${ISO20022SchemaId.PAIN_001_001_03}`,
+      )
     ) {
       throw new InvalidXmlNamespaceError('Invalid PAIN.001 namespace');
     }

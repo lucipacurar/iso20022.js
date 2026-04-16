@@ -1,6 +1,6 @@
 import { Currency, minorUnitsToNumber } from '../../lib/currencies';
 import { XMLBuilder } from 'fast-xml-parser';
-import { XML } from '../../lib/interfaces';
+import { XML, XMLNS_PREFIX, ISO20022SchemaId } from '../../lib/interfaces';
 import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
 import { Alpha2Country } from '../../lib/countries';
 import {
@@ -60,6 +60,10 @@ export class SWIFTCreditPaymentInitiation extends PaymentInitiation {
   public creationDate: Date;
   public paymentInstructions: SWIFTCreditPaymentInstruction[];
   public paymentInformationId: string;
+
+  get schemaId(): string {
+    return ISO20022SchemaId.PAIN_001_001_03;
+  }
 
   /**
    * Creates an instance of SWIFTCreditPaymentInitiation.
@@ -162,7 +166,7 @@ export class SWIFTCreditPaymentInitiation extends PaymentInitiation {
 
     const namespace = (xml.Document['@_xmlns'] ||
       xml.Document['@_Xmlns']) as string;
-    if (!namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:pain.001.001')) {
+    if (!namespace.startsWith(`${XMLNS_PREFIX}pain.001.001`)) {
       throw new InvalidXmlNamespaceError('Invalid PAIN.001 namespace');
     }
 
@@ -246,7 +250,7 @@ export class SWIFTCreditPaymentInitiation extends PaymentInitiation {
         '@encoding': 'UTF-8',
       },
       Document: {
-        '@xmlns': 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.03',
+        '@xmlns': this.namespace,
         CstmrCdtTrfInitn: {
           GrpHdr: {
             MsgId: this.messageId,

@@ -1,6 +1,7 @@
 import type {
   Account,
   Agent,
+  AtLeastOne,
   BICAgent,
   ExternalCategoryPurpose,
   IBANAccount,
@@ -12,15 +13,14 @@ import type {
 import { PaymentInitiation } from '../001/payment-initiation';
 import { sanitize, generateId } from '../../utils/format';
 import { type Currency, formatMinorUnits } from '../../lib/currencies';
-import { XML } from '../../lib/interfaces';
+import { XML, XMLNS_PREFIX, ISO20022SchemaId } from '../../lib/interfaces';
 import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
 import {
   parseAccount,
   parseAgent,
   parseAmountToMinorUnits,
+  parseMandate,
 } from '../../parseUtils';
-
-type AtLeastOne<T> = [T, ...T[]];
 
 /**
  * Represents a group of direct debit payment instructions for a single creditor (PmtInf block).
@@ -108,6 +108,10 @@ export class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
   public paymentInstructions: AtLeastOne<SEPADirectDebitPaymentInstructionGroup>;
   private formattedPaymentSum: string;
   private totalTransactionCount: number;
+
+  get schemaId(): string {
+    return ISO20022SchemaId.PAIN_008_001_02;
+  }
 
   /**
    * Creates an instance of SEPADirectDebitPaymentInitiation.
@@ -238,45 +242,7 @@ export class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
         '@Ccy': instruction.currency,
       },
       DrctDbtTx: {
-        MndtRltdInf: {
-          MndtId: instruction.mandate.mandateId,
-          DtOfSgntr: instruction.mandate.dateOfSignature
-            .toISOString()
-            .split('T')[0],
-          AmdmntInd: instruction.mandate.amendmentIndicator,
-          ...(instruction.mandate.amendmentIndicator &&
-            instruction.mandate.amendmentInformation && {
-              AmdmntInfDtls: {
-                ...(instruction.mandate.amendmentInformation
-                  .originalMandateId && {
-                  OrgnlMndtId:
-                    instruction.mandate.amendmentInformation.originalMandateId,
-                }),
-                ...(instruction.mandate.amendmentInformation
-                  .originalCreditorSchemeId && {
-                  OrgnlCdtrSchmeId: {
-                    ...(instruction.mandate.amendmentInformation
-                      .originalCreditorSchemeId.name && {
-                      Nm: instruction.mandate.amendmentInformation
-                        .originalCreditorSchemeId.name,
-                    }),
-                    ...(instruction.mandate.amendmentInformation
-                      .originalCreditorSchemeId.id && {
-                      Id: {
-                        PrvtId: {
-                          Othr: {
-                            Id: instruction.mandate.amendmentInformation
-                              .originalCreditorSchemeId.id,
-                            SchmeNm: { Prtry: 'SEPA' },
-                          },
-                        },
-                      },
-                    }),
-                  },
-                }),
-              },
-            }),
-        },
+        MndtRltdInf: this.buildMandateRelatedInfo(instruction.mandate),
       },
       ...(instruction.debtor.agent && {
         DbtrAgt: this.agent(instruction.debtor.agent as Agent),
@@ -299,59 +265,46 @@ export class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
     const builder = PaymentInitiation.getBuilder();
 
     // Generate one PmtInf entry per creditor group
-    const paymentInfoEntries = this.paymentInstructions.map(
-      (group) => {
-        const pmtInfId = group.paymentInformationId ?? generateId();
-        const localInstrument = group.localInstrument || 'CORE';
-        const batchBooking =
-          group.batchBooking !== undefined ? group.batchBooking : false;
+    const paymentInfoEntries = this.paymentInstructions.map(group => {
+      const pmtInfId = group.paymentInformationId ?? generateId();
+      const localInstrument = group.localInstrument || 'CORE';
+      const batchBooking =
+        group.batchBooking !== undefined ? group.batchBooking : false;
 
-        // Calculate sum for this group
-        let groupSum = 0;
-        for (const payment of group.payments) {
-          groupSum += payment.amount;
-        }
-        const groupCtrlSum = formatMinorUnits(groupSum, 'EUR');
+      // Calculate sum for this group
+      let groupSum = 0;
+      for (const payment of group.payments) {
+        groupSum += payment.amount;
+      }
+      const groupCtrlSum = formatMinorUnits(groupSum, 'EUR');
 
-        return {
-          PmtInfId: pmtInfId,
-          PmtMtd: 'DD',
-          BtchBookg: batchBooking,
-          NbOfTxs: group.payments.length.toString(),
-          CtrlSum: groupCtrlSum,
-          PmtTpInf: {
-            SvcLvl: { Cd: 'SEPA' },
-            LclInstrm: { Cd: localInstrument },
-            SeqTp: group.sequenceType,
-            ...(group.categoryPurpose && {
-              CtgyPurp: { Cd: group.categoryPurpose },
-            }),
-          },
-          ReqdColltnDt: group.requestedCollectionDate
-            .toISOString()
-            .split('T')[0],
-          Cdtr: this.party(group.creditor),
-          CdtrAcct: this.account(group.creditor.account as Account),
-          ...(group.creditor.agent && {
-            CdtrAgt: this.agent(group.creditor.agent as Agent),
+      return {
+        PmtInfId: pmtInfId,
+        PmtMtd: 'DD',
+        BtchBookg: batchBooking,
+        NbOfTxs: group.payments.length.toString(),
+        CtrlSum: groupCtrlSum,
+        PmtTpInf: {
+          SvcLvl: { Cd: 'SEPA' },
+          LclInstrm: { Cd: localInstrument },
+          SeqTp: group.sequenceType,
+          ...(group.categoryPurpose && {
+            CtgyPurp: { Cd: group.categoryPurpose },
           }),
-          ChrgBr: 'SLEV',
-          CdtrSchmeId: {
-            Id: {
-              PrvtId: {
-                Othr: {
-                  Id: group.creditorSchemeId,
-                  SchmeNm: { Prtry: 'SEPA' },
-                },
-              },
-            },
-          },
-          DrctDbtTxInf: group.payments.map(payment =>
-            this.directDebitTransfer(payment),
-          ),
-        };
-      },
-    );
+        },
+        ReqdColltnDt: group.requestedCollectionDate.toISOString().split('T')[0],
+        Cdtr: this.party(group.creditor),
+        CdtrAcct: this.account(group.creditor.account as Account),
+        ...(group.creditor.agent && {
+          CdtrAgt: this.agent(group.creditor.agent as Agent),
+        }),
+        ChrgBr: 'SLEV',
+        CdtrSchmeId: this.buildCreditorSchemeId(group.creditorSchemeId),
+        DrctDbtTxInf: group.payments.map(payment =>
+          this.directDebitTransfer(payment),
+        ),
+      };
+    });
 
     const xml = {
       '?xml': {
@@ -359,10 +312,9 @@ export class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
         '@encoding': 'UTF-8',
       },
       Document: {
-        '@xmlns': 'urn:iso:std:iso:20022:tech:xsd:pain.008.001.02',
+        '@xmlns': this.namespace,
         '@xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-        '@xsi:schemaLocation':
-          'urn:iso:std:iso:20022:tech:xsd:pain.008.001.02 pain.008.001.02.xsd',
+        '@xsi:schemaLocation': `${this.namespace} ${this.schemaId}.xsd`,
         CstmrDrctDbtInitn: {
           GrpHdr: {
             MsgId: this.messageId,
@@ -410,7 +362,7 @@ export class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
     // Validate namespace
     const namespace = (xml.Document['@_xmlns'] ||
       xml.Document['@_Xmlns']) as string;
-    if (!namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:pain.008')) {
+    if (!namespace.startsWith(`${XMLNS_PREFIX}pain.008`)) {
       throw new InvalidXmlNamespaceError('Invalid PAIN.008 namespace');
     }
 
@@ -479,37 +431,7 @@ export class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
           currency,
         );
 
-        // Parse mandate information
-        const mandateInfo = inst.DrctDbtTx?.MndtRltdInf;
-        const mandate = {
-          mandateId: mandateInfo?.MndtId as string,
-          dateOfSignature: new Date(mandateInfo?.DtOfSgntr as string),
-          amendmentIndicator:
-            mandateInfo?.AmdmntInd === 'true' ||
-            mandateInfo?.AmdmntInd === true,
-          ...(mandateInfo?.AmdmntInd &&
-            mandateInfo?.AmdmntInfDtls && {
-              amendmentInformation: {
-                ...(mandateInfo.AmdmntInfDtls.OrgnlMndtId && {
-                  originalMandateId: mandateInfo.AmdmntInfDtls
-                    .OrgnlMndtId as string,
-                }),
-                ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId && {
-                  originalCreditorSchemeId: {
-                    ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Nm && {
-                      name: mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId
-                        .Nm as string,
-                    }),
-                    ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Id?.PrvtId
-                      ?.Othr?.Id && {
-                      id: mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Id.PrvtId
-                        .Othr.Id as string,
-                    }),
-                  },
-                }),
-              },
-            }),
-        };
+        const mandate = parseMandate(inst.DrctDbtTx?.MndtRltdInf);
 
         return {
           ...(inst.PmtId?.InstrId && {

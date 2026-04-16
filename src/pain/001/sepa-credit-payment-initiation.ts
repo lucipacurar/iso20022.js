@@ -10,7 +10,7 @@ import {
 import { PaymentInitiation } from './payment-initiation';
 import { sanitize, generateId } from '../../utils/format';
 import { Currency, formatMinorUnits } from '../../lib/currencies';
-import { XML } from '../../lib/interfaces';
+import { XML, XMLNS_PREFIX, ISO20022SchemaId } from '../../lib/interfaces';
 import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
 import {
   parseAccount,
@@ -72,6 +72,10 @@ export class SEPACreditPaymentInitiation extends PaymentInitiation {
   public paymentInformationId: string;
   public categoryPurpose?: ExternalCategoryPurpose;
   private formattedPaymentSum: string;
+
+  get schemaId(): string {
+    return ISO20022SchemaId.PAIN_001_001_03;
+  }
 
   /**
    * Creates an instance of SEPACreditPaymentInitiation.
@@ -188,7 +192,7 @@ export class SEPACreditPaymentInitiation extends PaymentInitiation {
         '@encoding': 'UTF-8',
       },
       Document: {
-        '@xmlns': 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.03',
+        '@xmlns': this.namespace,
         '@xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
         CstmrCdtTrfInitn: {
           GrpHdr: {
@@ -250,7 +254,9 @@ export class SEPACreditPaymentInitiation extends PaymentInitiation {
     const namespace = (xml.Document['@_xmlns'] ||
       xml.Document['@_Xmlns']) as string;
     if (
-      !namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:pain.001.001.03')
+      !namespace.startsWith(
+        `${XMLNS_PREFIX}${ISO20022SchemaId.PAIN_001_001_03}`,
+      )
     ) {
       throw new InvalidXmlNamespaceError('Invalid PAIN.001 namespace');
     }

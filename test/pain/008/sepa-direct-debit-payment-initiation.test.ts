@@ -5,6 +5,7 @@ import {
   SEPADirectDebitPaymentInstructionGroup,
 } from '../../../src/pain/008/sepa-direct-debit-payment-initiation';
 import { SEPADirectDebitPaymentInstruction } from '../../../src/lib/types';
+import { validateAgainstXsd } from '../../helpers/xsd';
 
 describe('SEPADirectDebitPaymentInitiation', () => {
   const initiatingParty = {
@@ -90,14 +91,16 @@ describe('SEPADirectDebitPaymentInitiation', () => {
 
     test('rejects values longer than 35 characters', () => {
       const group = makeGroup({ paymentInformationId: 'a'.repeat(36) });
-      expect(() => new SEPADirectDebitPaymentInitiation(makeConfig(group)))
-        .toThrow('paymentInformationId must not exceed 35 characters');
+      expect(
+        () => new SEPADirectDebitPaymentInitiation(makeConfig(group)),
+      ).toThrow('paymentInformationId must not exceed 35 characters');
     });
 
     test('rejects empty string', () => {
       const group = makeGroup({ paymentInformationId: '' });
-      expect(() => new SEPADirectDebitPaymentInitiation(makeConfig(group)))
-        .toThrow('paymentInformationId must not be empty');
+      expect(
+        () => new SEPADirectDebitPaymentInitiation(makeConfig(group)),
+      ).toThrow('paymentInformationId must not be empty');
     });
   });
 
@@ -122,14 +125,16 @@ describe('SEPADirectDebitPaymentInitiation', () => {
 
     test('rejects values longer than 35 characters', () => {
       const group = makeGroup({}, { instrId: 'a'.repeat(36) });
-      expect(() => new SEPADirectDebitPaymentInitiation(makeConfig(group)))
-        .toThrow('instrId must not exceed 35 characters');
+      expect(
+        () => new SEPADirectDebitPaymentInitiation(makeConfig(group)),
+      ).toThrow('instrId must not exceed 35 characters');
     });
 
     test('rejects empty string', () => {
       const group = makeGroup({}, { instrId: '' });
-      expect(() => new SEPADirectDebitPaymentInitiation(makeConfig(group)))
-        .toThrow('instrId must not be empty');
+      expect(
+        () => new SEPADirectDebitPaymentInitiation(makeConfig(group)),
+      ).toThrow('instrId must not be empty');
     });
   });
 
@@ -166,6 +171,16 @@ describe('SEPADirectDebitPaymentInitiation', () => {
       const xml = payment.serialize();
       expect(xml).toMatch(/<PmtInfId>[0-9a-f]{32}<\/PmtInfId>/);
       expect(xml).not.toMatch(/<InstrId>/);
+    });
+  });
+
+  describe('XSD validation', () => {
+    test('serialized XML validates against pain.008.001.02 XSD', () => {
+      const payment = new SEPADirectDebitPaymentInitiation(makeConfig());
+      const xml = payment.serialize();
+      expect(() =>
+        validateAgainstXsd(xml, 'schemas/pain/pain.008.001.02.xsd'),
+      ).not.toThrow();
     });
   });
 });

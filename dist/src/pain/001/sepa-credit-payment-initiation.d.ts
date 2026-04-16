@@ -1,4 +1,8 @@
-import { ExternalCategoryPurpose, Party, SEPACreditPaymentInstruction } from '../../lib/types';
+import {
+  ExternalCategoryPurpose,
+  Party,
+  SEPACreditPaymentInstruction,
+} from '../../lib/types';
 import { PaymentInitiation } from './payment-initiation';
 type AtLeastOne<T> = [T, ...T[]];
 /**
@@ -11,16 +15,16 @@ type AtLeastOne<T> = [T, ...T[]];
  * @property {ExternalCategoryPurpose} [categoryPurpose] - Optional category purpose code following ISO20022 ExternalCategoryPurpose1Code standard.
  */
 export interface SEPACreditPaymentInitiationConfig {
-    /** The party initiating the SEPA credit transfer. */
-    initiatingParty: Party;
-    /** An array containing at least one payment instruction for SEPA credit transfer. */
-    paymentInstructions: AtLeastOne<SEPACreditPaymentInstruction>;
-    /** Optional unique identifier for the message. If not provided, a UUID will be generated. */
-    messageId?: string;
-    /** Optional creation date for the message. If not provided, current date will be used. */
-    creationDate?: Date;
-    /** Optional category purpose code following ISO20022 ExternalCategoryPurpose1Code standard */
-    categoryPurpose?: ExternalCategoryPurpose;
+  /** The party initiating the SEPA credit transfer. */
+  initiatingParty: Party;
+  /** An array containing at least one payment instruction for SEPA credit transfer. */
+  paymentInstructions: AtLeastOne<SEPACreditPaymentInstruction>;
+  /** Optional unique identifier for the message. If not provided, a UUID will be generated. */
+  messageId?: string;
+  /** Optional creation date for the message. If not provided, current date will be used. */
+  creationDate?: Date;
+  /** Optional category purpose code following ISO20022 ExternalCategoryPurpose1Code standard */
+  categoryPurpose?: ExternalCategoryPurpose;
 }
 /**
  * Represents a SEPA Credit Payment Initiation.
@@ -44,83 +48,89 @@ export interface SEPACreditPaymentInitiationConfig {
  * @see {@link https://docs.iso20022js.com/pain/sepacredit} for more information.
  */
 export declare class SEPACreditPaymentInitiation extends PaymentInitiation {
-    initiatingParty: Party;
-    messageId: string;
-    creationDate: Date;
-    paymentInstructions: AtLeastOne<SEPACreditPaymentInstruction>;
-    paymentInformationId: string;
-    categoryPurpose?: ExternalCategoryPurpose;
-    private formattedPaymentSum;
-    /**
-     * Creates an instance of SEPACreditPaymentInitiation.
-     * @param {SEPACreditPaymentInitiationConfig} config - The configuration object for the SEPA credit transfer.
-     */
-    constructor(config: SEPACreditPaymentInitiationConfig);
-    /**
-     * Calculates the sum of all payment instructions.
-     * @private
-     * @param {AtLeastOne<SEPACreditPaymentInstruction>} instructions - Array of payment instructions.
-     * @returns {string} The total sum formatted as a string with 2 decimal places.
-     * @throws {Error} If payment instructions have different currencies.
-     */
-    private sumPaymentInstructions;
-    /**
-     * Validates the payment initiation data according to SEPA requirements.
-     * @private
-     * @throws {Error} If messageId exceeds 35 characters.
-     * @throws {Error} If payment instructions have different currencies.
-     * @throws {Error} If any creditor has incomplete address information.
-     */
-    private validate;
-    private validateAllInstructionsHaveSameCurrency;
-    /**
-     * Generates payment information for a single SEPA credit transfer instruction.
-     * @param {SEPACreditPaymentInstruction} instruction - The payment instruction.
-     * @returns {Object} The payment information object formatted according to SEPA specifications.
-     */
-    creditTransfer(instruction: SEPACreditPaymentInstruction): {
-        Cdtr: any;
-        CdtrAcct: {
-            Id: {
-                IBAN: string;
-            };
-            Ccy: "EUR";
-        };
-        RmtInf: {
-            Ustrd: string;
-        } | undefined;
-        CdtrAgt?: {
-            FinInstnId: {
-                BIC: string;
-                ClrSysMmbId?: undefined;
-            };
-        } | {
-            FinInstnId: {
-                ClrSysMmbId: {
-                    ClrSysId: {
-                        Cd: string;
-                    };
-                    MmbId: string;
-                };
-                BIC?: undefined;
-            };
-        } | undefined;
-        PmtId: {
-            InstrId: string;
-            EndToEndId: string;
-        };
-        Amt: {
-            InstdAmt: {
-                '#': string;
-                '@Ccy': "EUR";
-            };
-        };
+  initiatingParty: Party;
+  messageId: string;
+  creationDate: Date;
+  paymentInstructions: AtLeastOne<SEPACreditPaymentInstruction>;
+  paymentInformationId: string;
+  categoryPurpose?: ExternalCategoryPurpose;
+  private formattedPaymentSum;
+  get schemaId(): string;
+  /**
+   * Creates an instance of SEPACreditPaymentInitiation.
+   * @param {SEPACreditPaymentInitiationConfig} config - The configuration object for the SEPA credit transfer.
+   */
+  constructor(config: SEPACreditPaymentInitiationConfig);
+  /**
+   * Calculates the sum of all payment instructions.
+   * @private
+   * @param {AtLeastOne<SEPACreditPaymentInstruction>} instructions - Array of payment instructions.
+   * @returns {string} The total sum formatted as a string with 2 decimal places.
+   * @throws {Error} If payment instructions have different currencies.
+   */
+  private sumPaymentInstructions;
+  /**
+   * Validates the payment initiation data according to SEPA requirements.
+   * @private
+   * @throws {Error} If messageId exceeds 35 characters.
+   * @throws {Error} If payment instructions have different currencies.
+   * @throws {Error} If any creditor has incomplete address information.
+   */
+  private validate;
+  private validateAllInstructionsHaveSameCurrency;
+  /**
+   * Generates payment information for a single SEPA credit transfer instruction.
+   * @param {SEPACreditPaymentInstruction} instruction - The payment instruction.
+   * @returns {Object} The payment information object formatted according to SEPA specifications.
+   */
+  creditTransfer(instruction: SEPACreditPaymentInstruction): {
+    Cdtr: any;
+    CdtrAcct: {
+      Id: {
+        IBAN: string;
+      };
+      Ccy: 'EUR';
     };
-    /**
-     * Serializes the SEPA credit transfer initiation to an XML string.
-     * @returns {string} The XML representation of the SEPA credit transfer initiation.
-     */
-    serialize(): string;
-    static fromXML(rawXml: string): SEPACreditPaymentInitiation;
+    RmtInf:
+      | {
+          Ustrd: string;
+        }
+      | undefined;
+    CdtrAgt?:
+      | {
+          FinInstnId: {
+            BIC: string;
+            ClrSysMmbId?: undefined;
+          };
+        }
+      | {
+          FinInstnId: {
+            ClrSysMmbId: {
+              ClrSysId: {
+                Cd: string;
+              };
+              MmbId: string;
+            };
+            BIC?: undefined;
+          };
+        }
+      | undefined;
+    PmtId: {
+      InstrId: string;
+      EndToEndId: string;
+    };
+    Amt: {
+      InstdAmt: {
+        '#': string;
+        '@Ccy': 'EUR';
+      };
+    };
+  };
+  /**
+   * Serializes the SEPA credit transfer initiation to an XML string.
+   * @returns {string} The XML representation of the SEPA credit transfer initiation.
+   */
+  serialize(): string;
+  static fromXML(rawXml: string): SEPACreditPaymentInitiation;
 }
 export {};

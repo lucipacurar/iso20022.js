@@ -6,6 +6,7 @@ import {
   Agent,
   BaseAccount,
   IBANAccount,
+  MandateInformation,
   MessageHeader,
   Party,
   StructuredAddress,
@@ -95,8 +96,7 @@ export const parseAgent = (agent: any): Agent => {
     return { bic } as Agent;
   }
 
-  const aba =
-    agent.FinInstnId.Othr?.Id || agent.FinInstnId.ClrSysMmbId?.MmbId;
+  const aba = agent.FinInstnId.Othr?.Id || agent.FinInstnId.ClrSysMmbId?.MmbId;
   if (aba != null) {
     return { abaRoutingNumber: String(aba) } as Agent;
   }
@@ -104,6 +104,35 @@ export const parseAgent = (agent: any): Agent => {
   throw new Error(
     'Unable to parse agent: no BIC, BICFI, Othr.Id, or ClrSysMmbId.MmbId present',
   );
+};
+
+export const parseMandate = (mandateInfo: any): MandateInformation => {
+  return {
+    mandateId: mandateInfo?.MndtId as string,
+    dateOfSignature: new Date(mandateInfo?.DtOfSgntr as string),
+    amendmentIndicator:
+      mandateInfo?.AmdmntInd === 'true' || mandateInfo?.AmdmntInd === true,
+    ...(mandateInfo?.AmdmntInd &&
+      mandateInfo?.AmdmntInfDtls && {
+        amendmentInformation: {
+          ...(mandateInfo.AmdmntInfDtls.OrgnlMndtId && {
+            originalMandateId: mandateInfo.AmdmntInfDtls.OrgnlMndtId as string,
+          }),
+          ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId && {
+            originalCreditorSchemeId: {
+              ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Nm && {
+                name: mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Nm as string,
+              }),
+              ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Id?.PrvtId?.Othr
+                ?.Id && {
+                id: mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Id.PrvtId.Othr
+                  .Id as string,
+              }),
+            },
+          }),
+        },
+      }),
+  };
 };
 
 export const exportAgent = (agent: Agent): any => {

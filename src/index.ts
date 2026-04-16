@@ -48,6 +48,7 @@ export type {
   Party,
   Account,
   Agent,
+  AtLeastOne,
   SWIFTCreditPaymentInstruction,
   SEPACreditPaymentInstruction,
   RTPCreditPaymentInstruction,
@@ -61,6 +62,7 @@ export type {
   ACHLocalInstrument,
   SEPALocalInstrument,
   SEPASequenceType,
+  SEPAReversalReason,
   MandateInformation,
   MandateAmendmentInformation,
 } from './lib/types';
@@ -68,6 +70,7 @@ export type {
 export {
   ACHLocalInstrumentCode,
   ACHLocalInstrumentCodeDescriptionMap,
+  SEPAReversalReasonCode,
 } from './lib/types';
 
 // pain.001
@@ -98,6 +101,16 @@ export type {
 } from './pain/002/types';
 export { PaymentStatusCode } from './pain/002/types';
 export { PaymentStatusReport } from './pain/002/payment-status-report';
+
+// pain.007
+export type {
+  SEPADirectDebitPaymentReversalConfig,
+  SEPADirectDebitReversalInstructionGroup,
+  SEPADirectDebitReversalTransaction,
+  OriginalMessageReference,
+  OriginalTransactionReference,
+} from './pain/007/sepa-direct-debit-payment-reversal';
+export { SEPADirectDebitPaymentReversal } from './pain/007/sepa-direct-debit-payment-reversal';
 
 // pain.008
 export type {

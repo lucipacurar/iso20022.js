@@ -4620,6 +4620,12 @@ const ISO20022Messages = {
     CAMT_006: 'CAMT.006',
     CAMT_052: 'CAMT.052',
     CAMT_053: 'CAMT.053'};
+const XMLNS_PREFIX = 'urn:iso:std:iso:20022:tech:xsd:';
+const ISO20022SchemaId = {
+    PAIN_001_001_03: 'pain.001.001.03',
+    PAIN_007_001_02: 'pain.007.001.02',
+    PAIN_008_001_02: 'pain.008.001.02',
+};
 const ISO20022Implementations = new Map();
 function registerISO20022Implementation(cl) {
     cl.supportedMessages().forEach(msg => {
@@ -4775,6 +4781,35 @@ const parseAgent = (agent) => {
     }
     throw new Error('Unable to parse agent: no BIC, BICFI, Othr.Id, or ClrSysMmbId.MmbId present');
 };
+const parseMandate = (mandateInfo) => {
+    return {
+        mandateId: mandateInfo?.MndtId,
+        dateOfSignature: new Date(mandateInfo?.DtOfSgntr),
+        amendmentIndicator: mandateInfo?.AmdmntInd === 'true' || mandateInfo?.AmdmntInd === true,
+        ...(mandateInfo?.AmdmntInd &&
+            mandateInfo?.AmdmntInfDtls && {
+            amendmentInformation: {
+                ...(mandateInfo.AmdmntInfDtls.OrgnlMndtId && {
+                    originalMandateId: mandateInfo.AmdmntInfDtls
+                        .OrgnlMndtId,
+                }),
+                ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId && {
+                    originalCreditorSchemeId: {
+                        ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Nm && {
+                            name: mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId
+                                .Nm,
+                        }),
+                        ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Id?.PrvtId
+                            ?.Othr?.Id && {
+                            id: mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Id.PrvtId
+                                .Othr.Id,
+                        }),
+                    },
+                }),
+            },
+        }),
+    };
+};
 const exportAgent = (agent) => {
     const obj = {
         FinInstnId: {},
@@ -4878,6 +4913,13 @@ class PaymentInitiation {
     type;
     constructor({ type }) {
         this.type = type;
+    }
+    /**
+     * Returns the full XML namespace URI for this message type
+     * (e.g. 'urn:iso:std:iso:20022:tech:xsd:pain.007.001.02').
+     */
+    get namespace() {
+        return `${XMLNS_PREFIX}${this.schemaId}`;
     }
     /**
      * Formats a party's information according to ISO20022 standards.
@@ -4984,6 +5026,54 @@ class PaymentInitiation {
             };
         }
     }
+    buildMandateRelatedInfo(mandate) {
+        return {
+            MndtId: mandate.mandateId,
+            DtOfSgntr: mandate.dateOfSignature.toISOString().split('T')[0],
+            AmdmntInd: mandate.amendmentIndicator,
+            ...(mandate.amendmentIndicator &&
+                mandate.amendmentInformation && {
+                AmdmntInfDtls: {
+                    ...(mandate.amendmentInformation.originalMandateId && {
+                        OrgnlMndtId: mandate.amendmentInformation.originalMandateId,
+                    }),
+                    ...(mandate.amendmentInformation.originalCreditorSchemeId && {
+                        OrgnlCdtrSchmeId: {
+                            ...(mandate.amendmentInformation.originalCreditorSchemeId
+                                .name && {
+                                Nm: mandate.amendmentInformation.originalCreditorSchemeId
+                                    .name,
+                            }),
+                            ...(mandate.amendmentInformation.originalCreditorSchemeId
+                                .id && {
+                                Id: {
+                                    PrvtId: {
+                                        Othr: {
+                                            Id: mandate.amendmentInformation
+                                                .originalCreditorSchemeId.id,
+                                            SchmeNm: { Prtry: 'SEPA' },
+                                        },
+                                    },
+                                },
+                            }),
+                        },
+                    }),
+                },
+            }),
+        };
+    }
+    buildCreditorSchemeId(schemeId) {
+        return {
+            Id: {
+                PrvtId: {
+                    Othr: {
+                        Id: schemeId,
+                        SchmeNm: { Prtry: 'SEPA' },
+                    },
+                },
+            },
+        };
+    }
     /**
      * Returns the string representation of the payment initiation.
      * @returns {string} The serialized payment initiation.
@@ -5026,6 +5116,9 @@ class SWIFTCreditPaymentInitiation extends PaymentInitiation {
     creationDate;
     paymentInstructions;
     paymentInformationId;
+    get schemaId() {
+        return ISO20022SchemaId.PAIN_001_001_03;
+    }
     /**
      * Creates an instance of SWIFTCreditPaymentInitiation.
      * @param {SWIFTCreditPaymentInitiationConfig} config - The configuration object.
@@ -5104,7 +5197,7 @@ class SWIFTCreditPaymentInitiation extends PaymentInitiation {
         }
         const namespace = (xml.Document['@_xmlns'] ||
             xml.Document['@_Xmlns']);
-        if (!namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:pain.001.001')) {
+        if (!namespace.startsWith(`${XMLNS_PREFIX}pain.001.001`)) {
             throw new InvalidXmlNamespaceError('Invalid PAIN.001 namespace');
         }
         const messageId = xml.Document.CstmrCdtTrfInitn.GrpHdr.MsgId;
@@ -5171,7 +5264,7 @@ class SWIFTCreditPaymentInitiation extends PaymentInitiation {
                 '@encoding': 'UTF-8',
             },
             Document: {
-                '@xmlns': 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.03',
+                '@xmlns': this.namespace,
                 CstmrCdtTrfInitn: {
                     GrpHdr: {
                         MsgId: this.messageId,
@@ -5241,6 +5334,9 @@ class SEPACreditPaymentInitiation extends PaymentInitiation {
     paymentInformationId;
     categoryPurpose;
     formattedPaymentSum;
+    get schemaId() {
+        return ISO20022SchemaId.PAIN_001_001_03;
+    }
     /**
      * Creates an instance of SEPACreditPaymentInitiation.
      * @param {SEPACreditPaymentInitiationConfig} config - The configuration object for the SEPA credit transfer.
@@ -5338,7 +5434,7 @@ class SEPACreditPaymentInitiation extends PaymentInitiation {
                 '@encoding': 'UTF-8',
             },
             Document: {
-                '@xmlns': 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.03',
+                '@xmlns': this.namespace,
                 '@xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
                 CstmrCdtTrfInitn: {
                     GrpHdr: {
@@ -5393,7 +5489,7 @@ class SEPACreditPaymentInitiation extends PaymentInitiation {
         }
         const namespace = (xml.Document['@_xmlns'] ||
             xml.Document['@_Xmlns']);
-        if (!namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:pain.001.001.03')) {
+        if (!namespace.startsWith(`${XMLNS_PREFIX}${ISO20022SchemaId.PAIN_001_001_03}`)) {
             throw new InvalidXmlNamespaceError('Invalid PAIN.001 namespace');
         }
         const messageId = xml.Document.CstmrCdtTrfInitn.GrpHdr.MsgId;
@@ -5508,6 +5604,9 @@ class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
     paymentInstructions;
     formattedPaymentSum;
     totalTransactionCount;
+    get schemaId() {
+        return ISO20022SchemaId.PAIN_001_001_03;
+    }
     /**
      * Creates an instance of SEPAMultiCreditPaymentInitiation.
      * @param {SEPAMultiCreditPaymentInitiationConfig} config - The configuration object for the SEPA multi credit transfer.
@@ -5654,9 +5753,9 @@ class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
                 '@encoding': 'UTF-8',
             },
             Document: {
-                '@xmlns': 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.03',
+                '@xmlns': this.namespace,
                 '@xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-                '@xsi:schemaLocation': 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.03 pain.001.001.03.xsd',
+                '@xsi:schemaLocation': `${this.namespace} ${this.schemaId}.xsd`,
                 CstmrCdtTrfInitn: {
                     GrpHdr: {
                         MsgId: this.messageId,
@@ -5700,7 +5799,7 @@ class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
         // Validate namespace
         const namespace = (xml.Document['@_xmlns'] ||
             xml.Document['@_Xmlns']);
-        if (!namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:pain.001.001.03')) {
+        if (!namespace.startsWith(`${XMLNS_PREFIX}${ISO20022SchemaId.PAIN_001_001_03}`)) {
             throw new InvalidXmlNamespaceError('Invalid PAIN.001 namespace');
         }
         // Extract GrpHdr data
@@ -5840,6 +5939,9 @@ class RTPCreditPaymentInitiation extends PaymentInitiation {
     creationDate;
     paymentInformationId;
     formattedPaymentSum;
+    get schemaId() {
+        return ISO20022SchemaId.PAIN_001_001_03;
+    }
     constructor(config) {
         super({ type: 'rtp' });
         this.initiatingParty = config.initiatingParty;
@@ -5920,7 +6022,7 @@ class RTPCreditPaymentInitiation extends PaymentInitiation {
                 '@encoding': 'UTF-8',
             },
             Document: {
-                '@xmlns': 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.03',
+                '@xmlns': this.namespace,
                 '@xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
                 CstmrCdtTrfInitn: {
                     GrpHdr: {
@@ -5969,7 +6071,7 @@ class RTPCreditPaymentInitiation extends PaymentInitiation {
         }
         const namespace = (xml.Document['@_xmlns'] ||
             xml.Document['@_Xmlns']);
-        if (!namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:pain.001.001.03')) {
+        if (!namespace.startsWith(`${XMLNS_PREFIX}${ISO20022SchemaId.PAIN_001_001_03}`)) {
             throw new InvalidXmlNamespaceError('Invalid PAIN.001 namespace');
         }
         const messageId = xml.Document.CstmrCdtTrfInitn.GrpHdr.MsgId;
@@ -6091,6 +6193,16 @@ const ACHLocalInstrumentCodeDescriptionMap = {
     BOC: 'Back Office Conversion',
     RCK: 'Represented Check Entry',
 };
+const SEPAReversalReasonCode = {
+    Duplication: 'DUPL',
+    TechnicalProblem: 'TECH',
+    FraudulentOriginal: 'FRAD',
+    CutOffTime: 'CUTA',
+    AmountDiffers: 'AM05',
+    InvalidDebtorAccount: 'AC04',
+    NotSpecifiedCustomerGenerated: 'MS02',
+    NotSpecifiedAgentGenerated: 'MS03',
+};
 
 /**
  * Represents an ACH Credit Payment Initiation.
@@ -6147,6 +6259,9 @@ class ACHCreditPaymentInitiation extends PaymentInitiation {
     serviceLevel;
     instructionPriority;
     formattedPaymentSum;
+    get schemaId() {
+        return ISO20022SchemaId.PAIN_001_001_03;
+    }
     constructor(config) {
         super({ type: 'ach' });
         this.initiatingParty = config.initiatingParty;
@@ -6241,7 +6356,7 @@ class ACHCreditPaymentInitiation extends PaymentInitiation {
                 '@encoding': 'UTF-8',
             },
             Document: {
-                '@xmlns': 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.03',
+                '@xmlns': this.namespace,
                 '@xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
                 CstmrCdtTrfInitn: {
                     GrpHdr: {
@@ -6298,7 +6413,7 @@ class ACHCreditPaymentInitiation extends PaymentInitiation {
         }
         const namespace = (xml.Document['@_xmlns'] ||
             xml.Document['@_Xmlns']);
-        if (!namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:pain.001.001.03')) {
+        if (!namespace.startsWith(`${XMLNS_PREFIX}${ISO20022SchemaId.PAIN_001_001_03}`)) {
             throw new InvalidXmlNamespaceError('Invalid PAIN.001 namespace');
         }
         const messageId = xml.Document.CstmrCdtTrfInitn.GrpHdr.MsgId;
@@ -6414,6 +6529,9 @@ class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
     paymentInstructions;
     formattedPaymentSum;
     totalTransactionCount;
+    get schemaId() {
+        return ISO20022SchemaId.PAIN_008_001_02;
+    }
     /**
      * Creates an instance of SEPADirectDebitPaymentInitiation.
      * @param {SEPADirectDebitPaymentInitiationConfig} config - The configuration object for the SEPA direct debit.
@@ -6523,44 +6641,7 @@ class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
                 '@Ccy': instruction.currency,
             },
             DrctDbtTx: {
-                MndtRltdInf: {
-                    MndtId: instruction.mandate.mandateId,
-                    DtOfSgntr: instruction.mandate.dateOfSignature
-                        .toISOString()
-                        .split('T')[0],
-                    AmdmntInd: instruction.mandate.amendmentIndicator,
-                    ...(instruction.mandate.amendmentIndicator &&
-                        instruction.mandate.amendmentInformation && {
-                        AmdmntInfDtls: {
-                            ...(instruction.mandate.amendmentInformation
-                                .originalMandateId && {
-                                OrgnlMndtId: instruction.mandate.amendmentInformation.originalMandateId,
-                            }),
-                            ...(instruction.mandate.amendmentInformation
-                                .originalCreditorSchemeId && {
-                                OrgnlCdtrSchmeId: {
-                                    ...(instruction.mandate.amendmentInformation
-                                        .originalCreditorSchemeId.name && {
-                                        Nm: instruction.mandate.amendmentInformation
-                                            .originalCreditorSchemeId.name,
-                                    }),
-                                    ...(instruction.mandate.amendmentInformation
-                                        .originalCreditorSchemeId.id && {
-                                        Id: {
-                                            PrvtId: {
-                                                Othr: {
-                                                    Id: instruction.mandate.amendmentInformation
-                                                        .originalCreditorSchemeId.id,
-                                                    SchmeNm: { Prtry: 'SEPA' },
-                                                },
-                                            },
-                                        },
-                                    }),
-                                },
-                            }),
-                        },
-                    }),
-                },
+                MndtRltdInf: this.buildMandateRelatedInfo(instruction.mandate),
             },
             ...(instruction.debtor.agent && {
                 DbtrAgt: this.agent(instruction.debtor.agent),
@@ -6614,16 +6695,7 @@ class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
                     CdtrAgt: this.agent(group.creditor.agent),
                 }),
                 ChrgBr: 'SLEV',
-                CdtrSchmeId: {
-                    Id: {
-                        PrvtId: {
-                            Othr: {
-                                Id: group.creditorSchemeId,
-                                SchmeNm: { Prtry: 'SEPA' },
-                            },
-                        },
-                    },
-                },
+                CdtrSchmeId: this.buildCreditorSchemeId(group.creditorSchemeId),
                 DrctDbtTxInf: group.payments.map(payment => this.directDebitTransfer(payment)),
             };
         });
@@ -6633,9 +6705,9 @@ class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
                 '@encoding': 'UTF-8',
             },
             Document: {
-                '@xmlns': 'urn:iso:std:iso:20022:tech:xsd:pain.008.001.02',
+                '@xmlns': this.namespace,
                 '@xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-                '@xsi:schemaLocation': 'urn:iso:std:iso:20022:tech:xsd:pain.008.001.02 pain.008.001.02.xsd',
+                '@xsi:schemaLocation': `${this.namespace} ${this.schemaId}.xsd`,
                 CstmrDrctDbtInitn: {
                     GrpHdr: {
                         MsgId: this.messageId,
@@ -6679,7 +6751,7 @@ class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
         // Validate namespace
         const namespace = (xml.Document['@_xmlns'] ||
             xml.Document['@_Xmlns']);
-        if (!namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:pain.008')) {
+        if (!namespace.startsWith(`${XMLNS_PREFIX}pain.008`)) {
             throw new InvalidXmlNamespaceError('Invalid PAIN.008 namespace');
         }
         // Extract GrpHdr data
@@ -6724,36 +6796,7 @@ class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
             const payments = rawInstructions.map((inst) => {
                 const currency = inst.InstdAmt['@_Ccy'];
                 const amount = parseAmountToMinorUnits(Number(inst.InstdAmt['#text']), currency);
-                // Parse mandate information
-                const mandateInfo = inst.DrctDbtTx?.MndtRltdInf;
-                const mandate = {
-                    mandateId: mandateInfo?.MndtId,
-                    dateOfSignature: new Date(mandateInfo?.DtOfSgntr),
-                    amendmentIndicator: mandateInfo?.AmdmntInd === 'true' ||
-                        mandateInfo?.AmdmntInd === true,
-                    ...(mandateInfo?.AmdmntInd &&
-                        mandateInfo?.AmdmntInfDtls && {
-                        amendmentInformation: {
-                            ...(mandateInfo.AmdmntInfDtls.OrgnlMndtId && {
-                                originalMandateId: mandateInfo.AmdmntInfDtls
-                                    .OrgnlMndtId,
-                            }),
-                            ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId && {
-                                originalCreditorSchemeId: {
-                                    ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Nm && {
-                                        name: mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId
-                                            .Nm,
-                                    }),
-                                    ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Id?.PrvtId
-                                        ?.Othr?.Id && {
-                                        id: mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Id.PrvtId
-                                            .Othr.Id,
-                                    }),
-                                },
-                            }),
-                        },
-                    }),
-                };
+                const mandate = parseMandate(inst.DrctDbtTx?.MndtRltdInf);
                 return {
                     ...(inst.PmtId?.InstrId && {
                         instrId: inst.PmtId.InstrId.toString(),
@@ -6980,7 +7023,9 @@ registerISO20022Implementation(CashManagementGetAccount);
 
 const parseStatement = (stmt) => {
     const id = stmt.Id.toString();
-    const electronicSequenceNumber = stmt.ElctrncSeqNb ? Number(stmt.ElctrncSeqNb) : undefined;
+    const electronicSequenceNumber = stmt.ElctrncSeqNb
+        ? Number(stmt.ElctrncSeqNb)
+        : undefined;
     const legalSequenceNumber = stmt.LglSeqNb ? Number(stmt.LglSeqNb) : undefined;
     const creationDate = new Date(stmt.CreDtTm);
     let fromDate;
@@ -6990,18 +7035,30 @@ const parseStatement = (stmt) => {
         toDate = new Date(stmt.FrToDt.ToDtTm);
     }
     // Txn Summaries
-    const numOfEntries = stmt.TxsSummry?.TtlNtries.NbOfNtries != null ? Number(stmt.TxsSummry.TtlNtries.NbOfNtries) : undefined;
-    const sumOfEntries = stmt.TxsSummry?.TtlNtries.Sum != null ? Number(stmt.TxsSummry.TtlNtries.Sum) : undefined;
+    const numOfEntries = stmt.TxsSummry?.TtlNtries.NbOfNtries != null
+        ? Number(stmt.TxsSummry.TtlNtries.NbOfNtries)
+        : undefined;
+    const sumOfEntries = stmt.TxsSummry?.TtlNtries.Sum != null
+        ? Number(stmt.TxsSummry.TtlNtries.Sum)
+        : undefined;
     const rawNetAmountOfEntries = stmt.TxsSummry?.TtlNtries.TtlNetNtryAmt;
     let netAmountOfEntries;
     // No currency information, default to USD
     if (rawNetAmountOfEntries) {
         netAmountOfEntries = parseAmountToMinorUnits(rawNetAmountOfEntries);
     }
-    const numOfCreditEntries = stmt.TxsSummry?.TtlCdtNtries.NbOfNtries != null ? Number(stmt.TxsSummry.TtlCdtNtries.NbOfNtries) : undefined;
-    const sumOfCreditEntries = stmt.TxsSummry?.TtlCdtNtries.Sum != null ? Number(stmt.TxsSummry.TtlCdtNtries.Sum) : undefined;
-    const numOfDebitEntries = stmt.TxsSummry?.TtlDbtNtries.NbOfNtries != null ? Number(stmt.TxsSummry.TtlDbtNtries.NbOfNtries) : undefined;
-    const sumOfDebitEntries = stmt.TxsSummry?.TtlDbtNtries.Sum != null ? Number(stmt.TxsSummry.TtlDbtNtries.Sum) : undefined;
+    const numOfCreditEntries = stmt.TxsSummry?.TtlCdtNtries.NbOfNtries != null
+        ? Number(stmt.TxsSummry.TtlCdtNtries.NbOfNtries)
+        : undefined;
+    const sumOfCreditEntries = stmt.TxsSummry?.TtlCdtNtries.Sum != null
+        ? Number(stmt.TxsSummry.TtlCdtNtries.Sum)
+        : undefined;
+    const numOfDebitEntries = stmt.TxsSummry?.TtlDbtNtries.NbOfNtries != null
+        ? Number(stmt.TxsSummry.TtlDbtNtries.NbOfNtries)
+        : undefined;
+    const sumOfDebitEntries = stmt.TxsSummry?.TtlDbtNtries.Sum != null
+        ? Number(stmt.TxsSummry.TtlDbtNtries.Sum)
+        : undefined;
     // Get account information
     // TODO: Save account types here
     const account = parseAccount(stmt.Acct);
@@ -7219,7 +7276,9 @@ const parseTransactionDetail = (transactionDetail) => {
     let debtorAccount;
     let debtorAgent;
     if (transactionDetail.RltdPties?.Dbtr) {
-        debtorName = transactionDetail.RltdPties.Dbtr.Nm ?? transactionDetail.RltdPties.Dbtr.Pty?.Nm;
+        debtorName =
+            transactionDetail.RltdPties.Dbtr.Nm ??
+                transactionDetail.RltdPties.Dbtr.Pty?.Nm;
     }
     if (transactionDetail.RltdPties?.DbtrAcct) {
         debtorAccount = parseAccount(transactionDetail.RltdPties.DbtrAcct);
@@ -7240,7 +7299,9 @@ const parseTransactionDetail = (transactionDetail) => {
     let creditorAccount;
     let creditorAgent;
     if (transactionDetail.RltdPties?.Cdtr) {
-        creditorName = transactionDetail.RltdPties.Cdtr.Nm ?? transactionDetail.RltdPties.Cdtr.Pty?.Nm;
+        creditorName =
+            transactionDetail.RltdPties.Cdtr.Nm ??
+                transactionDetail.RltdPties.Cdtr.Pty?.Nm;
     }
     if (transactionDetail.RltdPties?.CdtrAcct) {
         creditorAccount = parseAccount(transactionDetail.RltdPties.CdtrAcct);
@@ -8574,6 +8635,385 @@ class PaymentStatusReport {
     }
 }
 
+class SEPADirectDebitPaymentReversal extends PaymentInitiation {
+    initiatingParty;
+    messageId;
+    creationDate;
+    originalMessage;
+    reversalInstructions;
+    formattedReversedSum;
+    totalTransactionCount;
+    get schemaId() {
+        return ISO20022SchemaId.PAIN_007_001_02;
+    }
+    constructor(config) {
+        super({ type: 'sepa' });
+        this.initiatingParty = config.initiatingParty;
+        this.originalMessage = config.originalMessage;
+        this.reversalInstructions = config.reversalInstructions;
+        this.messageId = config.messageId || generateId();
+        this.creationDate = config.creationDate || new Date();
+        for (const group of this.reversalInstructions) {
+            group.paymentInformationId = group.paymentInformationId ?? generateId();
+            for (const reversal of group.reversals) {
+                reversal.reversalId = reversal.reversalId ?? generateId();
+            }
+        }
+        this.totalTransactionCount = this.countAllReversals();
+        this.formattedReversedSum = this.sumAllReversedAmounts();
+        this.validate();
+    }
+    countAllReversals() {
+        return this.reversalInstructions.reduce((total, group) => {
+            return total + group.reversals.length;
+        }, 0);
+    }
+    sumAllReversedAmounts() {
+        let totalAmount = 0;
+        for (const group of this.reversalInstructions) {
+            for (const reversal of group.reversals) {
+                totalAmount += reversal.reversedAmount;
+            }
+        }
+        return formatMinorUnits(totalAmount, 'EUR');
+    }
+    validate() {
+        if (this.messageId.length > 35) {
+            throw new Error('messageId must not exceed 35 characters');
+        }
+        for (const group of this.reversalInstructions) {
+            if (group.paymentInformationId !== undefined) {
+                if (group.paymentInformationId.length === 0) {
+                    throw new Error('paymentInformationId must not be empty');
+                }
+                if (group.paymentInformationId.length > 35) {
+                    throw new Error('paymentInformationId must not exceed 35 characters');
+                }
+            }
+            const groupPmtInfId = group.reversals[0].originalReference.pmtInfId;
+            for (const reversal of group.reversals) {
+                if (reversal.originalReference.pmtInfId !== groupPmtInfId) {
+                    throw new Error('All reversals in a group must share the same originalReference.pmtInfId');
+                }
+            }
+            for (const reversal of group.reversals) {
+                if (reversal.reversalId !== undefined) {
+                    if (reversal.reversalId.length === 0) {
+                        throw new Error('reversalId must not be empty');
+                    }
+                    if (reversal.reversalId.length > 35) {
+                        throw new Error('reversalId must not exceed 35 characters');
+                    }
+                }
+                if (!reversal.originalReference.pmtInfId) {
+                    throw new Error('originalReference.pmtInfId is required');
+                }
+                if (reversal.originalReference.pmtInfId.length > 35) {
+                    throw new Error('originalReference.pmtInfId must not exceed 35 characters');
+                }
+                if (!reversal.originalReference.endToEndId) {
+                    throw new Error('originalReference.endToEndId is required');
+                }
+                if (reversal.originalReference.endToEndId.length > 35) {
+                    throw new Error('originalReference.endToEndId must not exceed 35 characters');
+                }
+                if (reversal.originalReference.instrId !== undefined) {
+                    if (reversal.originalReference.instrId.length === 0) {
+                        throw new Error('originalReference.instrId must not be empty');
+                    }
+                    if (reversal.originalReference.instrId.length > 35) {
+                        throw new Error('originalReference.instrId must not exceed 35 characters');
+                    }
+                }
+                if (reversal.reversedAmount <= 0) {
+                    throw new Error('reversedAmount must be greater than 0');
+                }
+                if (reversal.reversedAmount > reversal.originalAmount) {
+                    throw new Error('reversedAmount must not exceed originalAmount');
+                }
+                if (reversal.additionalInfo !== undefined && reversal.additionalInfo.length > 105) {
+                    throw new Error('additionalInfo must not exceed 105 characters');
+                }
+            }
+            if (!group.reversals.every(r => r.currency === group.reversals[0].currency)) {
+                throw new Error('All reversal currencies within a group must be the same.');
+            }
+        }
+    }
+    buildTxInf(reversal, group) {
+        const localInstrument = group.localInstrument || 'CORE';
+        return {
+            RvslId: reversal.reversalId,
+            ...(reversal.originalReference.instrId && {
+                OrgnlInstrId: reversal.originalReference.instrId,
+            }),
+            OrgnlEndToEndId: reversal.originalReference.endToEndId,
+            OrgnlInstdAmt: {
+                '#': formatMinorUnits(reversal.originalAmount, 'EUR'),
+                '@Ccy': 'EUR',
+            },
+            RvsdInstdAmt: {
+                '#': formatMinorUnits(reversal.reversedAmount, 'EUR'),
+                '@Ccy': 'EUR',
+            },
+            RvslRsnInf: {
+                Rsn: { Cd: reversal.reason },
+                ...(reversal.additionalInfo && {
+                    AddtlInf: reversal.additionalInfo,
+                }),
+            },
+            OrgnlTxRef: {
+                Amt: {
+                    InstdAmt: {
+                        '#': formatMinorUnits(reversal.originalTransaction.amount, 'EUR'),
+                        '@Ccy': 'EUR',
+                    },
+                },
+                ReqdColltnDt: reversal.originalReference.requestedCollectionDate
+                    .toISOString()
+                    .split('T')[0],
+                CdtrSchmeId: this.buildCreditorSchemeId(group.creditorSchemeId),
+                PmtTpInf: {
+                    SvcLvl: { Cd: 'SEPA' },
+                    LclInstrm: { Cd: localInstrument },
+                    SeqTp: group.sequenceType,
+                },
+                PmtMtd: 'DD',
+                MndtRltdInf: this.buildMandateRelatedInfo(reversal.originalTransaction.mandate),
+                Dbtr: this.party(reversal.originalTransaction.debtor),
+                DbtrAcct: this.account(reversal.originalTransaction.debtorAccount),
+                ...(reversal.originalTransaction.debtorAgent && {
+                    DbtrAgt: this.agent(reversal.originalTransaction.debtorAgent),
+                }),
+                ...(group.creditor.agent && {
+                    CdtrAgt: this.agent(group.creditor.agent),
+                }),
+                Cdtr: this.party(group.creditor),
+                CdtrAcct: this.account(group.creditor.account),
+            },
+        };
+    }
+    serialize() {
+        const builder = PaymentInitiation.getBuilder();
+        const orgnlPmtInfAndRvslEntries = this.reversalInstructions.map((group) => {
+            const orgnlPmtInfId = group.reversals[0].originalReference.pmtInfId;
+            return {
+                RvslPmtInfId: group.paymentInformationId,
+                OrgnlPmtInfId: orgnlPmtInfId,
+                TxInf: group.reversals.map(reversal => this.buildTxInf(reversal, group)),
+            };
+        });
+        const xml = {
+            '?xml': {
+                '@version': '1.0',
+                '@encoding': 'UTF-8',
+            },
+            Document: {
+                '@xmlns': this.namespace,
+                '@xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+                '@xsi:schemaLocation': `${this.namespace} ${this.schemaId}.xsd`,
+                CstmrPmtRvsl: {
+                    GrpHdr: {
+                        MsgId: this.messageId,
+                        CreDtTm: this.creationDate.toISOString(),
+                        NbOfTxs: this.totalTransactionCount.toString(),
+                        CtrlSum: this.formattedReversedSum,
+                        InitgPty: {
+                            Nm: this.initiatingParty.name,
+                            ...(this.initiatingParty.id && {
+                                Id: {
+                                    OrgId: {
+                                        Othr: {
+                                            Id: this.initiatingParty.id,
+                                        },
+                                    },
+                                },
+                            }),
+                        },
+                    },
+                    OrgnlGrpInf: {
+                        OrgnlMsgId: this.originalMessage.msgId,
+                        OrgnlMsgNmId: this.originalMessage.msgNmId,
+                        OrgnlCreDtTm: this.originalMessage.createdDateTime.toISOString(),
+                    },
+                    OrgnlPmtInfAndRvsl: orgnlPmtInfAndRvslEntries,
+                },
+            },
+        };
+        return builder.build(xml);
+    }
+    static fromXML(rawXml) {
+        const parser = XML.getParser();
+        const xml = parser.parse(rawXml);
+        if (!xml.Document) {
+            throw new InvalidXmlError('Invalid XML format');
+        }
+        const namespace = (xml.Document['@_xmlns'] ||
+            xml.Document['@_Xmlns']);
+        if (!namespace.startsWith(`${XMLNS_PREFIX}pain.007`)) {
+            throw new InvalidXmlNamespaceError('Invalid PAIN.007 namespace');
+        }
+        const root = xml.Document.CstmrPmtRvsl;
+        const messageId = root.GrpHdr.MsgId;
+        const creationDate = new Date(root.GrpHdr.CreDtTm);
+        const initiatingParty = {
+            name: root.GrpHdr.InitgPty?.Nm,
+            id: root.GrpHdr.InitgPty?.Id?.OrgId?.Othr?.Id,
+        };
+        const originalMessage = {
+            msgId: root.OrgnlGrpInf.OrgnlMsgId,
+            msgNmId: root.OrgnlGrpInf.OrgnlMsgNmId,
+            createdDateTime: new Date(root.OrgnlGrpInf.OrgnlCreDtTm),
+        };
+        const rawGroups = Array.isArray(root.OrgnlPmtInfAndRvsl)
+            ? root.OrgnlPmtInfAndRvsl
+            : [root.OrgnlPmtInfAndRvsl];
+        const reversalInstructions = rawGroups.map((grp) => {
+            const rawTxInf = Array.isArray(grp.TxInf)
+                ? grp.TxInf
+                : [grp.TxInf];
+            const orgnlPmtInfId = grp.OrgnlPmtInfId?.toString();
+            let groupCreditor;
+            let groupCreditorSchemeId = '';
+            let groupSequenceType = 'RCUR';
+            let groupLocalInstrument = 'CORE';
+            const reversals = rawTxInf.map((tx) => {
+                const orgnlTxRef = tx.OrgnlTxRef;
+                if (!groupCreditor && orgnlTxRef?.Cdtr) {
+                    groupCreditor = {
+                        name: orgnlTxRef.Cdtr.Nm,
+                        ...(orgnlTxRef.CdtrAgt && {
+                            agent: parseAgent(orgnlTxRef.CdtrAgt),
+                        }),
+                        ...(orgnlTxRef.CdtrAcct && {
+                            account: parseAccount(orgnlTxRef.CdtrAcct),
+                        }),
+                    };
+                    groupCreditorSchemeId =
+                        orgnlTxRef.CdtrSchmeId?.Id?.PrvtId?.Othr?.Id || '';
+                    groupSequenceType =
+                        orgnlTxRef.PmtTpInf?.SeqTp || 'RCUR';
+                    groupLocalInstrument =
+                        orgnlTxRef.PmtTpInf?.LclInstrm?.Cd || 'CORE';
+                }
+                return {
+                    ...(tx.RvslId && { reversalId: tx.RvslId.toString() }),
+                    originalAmount: parseAmountToMinorUnits(Number(tx.OrgnlInstdAmt['#text']), tx.OrgnlInstdAmt['@_Ccy']),
+                    reversedAmount: parseAmountToMinorUnits(Number(tx.RvsdInstdAmt['#text']), tx.RvsdInstdAmt['@_Ccy']),
+                    currency: 'EUR',
+                    reason: tx.RvslRsnInf?.Rsn?.Cd,
+                    ...(tx.RvslRsnInf?.AddtlInf && {
+                        additionalInfo: tx.RvslRsnInf.AddtlInf.toString(),
+                    }),
+                    originalReference: {
+                        pmtInfId: orgnlPmtInfId,
+                        endToEndId: tx.OrgnlEndToEndId?.toString(),
+                        ...(tx.OrgnlInstrId && {
+                            instrId: tx.OrgnlInstrId.toString(),
+                        }),
+                        requestedCollectionDate: new Date(orgnlTxRef?.ReqdColltnDt),
+                    },
+                    originalTransaction: {
+                        amount: parseAmountToMinorUnits(Number(orgnlTxRef?.Amt?.InstdAmt['#text']), orgnlTxRef?.Amt?.InstdAmt['@_Ccy']),
+                        debtor: {
+                            name: orgnlTxRef?.Dbtr?.Nm,
+                        },
+                        debtorAccount: parseAccount(orgnlTxRef?.DbtrAcct),
+                        ...(orgnlTxRef?.DbtrAgt && {
+                            debtorAgent: parseAgent(orgnlTxRef.DbtrAgt),
+                        }),
+                        mandate: parseMandate(orgnlTxRef?.MndtRltdInf),
+                    },
+                };
+            });
+            const paymentInformationId = grp.RvslPmtInfId?.toString();
+            return {
+                creditor: groupCreditor || { name: '' },
+                creditorSchemeId: groupCreditorSchemeId,
+                sequenceType: groupSequenceType,
+                localInstrument: groupLocalInstrument,
+                reversals,
+                ...(paymentInformationId && { paymentInformationId }),
+            };
+        });
+        return new SEPADirectDebitPaymentReversal({
+            messageId,
+            creationDate,
+            initiatingParty,
+            originalMessage,
+            reversalInstructions,
+        });
+    }
+    static fromOriginalInitiation(original, reversals, opts) {
+        const lookup = new Map();
+        for (const group of original.paymentInstructions) {
+            for (const instruction of group.payments) {
+                const id = instruction.endToEndId || instruction.id;
+                if (id) {
+                    lookup.set(id, { group, instruction });
+                }
+            }
+        }
+        const groupedReversals = new Map();
+        for (const rev of reversals) {
+            const found = lookup.get(rev.endToEndId);
+            if (!found) {
+                throw new Error(`endToEndId '${rev.endToEndId}' not found in original payment initiation`);
+            }
+            const existing = groupedReversals.get(found.group) || [];
+            existing.push(rev);
+            groupedReversals.set(found.group, existing);
+        }
+        const reversalInstructions = [];
+        for (const [sourceGroup, revList] of groupedReversals) {
+            const reversalTxs = revList.map((rev) => {
+                const { instruction } = lookup.get(rev.endToEndId);
+                return {
+                    ...(rev.reversalId && { reversalId: rev.reversalId }),
+                    originalAmount: instruction.amount,
+                    reversedAmount: rev.reversedAmount ?? instruction.amount,
+                    currency: 'EUR',
+                    reason: rev.reason,
+                    ...(rev.additionalInfo && { additionalInfo: rev.additionalInfo }),
+                    originalReference: {
+                        pmtInfId: sourceGroup.paymentInformationId || '',
+                        endToEndId: instruction.endToEndId || instruction.id || '',
+                        ...(instruction.instrId && { instrId: instruction.instrId }),
+                        requestedCollectionDate: sourceGroup.requestedCollectionDate,
+                    },
+                    originalTransaction: {
+                        amount: instruction.amount,
+                        debtor: instruction.debtor,
+                        debtorAccount: instruction.debtor.account,
+                        ...(instruction.debtor.agent && {
+                            debtorAgent: instruction.debtor.agent,
+                        }),
+                        mandate: instruction.mandate,
+                    },
+                };
+            });
+            reversalInstructions.push({
+                creditor: sourceGroup.creditor,
+                creditorSchemeId: sourceGroup.creditorSchemeId,
+                sequenceType: sourceGroup.sequenceType,
+                localInstrument: sourceGroup.localInstrument,
+                reversals: reversalTxs,
+            });
+        }
+        return new SEPADirectDebitPaymentReversal({
+            ...(opts?.messageId && { messageId: opts.messageId }),
+            ...(opts?.creationDate && { creationDate: opts.creationDate }),
+            initiatingParty: opts?.initiatingParty || original.initiatingParty,
+            originalMessage: {
+                msgId: original.messageId,
+                msgNmId: 'pain.008.001.02',
+                createdDateTime: original.creationDate,
+            },
+            reversalInstructions: reversalInstructions,
+        });
+    }
+}
+
 /**
  * Represents a Cash Management End of Day Report (CAMT.053.x).
  * This class encapsulates the data and functionality related to processing
@@ -8729,4 +9169,4 @@ class CashManagementEndOfDayReport {
 }
 registerISO20022Implementation(CashManagementEndOfDayReport);
 
-export { ACHCreditPaymentInitiation, ACHLocalInstrumentCode, ACHLocalInstrumentCodeDescriptionMap, BalanceTypeCode, BalanceTypeCodeDescriptionMap, CashManagementAccountReport, CashManagementEndOfDayReport, ISO20022, InvalidXmlError, InvalidXmlNamespaceError, Iso20022JsError, PaymentStatusCode, PaymentStatusReport, RTPCreditPaymentInitiation, SEPACreditPaymentInitiation, SEPADirectDebitPaymentInitiation, SEPAMultiCreditPaymentInitiation, SWIFTCreditPaymentInitiation };
+export { ACHCreditPaymentInitiation, ACHLocalInstrumentCode, ACHLocalInstrumentCodeDescriptionMap, BalanceTypeCode, BalanceTypeCodeDescriptionMap, CashManagementAccountReport, CashManagementEndOfDayReport, ISO20022, InvalidXmlError, InvalidXmlNamespaceError, Iso20022JsError, PaymentStatusCode, PaymentStatusReport, RTPCreditPaymentInitiation, SEPACreditPaymentInitiation, SEPADirectDebitPaymentInitiation, SEPADirectDebitPaymentReversal, SEPAMultiCreditPaymentInitiation, SEPAReversalReasonCode, SWIFTCreditPaymentInitiation };

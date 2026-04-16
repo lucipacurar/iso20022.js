@@ -1,6 +1,8 @@
 import { Currency } from './currencies';
 import { Alpha2Country } from './countries';
 
+export type AtLeastOne<T> = [T, ...T[]];
+
 /**
  * Represents a payment instruction with essential details.
  */
@@ -34,8 +36,7 @@ export interface CreditPaymentInstruction extends PaymentInstruction {
 /**
  * Represents a SWIFT credit payment instruction, extending the base PaymentInstruction.
  */
-export interface SWIFTCreditPaymentInstruction
-  extends CreditPaymentInstruction {
+export interface SWIFTCreditPaymentInstruction extends CreditPaymentInstruction {
   /** Specifies that this is a SWIFT payment. */
   type?: 'swift';
 }
@@ -506,3 +507,17 @@ export interface SEPADirectDebitPaymentInstruction extends PaymentInstruction {
   /** Mandate information authorizing the direct debit */
   mandate: MandateInformation;
 }
+
+export const SEPAReversalReasonCode = {
+  Duplication: 'DUPL',
+  TechnicalProblem: 'TECH',
+  FraudulentOriginal: 'FRAD',
+  CutOffTime: 'CUTA',
+  AmountDiffers: 'AM05',
+  InvalidDebtorAccount: 'AC04',
+  NotSpecifiedCustomerGenerated: 'MS02',
+  NotSpecifiedAgentGenerated: 'MS03',
+} as const;
+
+export type SEPAReversalReason =
+  (typeof SEPAReversalReasonCode)[keyof typeof SEPAReversalReasonCode];

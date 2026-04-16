@@ -14,6 +14,14 @@ export const ISO20022Messages: { [msg: string]: ISO20022MessageTypeName } = {
   PAIN_002: 'PAIN.002',
 };
 
+export const XMLNS_PREFIX = 'urn:iso:std:iso:20022:tech:xsd:';
+
+export const ISO20022SchemaId = {
+  PAIN_001_001_03: 'pain.001.001.03',
+  PAIN_007_001_02: 'pain.007.001.02',
+  PAIN_008_001_02: 'pain.008.001.02',
+} as const;
+
 export interface GenericISO20022Message {
   /** serialize to XML string */
   serialize(): string;

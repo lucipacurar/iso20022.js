@@ -9,7 +9,7 @@ import {
 import { Currency, formatMinorUnits } from '../../lib/currencies';
 import { sanitize, generateId } from '../../utils/format';
 import { PaymentInitiation } from './payment-initiation';
-import { XML } from '../../lib/interfaces';
+import { XML, XMLNS_PREFIX, ISO20022SchemaId } from '../../lib/interfaces';
 import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
 import {
   parseAccount,
@@ -67,6 +67,11 @@ export class RTPCreditPaymentInitiation extends PaymentInitiation {
   public creationDate: Date;
   public paymentInformationId: string;
   private formattedPaymentSum: string;
+
+  get schemaId(): string {
+    return ISO20022SchemaId.PAIN_001_001_03;
+  }
+
   constructor(config: RTPCreditPaymentInitiationConfig) {
     super({ type: 'rtp' });
     this.initiatingParty = config.initiatingParty;
@@ -157,7 +162,7 @@ export class RTPCreditPaymentInitiation extends PaymentInitiation {
         '@encoding': 'UTF-8',
       },
       Document: {
-        '@xmlns': 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.03',
+        '@xmlns': this.namespace,
         '@xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
         CstmrCdtTrfInitn: {
           GrpHdr: {
@@ -213,7 +218,9 @@ export class RTPCreditPaymentInitiation extends PaymentInitiation {
     const namespace = (xml.Document['@_xmlns'] ||
       xml.Document['@_Xmlns']) as string;
     if (
-      !namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:pain.001.001.03')
+      !namespace.startsWith(
+        `${XMLNS_PREFIX}${ISO20022SchemaId.PAIN_001_001_03}`,
+      )
     ) {
       throw new InvalidXmlNamespaceError('Invalid PAIN.001 namespace');
     }
