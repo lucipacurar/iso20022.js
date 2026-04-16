@@ -4790,19 +4790,17 @@ const parseMandate = (mandateInfo) => {
             mandateInfo?.AmdmntInfDtls && {
             amendmentInformation: {
                 ...(mandateInfo.AmdmntInfDtls.OrgnlMndtId && {
-                    originalMandateId: mandateInfo.AmdmntInfDtls
-                        .OrgnlMndtId,
+                    originalMandateId: mandateInfo.AmdmntInfDtls.OrgnlMndtId,
                 }),
                 ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId && {
                     originalCreditorSchemeId: {
                         ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Nm && {
-                            name: mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId
-                                .Nm,
+                            name: mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Nm,
                         }),
-                        ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Id?.PrvtId
-                            ?.Othr?.Id && {
-                            id: mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Id.PrvtId
-                                .Othr.Id,
+                        ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Id?.PrvtId?.Othr
+                            ?.Id && {
+                            id: mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Id.PrvtId.Othr
+                                .Id,
                         }),
                     },
                 }),
@@ -5721,8 +5719,8 @@ class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
     serialize() {
         const builder = PaymentInitiation.getBuilder();
         // Generate one PmtInf entry per individual payment
-        const paymentInfoEntries = this.paymentInstructions.flatMap((group) => {
-            return group.payments.map((payment) => {
+        const paymentInfoEntries = this.paymentInstructions.flatMap(group => {
+            return group.payments.map(payment => {
                 const pmtInfId = generateId();
                 const requestedExecutionDate = payment.requestedPaymentExecutionDate || new Date();
                 const batchBooking = group.batchBooking !== undefined ? group.batchBooking : false;
@@ -6662,7 +6660,7 @@ class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
     serialize() {
         const builder = PaymentInitiation.getBuilder();
         // Generate one PmtInf entry per creditor group
-        const paymentInfoEntries = this.paymentInstructions.map((group) => {
+        const paymentInfoEntries = this.paymentInstructions.map(group => {
             const pmtInfId = group.paymentInformationId ?? generateId();
             const localInstrument = group.localInstrument || 'CORE';
             const batchBooking = group.batchBooking !== undefined ? group.batchBooking : false;
@@ -6686,9 +6684,7 @@ class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
                         CtgyPurp: { Cd: group.categoryPurpose },
                     }),
                 },
-                ReqdColltnDt: group.requestedCollectionDate
-                    .toISOString()
-                    .split('T')[0],
+                ReqdColltnDt: group.requestedCollectionDate.toISOString().split('T')[0],
                 Cdtr: this.party(group.creditor),
                 CdtrAcct: this.account(group.creditor.account),
                 ...(group.creditor.agent && {
@@ -8731,7 +8727,8 @@ class SEPADirectDebitPaymentReversal extends PaymentInitiation {
                 if (reversal.reversedAmount > reversal.originalAmount) {
                     throw new Error('reversedAmount must not exceed originalAmount');
                 }
-                if (reversal.additionalInfo !== undefined && reversal.additionalInfo.length > 105) {
+                if (reversal.additionalInfo !== undefined &&
+                    reversal.additionalInfo.length > 105) {
                     throw new Error('additionalInfo must not exceed 105 characters');
                 }
             }
@@ -8795,7 +8792,7 @@ class SEPADirectDebitPaymentReversal extends PaymentInitiation {
     }
     serialize() {
         const builder = PaymentInitiation.getBuilder();
-        const orgnlPmtInfAndRvslEntries = this.reversalInstructions.map((group) => {
+        const orgnlPmtInfAndRvslEntries = this.reversalInstructions.map(group => {
             const orgnlPmtInfId = group.reversals[0].originalReference.pmtInfId;
             return {
                 RvslPmtInfId: group.paymentInformationId,
@@ -8869,9 +8866,7 @@ class SEPADirectDebitPaymentReversal extends PaymentInitiation {
             ? root.OrgnlPmtInfAndRvsl
             : [root.OrgnlPmtInfAndRvsl];
         const reversalInstructions = rawGroups.map((grp) => {
-            const rawTxInf = Array.isArray(grp.TxInf)
-                ? grp.TxInf
-                : [grp.TxInf];
+            const rawTxInf = Array.isArray(grp.TxInf) ? grp.TxInf : [grp.TxInf];
             const orgnlPmtInfId = grp.OrgnlPmtInfId?.toString();
             let groupCreditor;
             let groupCreditorSchemeId = '';
@@ -8894,7 +8889,8 @@ class SEPADirectDebitPaymentReversal extends PaymentInitiation {
                     groupSequenceType =
                         orgnlTxRef.PmtTpInf?.SeqTp || 'RCUR';
                     groupLocalInstrument =
-                        orgnlTxRef.PmtTpInf?.LclInstrm?.Cd || 'CORE';
+                        orgnlTxRef.PmtTpInf?.LclInstrm?.Cd ||
+                            'CORE';
                 }
                 return {
                     ...(tx.RvslId && { reversalId: tx.RvslId.toString() }),
@@ -8966,7 +8962,7 @@ class SEPADirectDebitPaymentReversal extends PaymentInitiation {
         }
         const reversalInstructions = [];
         for (const [sourceGroup, revList] of groupedReversals) {
-            const reversalTxs = revList.map((rev) => {
+            const reversalTxs = revList.map(rev => {
                 const { instruction } = lookup.get(rev.endToEndId);
                 return {
                     ...(rev.reversalId && { reversalId: rev.reversalId }),

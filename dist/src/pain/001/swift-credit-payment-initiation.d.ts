@@ -10,14 +10,14 @@ type AtLeastOne<T> = [T, ...T[]];
  * @property {Date} [creationDate] - Optional creation date for the message. If not provided, current date will be used.
  */
 export interface SWIFTCreditPaymentInitiationConfig {
-  /** The party initiating the payment. */
-  initiatingParty: Party;
-  /** An array of payment instructions. */
-  paymentInstructions: AtLeastOne<SWIFTCreditPaymentInstruction>;
-  /** Optional unique identifier for the message. If not provided, a UUID will be generated. */
-  messageId?: string;
-  /** Optional creation date for the message. If not provided, current date will be used. */
-  creationDate?: Date;
+    /** The party initiating the payment. */
+    initiatingParty: Party;
+    /** An array of payment instructions. */
+    paymentInstructions: AtLeastOne<SWIFTCreditPaymentInstruction>;
+    /** Optional unique identifier for the message. If not provided, a UUID will be generated. */
+    messageId?: string;
+    /** Optional creation date for the message. If not provided, current date will be used. */
+    creationDate?: Date;
 }
 /**
  * Represents a SWIFT Credit Payment v3 Initiation message (pain.001.001.03).
@@ -39,37 +39,35 @@ export interface SWIFTCreditPaymentInitiationConfig {
  * @see {@link https://docs.iso20022js.com/pain/sepacredit} for more information.
  */
 export declare class SWIFTCreditPaymentInitiation extends PaymentInitiation {
-  initiatingParty: Party;
-  messageId: string;
-  creationDate: Date;
-  paymentInstructions: SWIFTCreditPaymentInstruction[];
-  paymentInformationId: string;
-  get schemaId(): string;
-  /**
-   * Creates an instance of SWIFTCreditPaymentInitiation.
-   * @param {SWIFTCreditPaymentInitiationConfig} config - The configuration object.
-   */
-  constructor(config: SWIFTCreditPaymentInitiationConfig);
-  /**
-   * Validates the payment initiation data has the information required to create a valid XML file.
-   * @private
-   * @throws {Error} If messageId exceeds 35 characters.
-   * @throws {Error} If any creditor has incomplete address information.
-   */
-  private validate;
-  /**
-   * Generates payment information for a single payment instruction.
-   * @param {SWIFTCreditPaymentInstruction} paymentInstruction - The payment instruction.
-   * @returns {Object} The credit transfer object.
-   */
-  creditTransfer(
-    paymentInstruction: SWIFTCreditPaymentInstruction,
-  ): Record<string, any>;
-  /**
-   * Serializes the payment initiation to an XML string.
-   * @returns {string} The XML representation of the payment initiation.
-   */
-  static fromXML(rawXml: string): SWIFTCreditPaymentInitiation;
-  serialize(): string;
+    initiatingParty: Party;
+    messageId: string;
+    creationDate: Date;
+    paymentInstructions: SWIFTCreditPaymentInstruction[];
+    paymentInformationId: string;
+    get schemaId(): string;
+    /**
+     * Creates an instance of SWIFTCreditPaymentInitiation.
+     * @param {SWIFTCreditPaymentInitiationConfig} config - The configuration object.
+     */
+    constructor(config: SWIFTCreditPaymentInitiationConfig);
+    /**
+     * Validates the payment initiation data has the information required to create a valid XML file.
+     * @private
+     * @throws {Error} If messageId exceeds 35 characters.
+     * @throws {Error} If any creditor has incomplete address information.
+     */
+    private validate;
+    /**
+     * Generates payment information for a single payment instruction.
+     * @param {SWIFTCreditPaymentInstruction} paymentInstruction - The payment instruction.
+     * @returns {Object} The credit transfer object.
+     */
+    creditTransfer(paymentInstruction: SWIFTCreditPaymentInstruction): Record<string, any>;
+    /**
+     * Serializes the payment initiation to an XML string.
+     * @returns {string} The XML representation of the payment initiation.
+     */
+    static fromXML(rawXml: string): SWIFTCreditPaymentInitiation;
+    serialize(): string;
 }
 export {};
