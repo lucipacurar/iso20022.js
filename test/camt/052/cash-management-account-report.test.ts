@@ -1,5 +1,5 @@
 import { CashManagementAccountReport } from '../../../src/camt/052/cash-management-account-report';
-import fs from 'fs';
+import fs from 'node:fs';
 
 describe('CashManagementAccountReport', () => {
   describe('CAMT.052.001.08 with BICFI agents', () => {
@@ -17,7 +17,7 @@ describe('CashManagementAccountReport', () => {
     });
 
     it('parses the servicer agent from BICFI', () => {
-      const statement = report.statements[0];
+      const statement = report.statements[0]!;
       expect(statement.agent).toEqual({ bic: 'BANKDEFFXXX' });
     });
 

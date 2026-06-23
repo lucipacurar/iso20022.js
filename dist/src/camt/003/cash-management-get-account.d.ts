@@ -1,5 +1,5 @@
-import { GenericISO20022Message, ISO20022MessageTypeName } from '../../lib/interfaces';
-import { AccountIdentification, MessageHeader } from '../../lib/types';
+import { type GenericISO20022Message, type ISO20022MessageTypeName } from '../../lib/interfaces';
+import type { AccountIdentification, MessageHeader } from '../../lib/types';
 export interface CashManagementGetAccountCriterium {
     accountRegExp?: string;
     accountEqualTo?: AccountIdentification;
@@ -18,7 +18,7 @@ export declare class CashManagementGetAccount implements GenericISO20022Message 
     constructor(data: CashManagementGetAccountData);
     get data(): CashManagementGetAccountData;
     static supportedMessages(): ISO20022MessageTypeName[];
-    static fromDocumentOject(doc: any): CashManagementGetAccount;
+    static fromDocumentObject(doc: any): CashManagementGetAccount;
     static fromXML(xml: string): CashManagementGetAccount;
     static fromJSON(json: string): CashManagementGetAccount;
     serialize(): string;

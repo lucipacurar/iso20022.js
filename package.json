@@ -1,6 +1,6 @@
 {
   "name": "@lucianpacurar/iso20022.js",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "readme": "README.md",
   "description": "Library to create payment messages.",
   "main": "dist/index.js",
@@ -68,7 +68,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "fast-xml-parser": "^5.6.0"
+    "fast-xml-parser": "5.6.0"
   },
   "peerDependencies": {
     "decimal.js": "^10.0.0"

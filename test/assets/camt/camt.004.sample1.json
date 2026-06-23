@@ -74,7 +74,7 @@
                     }
                   },
                   {
-                    "Amt": 0.00,
+                    "Amt": 0.0,
                     "CdtDbtInd": "CRDT",
                     "Tp": {
                       "Cd": "HOLD"

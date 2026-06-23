@@ -1,5 +1,5 @@
 import { CashManagementGetTransaction } from '../../../src/camt/005/cash-management-get-transaction';
-import fs from 'fs';
+import fs from 'node:fs';
 
 describe('CashManagementGetTransaction', () => {
   describe('from JSON', () => {
@@ -13,17 +13,15 @@ describe('CashManagementGetTransaction', () => {
         '2021-09-28T13:42:47.123Z',
       );
       expect(message.data.newCriteria).toBeDefined();
-      expect(message.data.newCriteria?.name).toBeUndefined();
-      expect(message.data.newCriteria?.searchCriteria.length).toBe(1);
-      expect(message.data.newCriteria?.searchCriteria[0].type).toBe(
-        'PmtSch.MsgId',
-      );
-      expect(message.data.newCriteria?.searchCriteria[0].msgIdsEqualTo).toEqual(
-        [
-          'FXCDEFGHIXXX1202104120040291234567',
-          'ABCDEFGHIXXX1202104120040291234588',
-        ],
-      );
+      const newCriteria = message.data.newCriteria!;
+      expect(newCriteria.name).toBeUndefined();
+      expect(newCriteria.searchCriteria.length).toBe(1);
+      const criteria = newCriteria.searchCriteria[0]!;
+      expect(criteria.type).toBe('PmtSch.MsgId');
+      expect(criteria.msgIdsEqualTo).toEqual([
+        'FXCDEFGHIXXX1202104120040291234567',
+        'ABCDEFGHIXXX1202104120040291234588',
+      ]);
 
       // generate XML and re-parse
       const xml = message.serialize();
@@ -41,14 +39,12 @@ describe('CashManagementGetTransaction', () => {
       expect(message.data.header.id).toBe('ABCDEFGHIXXX1202104120040299876543');
       expect(message.data.header.creationDateTime).toBeUndefined();
       expect(message.data.newCriteria).toBeDefined();
-      expect(message.data.newCriteria?.name).toBeUndefined();
-      expect(message.data.newCriteria?.searchCriteria.length).toBe(1);
-      expect(message.data.newCriteria?.searchCriteria[0].type).toBe(
-        'PmtSch.ReqdExctnDt',
-      );
-      expect(message.data.newCriteria?.searchCriteria[0].dateEqualTo).toEqual(
-        new Date('2021-10-01'),
-      );
+      const newCriteria = message.data.newCriteria!;
+      expect(newCriteria.name).toBeUndefined();
+      expect(newCriteria.searchCriteria.length).toBe(1);
+      const criteria = newCriteria.searchCriteria[0]!;
+      expect(criteria.type).toBe('PmtSch.ReqdExctnDt');
+      expect(criteria.dateEqualTo).toEqual(new Date('2021-10-01'));
 
       // generate XML and re-parse
       const xml = message.serialize();
@@ -66,14 +62,12 @@ describe('CashManagementGetTransaction', () => {
       expect(message.data.header.id).toBe('ABCDEFGHIXXX1202104120040299876543');
       expect(message.data.header.creationDateTime).toBeUndefined();
       expect(message.data.newCriteria).toBeDefined();
-      expect(message.data.newCriteria?.name).toBeUndefined();
-      expect(message.data.newCriteria?.searchCriteria.length).toBe(1);
-      expect(message.data.newCriteria?.searchCriteria[0].type).toBe(
-        'PmtSch.PmtId.LngBizId.EndToEndId',
-      );
-      expect(
-        message.data.newCriteria?.searchCriteria[0].endToEndIdEqualTo,
-      ).toEqual([
+      const newCriteria = message.data.newCriteria!;
+      expect(newCriteria.name).toBeUndefined();
+      expect(newCriteria.searchCriteria.length).toBe(1);
+      const criteria = newCriteria.searchCriteria[0]!;
+      expect(criteria.type).toBe('PmtSch.PmtId.LngBizId.EndToEndId');
+      expect(criteria.endToEndIdEqualTo).toEqual([
         'FXCDEFGHIXXX1202104120040291234567',
         'ABCDEFGHIXXX1202104120040291234588',
       ]);

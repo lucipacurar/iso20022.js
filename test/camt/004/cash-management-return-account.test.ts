@@ -1,6 +1,6 @@
-import { BalanceTypeCode } from '../../../src/camt/types';
 import { CashManagementReturnAccount } from '../../../src/camt/004/cash-management-return-account';
-import fs from 'fs';
+import { BalanceTypeCode } from '../../../src/camt/types';
+import fs from 'node:fs';
 
 describe('CashManagementReturnAccount', () => {
   describe('from JSON', () => {
@@ -18,21 +18,28 @@ describe('CashManagementReturnAccount', () => {
         '5ac6cf3224284559ba3b3bb667f9f589',
       );
       expect(message.data.reports.length).toBe(1);
-      expect(message.data.reports[0].accountId).toHaveProperty('id');
-      if (message.data.reports[0].accountId && 'id' in message.data.reports[0].accountId) {
+      expect(message.data.reports[0]!.accountId).toHaveProperty('id');
+      if (
+        message.data.reports[0]!.accountId &&
+        'id' in message.data.reports[0]!.accountId
+      ) {
         // TypeScript type guard
-        expect(message.data.reports[0].accountId.id).toEqual('02345678943');
-        expect(message.data.reports[0].accountId.issuer).toEqual('AGRIFRPPXXX');
+        expect(message.data.reports[0]!.accountId.id).toEqual('02345678943');
+        expect(message.data.reports[0]!.accountId.issuer).toEqual(
+          'AGRIFRPPXXX',
+        );
       }
-      expect(message.data.reports[0].error).toBeUndefined();
-      expect(message.data.reports[0].report).toBeDefined();
-      expect(message.data.reports[0].report?.currency).toBe('USD');
-      expect(message.data.reports[0].report?.balances?.length).toEqual(5);
+      expect(message.data.reports[0]!.error).toBeUndefined();
+      expect(message.data.reports[0]!.report).toBeDefined();
+      expect(message.data.reports[0]!.report?.currency).toBe('USD');
+      expect(message.data.reports[0]!.report?.balances?.length).toEqual(5);
       // find the available balance
-      const availableBalance = message.data.reports[0].report?.balances.find(bal => bal.type == BalanceTypeCode.ClosingAvailable);
+      const availableBalance = message.data.reports[0]!.report?.balances.find(
+        bal => bal.type === BalanceTypeCode.ClosingAvailable,
+      );
       expect(availableBalance).toBeDefined();
-      expect(availableBalance?.creditDebitIndicator).toEqual("credit");
-      expect(availableBalance?.amount).toBe(143608);
+      expect(availableBalance?.creditDebitIndicator).toEqual('credit');
+      expect(availableBalance?.amount).toBe(143_608);
 
       // generate XML and re-parse
       const xml = message.serialize();
@@ -42,6 +49,5 @@ describe('CashManagementReturnAccount', () => {
         '5ac6cf3224284559ba3b3bb667f9c00',
       );
     });
-
   });
 });

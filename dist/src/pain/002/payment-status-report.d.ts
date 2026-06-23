@@ -1,5 +1,5 @@
-import { Party } from '../../lib/types';
-import { StatusInformation, PaymentStatus, OriginalGroupInformation } from './types';
+import type { Party } from '../../lib/types';
+import type { OriginalGroupInformation, PaymentStatus, StatusInformation } from './types';
 /**
  * Configuration interface for creating a PaymentStatusReport instance.
  */

@@ -1,4 +1,4 @@
-import { ExternalCategoryPurpose, Party, SEPACreditPaymentInstruction } from '../../lib/types';
+import type { ExternalCategoryPurpose, Party, SEPACreditPaymentInstruction } from '../../lib/types';
 import { PaymentInitiation } from './payment-initiation';
 type AtLeastOne<T> = [T, ...T[]];
 /**
@@ -92,11 +92,6 @@ export declare class SEPACreditPaymentInitiation extends PaymentInitiation {
         } | undefined;
         CdtrAgt?: {
             FinInstnId: {
-                BIC: string;
-                ClrSysMmbId?: undefined;
-            };
-        } | {
-            FinInstnId: {
                 ClrSysMmbId: {
                     ClrSysId: {
                         Cd: string;
@@ -104,6 +99,11 @@ export declare class SEPACreditPaymentInitiation extends PaymentInitiation {
                     MmbId: string;
                 };
                 BIC?: undefined;
+            };
+        } | {
+            FinInstnId: {
+                BIC: string;
+                ClrSysMmbId?: undefined;
             };
         } | undefined;
         PmtId: {

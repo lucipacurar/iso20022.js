@@ -1,12 +1,13 @@
 import { InvalidStructureError, InvalidXmlNamespaceError } from '../../errors';
 import {
-  GenericISO20022Message,
+  type GenericISO20022Message,
+  getXmlBuilder,
+  getXmlParser,
   ISO20022Messages,
-  ISO20022MessageTypeName,
+  type ISO20022MessageTypeName,
   registerISO20022Implementation,
-  XML,
 } from '../../lib/interfaces';
-import { AccountIdentification, MessageHeader } from '../../lib/types';
+import type { AccountIdentification, MessageHeader } from '../../lib/types';
 import {
   exportAccountIdentification,
   exportMessageHeader,
@@ -49,7 +50,7 @@ export class CashManagementGetAccount implements GenericISO20022Message {
     return [ISO20022Messages.CAMT_003];
   }
 
-  static fromDocumentOject(doc: any): CashManagementGetAccount {
+  static fromDocumentObject(doc: any): CashManagementGetAccount {
     const rawHeader = doc.Document?.GetAcct?.MsgHdr;
     if (!rawHeader) {
       throw new InvalidStructureError(
@@ -67,7 +68,7 @@ export class CashManagementGetAccount implements GenericISO20022Message {
 
     const name = newCrit.NewQryNm;
 
-    let searchCriteria: CashManagementGetAccountCriterium[] = [];
+    const searchCriteria: CashManagementGetAccountCriterium[] = [];
     let rawCriterias = newCrit.SchCrit;
     if (!Array.isArray(rawCriterias)) {
       rawCriterias = [rawCriterias];
@@ -147,7 +148,7 @@ export class CashManagementGetAccount implements GenericISO20022Message {
   }
 
   static fromXML(xml: string): CashManagementGetAccount {
-    const parser = XML.getParser();
+    const parser = getXmlParser();
     const doc = parser.parse(xml);
 
     if (!doc.Document) {
@@ -159,21 +160,21 @@ export class CashManagementGetAccount implements GenericISO20022Message {
     if (!namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:camt.003.001.')) {
       throw new InvalidXmlNamespaceError('Invalid CAMT.003 namespace');
     }
-    return CashManagementGetAccount.fromDocumentOject(doc);
+    return CashManagementGetAccount.fromDocumentObject(doc);
   }
 
   static fromJSON(json: string): CashManagementGetAccount {
-    const obj = JSON.parse(json);
+    const obj = JSON.parse(json) as { Document: any };
 
     if (!obj.Document) {
       throw new Error('Invalid JSON format');
     }
 
-    return CashManagementGetAccount.fromDocumentOject(obj);
+    return CashManagementGetAccount.fromDocumentObject(obj);
   }
 
   serialize(): string {
-    const builder = XML.getBuilder();
+    const builder = getXmlBuilder();
     const obj = this.toJSON();
     obj.Document['@_xmlns'] = 'urn:iso:std:iso:20022:tech:xsd:camt.003.001.02';
     obj.Document['@_xmlns:xsi'] = 'http://www.w3.org/2001/XMLSchema-instance';
@@ -207,7 +208,7 @@ export class CashManagementGetAccount implements GenericISO20022Message {
                   ) {
                     obj.AcctId = {
                       NCTTxt: c.accountRegExp
-                        .replace(/^\^\(\(\!\(/, '')
+                        .replace(/^\^\(\(\?!/, '')
                         .replace(/\)\.\)\*\$$/, ''),
                     }; // does not contain
                   }

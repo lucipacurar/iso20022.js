@@ -1,22 +1,18 @@
-import { Alpha2Country } from 'lib/countries';
+import type { Alpha2Country } from '../../../src/lib/countries';
+import type { SEPADirectDebitPaymentInstruction } from '../../../src/lib/types';
 import {
   SEPADirectDebitPaymentReversal,
-  SEPADirectDebitPaymentReversalConfig,
-  SEPADirectDebitReversalInstructionGroup,
-  SEPADirectDebitReversalTransaction,
+  type SEPADirectDebitPaymentReversalConfig,
+  type SEPADirectDebitReversalInstructionGroup,
+  type SEPADirectDebitReversalTransaction,
 } from '../../../src/pain/007/sepa-direct-debit-payment-reversal';
 import {
   SEPADirectDebitPaymentInitiation,
-  SEPADirectDebitPaymentInstructionGroup,
+  type SEPADirectDebitPaymentInstructionGroup,
 } from '../../../src/pain/008/sepa-direct-debit-payment-initiation';
-import { SEPADirectDebitPaymentInstruction } from '../../../src/lib/types';
 import { validateAgainstXsd } from '../../helpers/xsd';
-import * as path from 'path';
 
-const XSD_PATH = path.resolve(
-  __dirname,
-  '../../../schemas/pain/pain.007.001.02.xsd',
-);
+const XSD_PATH = `${process.cwd()}/schemas/pain/pain.007.001.02.xsd`;
 
 describe('SEPADirectDebitPaymentReversal', () => {
   const initiatingParty = {
@@ -117,7 +113,11 @@ describe('SEPADirectDebitPaymentReversal', () => {
       expect(xml).toMatch(/<OrgnlMsgNmId>pain\.008\.001\.02<\/OrgnlMsgNmId>/);
       expect(xml).toMatch(/<OrgnlPmtInfAndRvsl>/);
       expect(xml).toMatch(/<OrgnlPmtInfId>ORIG-PMTINF-001<\/OrgnlPmtInfId>/);
-      expect(xml).toMatch(/<RvslPmtInfId>RVSL-PMTINF-001<\/RvslPmtInfId>/);
+      expect(xml).not.toMatch(/<RvslPmtInfId>/);
+      expect(xml).toMatch(/<GrpRvsl>false<\/GrpRvsl>/);
+      expect(xml).toMatch(/<PmtInfRvsl>false<\/PmtInfRvsl>/);
+      expect(xml).toMatch(/<OrgnlNbOfTxs>1<\/OrgnlNbOfTxs>/);
+      expect(xml).toMatch(/<OrgnlCtrlSum>15\.00<\/OrgnlCtrlSum>/);
       expect(xml).toMatch(/<TxInf>/);
       expect(xml).toMatch(/<RvslId>RVSL-TX-001<\/RvslId>/);
       expect(xml).toMatch(/<OrgnlEndToEndId>ORIG-E2E-001<\/OrgnlEndToEndId>/);
@@ -283,8 +283,9 @@ describe('SEPADirectDebitPaymentReversal', () => {
       const reversal = new SEPADirectDebitPaymentReversal(config);
       const xml = reversal.serialize();
 
-      expect(xml).toMatch(/<RvslPmtInfId>RVSL-GRP-1<\/RvslPmtInfId>/);
-      expect(xml).toMatch(/<RvslPmtInfId>RVSL-GRP-2<\/RvslPmtInfId>/);
+      expect(xml).toMatch(/<OrgnlPmtInfId>ORIG-PMTINF-001<\/OrgnlPmtInfId>/);
+      expect(xml).toMatch(/<OrgnlPmtInfId>ORIG-PMTINF-002<\/OrgnlPmtInfId>/);
+      expect(xml).not.toMatch(/<RvslPmtInfId>/);
       expect(xml).toMatch(/<NbOfTxs>2<\/NbOfTxs>/);
     });
   });
@@ -422,7 +423,10 @@ describe('SEPADirectDebitPaymentReversal', () => {
       expect(parsed.reversalInstructions).toHaveLength(1);
 
       const group = parsed.reversalInstructions[0];
-      expect(group.paymentInformationId).toBe('RVSL-PMTINF-001');
+      // paymentInformationId is no longer round-tripped through XML — the EPC
+      // SDD reversal IG has no field for it. The constructor regenerates one.
+      expect(typeof group.paymentInformationId).toBe('string');
+      expect(group.paymentInformationId).not.toBe('RVSL-PMTINF-001');
       expect(group.creditorSchemeId).toBe('DE96ZZZ00000345986');
       expect(group.sequenceType).toBe('RCUR');
 

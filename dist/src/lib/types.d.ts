@@ -1,5 +1,5 @@
-import { Currency } from './currencies';
-import { Alpha2Country } from './countries';
+import type { Alpha2Country } from './countries';
+import type { Currency } from './currencies';
 export type AtLeastOne<T> = [T, ...T[]];
 /**
  * Represents a payment instruction with essential details.

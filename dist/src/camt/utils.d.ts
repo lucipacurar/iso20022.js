@@ -1,5 +1,5 @@
-import { Balance, BalanceInReport, BusinessError, Entry, Statement } from 'camt/types';
-import { Currency } from '../lib/currencies';
+import type { Currency } from '../lib/currencies';
+import type { Balance, BalanceInReport, BusinessError, Entry, Statement } from './types';
 export declare const parseStatement: (stmt: any) => Statement;
 export declare const exportStatement: (stmt: Statement) => any;
 export declare const parseBalance: (balance: any) => Balance;

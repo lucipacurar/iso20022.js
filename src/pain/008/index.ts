@@ -1,5 +1,5 @@
-export { SEPADirectDebitPaymentInitiation } from './sepa-direct-debit-payment-initiation';
 export type {
-  SEPADirectDebitPaymentInstructionGroup,
   SEPADirectDebitPaymentInitiationConfig,
+  SEPADirectDebitPaymentInstructionGroup,
 } from './sepa-direct-debit-payment-initiation';
+export { SEPADirectDebitPaymentInitiation } from './sepa-direct-debit-payment-initiation';

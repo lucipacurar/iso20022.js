@@ -1,7 +1,7 @@
-import { BusinessError } from '../types';
-import { GenericISO20022Message, ISO20022MessageTypeName } from '../../lib/interfaces';
-import { Agent, MessageHeader, Party } from '../../lib/types';
-import { Currency } from '../../lib/currencies';
+import type { Currency } from '../../lib/currencies';
+import { type GenericISO20022Message, type ISO20022MessageTypeName } from '../../lib/interfaces';
+import type { Agent, MessageHeader, Party } from '../../lib/types';
+import type { BusinessError } from '../types';
 export interface TransactionReport {
     msgId?: string;
     reqExecutionDate?: Date;
@@ -35,7 +35,7 @@ export declare class CashManagementReturnTransaction implements GenericISO20022M
     constructor(data: CashManagementReturnTransactionData);
     get data(): CashManagementReturnTransactionData;
     static supportedMessages(): ISO20022MessageTypeName[];
-    static fromDocumentOject(doc: any): CashManagementReturnTransaction;
+    static fromDocumentObject(doc: any): CashManagementReturnTransaction;
     static fromXML(xml: string): CashManagementReturnTransaction;
     static fromJSON(json: string): CashManagementReturnTransaction;
     serialize(): string;

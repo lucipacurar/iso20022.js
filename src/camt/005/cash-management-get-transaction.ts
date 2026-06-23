@@ -1,12 +1,13 @@
 import { InvalidStructureError, InvalidXmlNamespaceError } from '../../errors';
 import {
-  GenericISO20022Message,
+  type GenericISO20022Message,
+  getXmlBuilder,
+  getXmlParser,
   ISO20022Messages,
-  ISO20022MessageTypeName,
+  type ISO20022MessageTypeName,
   registerISO20022Implementation,
-  XML,
 } from '../../lib/interfaces';
-import { MessageHeader } from '../../lib/types';
+import type { MessageHeader } from '../../lib/types';
 import {
   exportMessageHeader,
   parseDate,
@@ -46,7 +47,7 @@ export class CashManagementGetTransaction implements GenericISO20022Message {
     return [ISO20022Messages.CAMT_005];
   }
 
-  static fromDocumentOject(doc: any): CashManagementGetTransaction {
+  static fromDocumentObject(doc: any): CashManagementGetTransaction {
     const rawHeader = doc.Document?.GetTx?.MsgHdr;
     if (!rawHeader) {
       throw new InvalidStructureError(
@@ -64,7 +65,7 @@ export class CashManagementGetTransaction implements GenericISO20022Message {
 
     const name = newCrit.NewQryNm;
 
-    let searchCriteria: CashManagementGetTransactionCriterium[] = [];
+    const searchCriteria: CashManagementGetTransactionCriterium[] = [];
     let rawCriterias = newCrit.SchCrit;
     if (!Array.isArray(rawCriterias)) {
       rawCriterias = [rawCriterias];
@@ -128,7 +129,7 @@ export class CashManagementGetTransaction implements GenericISO20022Message {
   }
 
   static fromXML(xml: string): CashManagementGetTransaction {
-    const parser = XML.getParser();
+    const parser = getXmlParser();
     const doc = parser.parse(xml);
 
     if (!doc.Document) {
@@ -140,21 +141,21 @@ export class CashManagementGetTransaction implements GenericISO20022Message {
     if (!namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:camt.005.001.')) {
       throw new InvalidXmlNamespaceError('Invalid CAMT.005 namespace');
     }
-    return CashManagementGetTransaction.fromDocumentOject(doc);
+    return CashManagementGetTransaction.fromDocumentObject(doc);
   }
 
   static fromJSON(json: string): CashManagementGetTransaction {
-    const obj = JSON.parse(json);
+    const obj = JSON.parse(json) as { Document: any };
 
     if (!obj.Document) {
       throw new Error('Invalid JSON format');
     }
 
-    return CashManagementGetTransaction.fromDocumentOject(obj);
+    return CashManagementGetTransaction.fromDocumentObject(obj);
   }
 
   serialize(): string {
-    const builder = XML.getBuilder();
+    const builder = getXmlBuilder();
     const obj = this.toJSON();
     obj.Document['@_xmlns'] = 'urn:iso:std:iso:20022:tech:xsd:camt.005.001.02';
     obj.Document['@_xmlns:xsi'] = 'http://www.w3.org/2001/XMLSchema-instance';

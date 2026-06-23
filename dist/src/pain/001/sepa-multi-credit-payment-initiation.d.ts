@@ -118,11 +118,6 @@ export declare class SEPAMultiCreditPaymentInitiation extends PaymentInitiation 
         } | undefined;
         CdtrAgt?: {
             FinInstnId: {
-                BIC: string;
-                ClrSysMmbId?: undefined;
-            };
-        } | {
-            FinInstnId: {
                 ClrSysMmbId: {
                     ClrSysId: {
                         Cd: string;
@@ -130,6 +125,11 @@ export declare class SEPAMultiCreditPaymentInitiation extends PaymentInitiation 
                     MmbId: string;
                 };
                 BIC?: undefined;
+            };
+        } | {
+            FinInstnId: {
+                BIC: string;
+                ClrSysMmbId?: undefined;
             };
         } | undefined;
         PmtId: {

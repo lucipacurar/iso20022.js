@@ -1,13 +1,13 @@
-import { SWIFTCreditPaymentInitiation } from '../../../src/pain/001/swift-credit-payment-initiation';
+import type { SWIFTCreditPaymentInstruction } from '../../../src/index';
 import ISO20022 from '../../../src/iso20022';
-import fs from 'fs';
-import libxmljs from 'libxmljs2';
-import { SWIFTCreditPaymentInstruction } from 'index';
+import { SWIFTCreditPaymentInitiation } from '../../../src/pain/001/swift-credit-payment-initiation';
+import { validateAgainstXsd } from '../../helpers/xsd';
+import fs from 'node:fs';
 
 describe('SWIFTCreditPaymentInitiation', () => {
   let iso20022: ISO20022;
   let swiftPayment: SWIFTCreditPaymentInitiation;
-  let instruction1 = {
+  const instruction1 = {
     type: 'swift',
     direction: 'credit',
     amount: 1000,
@@ -30,7 +30,7 @@ describe('SWIFTCreditPaymentInitiation', () => {
     },
   } as SWIFTCreditPaymentInstruction;
 
-  let instruction2 = {
+  const instruction2 = {
     type: 'swift',
     direction: 'credit',
     amount: 500,
@@ -54,25 +54,23 @@ describe('SWIFTCreditPaymentInitiation', () => {
   } as SWIFTCreditPaymentInstruction;
 
   beforeEach(() => {
-      iso20022 = new ISO20022({
-        initiatingParty: {
-          name: 'Acme Corporation',
-          id: 'ACMEID',
-          account: {
-            accountNumber: '123456789012',
-          },
-          agent: {
-            bic: 'CHASUS33',
-          },
+    iso20022 = new ISO20022({
+      initiatingParty: {
+        name: 'Acme Corporation',
+        id: 'ACMEID',
+        account: {
+          accountNumber: '123456789012',
         },
-      });
-
-      swiftPayment = iso20022.createSWIFTCreditPaymentInitiation({
-        paymentInstructions: [
-          instruction1
-        ],
-      });
+        agent: {
+          bic: 'CHASUS33',
+        },
+      },
     });
+
+    swiftPayment = iso20022.createSWIFTCreditPaymentInitiation({
+      paymentInstructions: [instruction1],
+    });
+  });
 
   test('should create a SWIFTCreditPaymentInitiation instance', () => {
     expect(swiftPayment).toBeInstanceOf(SWIFTCreditPaymentInitiation);
@@ -86,43 +84,34 @@ describe('SWIFTCreditPaymentInitiation', () => {
 
   test('serialized XML should validate against XSD', () => {
     const xml = swiftPayment.serialize();
-    const xsdSchema = fs.readFileSync(
+    validateAgainstXsd(
+      xml,
       `${process.cwd()}/schemas/pain/pain.001.001.03.xsd`,
-      'utf8',
     );
-    const xmlDoc = libxmljs.parseXml(xml);
-    const xsdDoc = libxmljs.parseXml(xsdSchema);
-
-    const isValid = xmlDoc.validate(xsdDoc);
-    expect(isValid).toBeTruthy();
   });
 
   describe('when there are multiple payment instructions', () => {
     beforeEach(() => {
       swiftPayment = iso20022.createSWIFTCreditPaymentInitiation({
-        paymentInstructions: [
-        instruction1,
-        instruction2,
-      ]});
+        paymentInstructions: [instruction1, instruction2],
+      });
     });
 
     test('serialized XML should validate against XSD', () => {
       const xml = swiftPayment.serialize();
-      const xsdSchema = fs.readFileSync(
+      validateAgainstXsd(
+        xml,
         `${process.cwd()}/schemas/pain/pain.001.001.03.xsd`,
-        'utf8',
       );
-      const xmlDoc = libxmljs.parseXml(xml);
-      const xsdDoc = libxmljs.parseXml(xsdSchema);
-
-      const isValid = xmlDoc.validate(xsdDoc);
-      expect(isValid).toBeTruthy();
     });
   });
 
   describe('fromXML', () => {
     describe('with example SWIFT 001 XML file', () => {
-      const exampleSwift = fs.readFileSync(`${process.cwd()}/test/assets/example/swift_pain_001_v3.xml`, 'utf8');
+      const exampleSwift = fs.readFileSync(
+        `${process.cwd()}/test/assets/example/swift_pain_001_v3.xml`,
+        'utf8',
+      );
       let swiftPayment: SWIFTCreditPaymentInitiation;
 
       beforeEach(() => {
@@ -134,56 +123,54 @@ describe('SWIFTCreditPaymentInitiation', () => {
       });
 
       test('should correctly parse information', () => {
-        expect(swiftPayment.messageId).toBe("bbd49338b6a3434aad7537d07b248a99");
-        expect(swiftPayment.creationDate.toISOString()).toBe("2025-02-22T04:30:49.327Z");
+        expect(swiftPayment.messageId).toBe('bbd49338b6a3434aad7537d07b248a99');
+        expect(swiftPayment.creationDate.toISOString()).toBe(
+          '2025-02-22T04:30:49.327Z',
+        );
         expect(swiftPayment.initiatingParty).toEqual({
-          name: "Example Corp",
-          id: "EXAMPLECORP",
+          name: 'Example Corp',
+          id: 'EXAMPLECORP',
           account: {
-            accountNumber: "123456789"
+            accountNumber: '123456789',
           },
           agent: {
-            bic: "CHASUS33"
-          }
+            bic: 'CHASUS33',
+          },
         });
-        
+
         expect(swiftPayment.paymentInstructions).toHaveLength(1);
         expect(swiftPayment.paymentInstructions[0]).toEqual({
-          id: "383e1d18-d7d6-4239-9622-adae81183d3",
-          endToEndId: "383e1d18-d7d6-4239-9622-adae81183d3",
-          type: "swift",
-          direction: "credit",
+          id: '383e1d18-d7d6-4239-9622-adae81183d3',
+          endToEndId: '383e1d18-d7d6-4239-9622-adae81183d3',
+          type: 'swift',
+          direction: 'credit',
           amount: 1000, // 10.00 USD in minor units
-          currency: "USD",
+          currency: 'USD',
           creditor: {
-            name: "Hans Schneider",
+            name: 'Hans Schneider',
             agent: {
-              bic: "DEUTDEFF"
+              bic: 'DEUTDEFF',
             },
             account: {
-              iban: "DE1234567890123456"
+              iban: 'DE1234567890123456',
             },
             address: {
-              streetName: "Hauptstraße",
-              buildingNumber: "42",
-              postalCode: "10115",
-              townName: "Berlin",
-              country: "DE"
-            }
-          }
+              streetName: 'Hauptstraße',
+              buildingNumber: '42',
+              postalCode: '10115',
+              townName: 'Berlin',
+              country: 'DE',
+            },
+          },
         });
       });
 
       test('serialized XML should validate against XSD', () => {
         const xml = swiftPayment.serialize();
-        const xsdSchema = fs.readFileSync(
+        validateAgainstXsd(
+          xml,
           `${process.cwd()}/schemas/pain/pain.001.001.03.xsd`,
-          'utf8'
         );
-        const xmlDoc = libxmljs.parseXml(xml);
-        const xsdDoc = libxmljs.parseXml(xsdSchema);
-        const isValid = xmlDoc.validate(xsdDoc);
-        expect(isValid).toBeTruthy();
       });
     });
 
@@ -196,7 +183,7 @@ describe('SWIFTCreditPaymentInitiation', () => {
     test('should throw error for invalid namespace', () => {
       expect(() => {
         SWIFTCreditPaymentInitiation.fromXML(
-          '<?xml version="1.0"?><Document xmlns="wrong:namespace"></Document>'
+          '<?xml version="1.0"?><Document xmlns="wrong:namespace"></Document>',
         );
       }).toThrow('Invalid PAIN.001 namespace');
     });

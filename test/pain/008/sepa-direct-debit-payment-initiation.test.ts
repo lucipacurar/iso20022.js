@@ -1,10 +1,10 @@
-import { Alpha2Country } from 'lib/countries';
+import type { Alpha2Country } from '../../../src/lib/countries';
+import type { SEPADirectDebitPaymentInstruction } from '../../../src/lib/types';
 import {
   SEPADirectDebitPaymentInitiation,
-  SEPADirectDebitPaymentInitiationConfig,
-  SEPADirectDebitPaymentInstructionGroup,
+  type SEPADirectDebitPaymentInitiationConfig,
+  type SEPADirectDebitPaymentInstructionGroup,
 } from '../../../src/pain/008/sepa-direct-debit-payment-initiation';
-import { SEPADirectDebitPaymentInstruction } from '../../../src/lib/types';
 import { validateAgainstXsd } from '../../helpers/xsd';
 
 describe('SEPADirectDebitPaymentInitiation', () => {

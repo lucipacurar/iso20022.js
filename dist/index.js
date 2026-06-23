@@ -3,48 +3,33 @@
 var decimal_js = require('decimal.js');
 var node_crypto = require('node:crypto');
 
-function getCurrencyPrecision(currency) {
-    switch (currency) {
-        case 'BHD': // Bahraini Dinar
-        case 'IQD': // Iraqi Dinar
-        case 'JOD': // Jordanian Dinar
-        case 'KWD': // Kuwaiti Dinar
-        case 'LYD': // Libyan Dinar
-        case 'OMR': // Omani Rial
-        case 'TND': // Tunisian Dinar
-            return 3;
-        case 'CLF': // Unidad de Fomento (Chile)
-            return 4;
-        case 'BIF': // Burundian Franc
-        case 'BYN': // Belarusian Ruble
-        case 'CVE': // Cape Verdean Escudo
-        case 'DJF': // Djiboutian Franc
-        case 'GNF': // Guinean Franc
-        case 'ISK': // Icelandic Krona
-        case 'JPY': // Japanese Yen
-        case 'KMF': // Comorian Franc
-        case 'KRW': // South Korean Won
-        case 'PYG': // Paraguayan Guarani
-        case 'RWF': // Rwandan Franc
-        case 'UGX': // Ugandan Shilling
-        case 'UYI': // Uruguayan Peso (Indexed Units)
-        case 'VND': // Vietnamese Dong
-        case 'VUV': // Vanuatu Vatu
-        case 'XAF': // Central African CFA Franc
-        case 'XOF': // West African CFA Franc
-        case 'XPF': // CFP Franc
-            return 0;
-        default:
-            return 2; // Default to 2 decimal places for most currencies
+/**
+ * Base error class for all ISO 20022 related errors in the library.
+ * Extends the native Error class with proper stack trace capture.
+ */
+class Iso20022JsError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = this.constructor.name;
+        // Maintains proper stack trace for where the error was thrown
+        if (Error.captureStackTrace) {
+            Error.captureStackTrace(this, this.constructor);
+        }
     }
 }
-function formatMinorUnits(amount, currency) {
-    const precision = getCurrencyPrecision(currency);
-    return new decimal_js.Decimal(amount).div(new decimal_js.Decimal(10).pow(precision)).toFixed(precision);
+/**
+ * Error thrown when XML parsing or validation fails.
+ * This error indicates that the provided XML is malformed or does not conform to expected structure.
+ */
+class InvalidXmlError extends Iso20022JsError {
 }
-function minorUnitsToNumber(amount, currency) {
-    const precision = getCurrencyPrecision(currency);
-    return new decimal_js.Decimal(amount).div(new decimal_js.Decimal(10).pow(precision)).toNumber();
+/**
+ * Error thrown when XML namespace validation fails.
+ * This error indicates that the XML document contains invalid or missing required ISO 20022 namespaces.
+ */
+class InvalidXmlNamespaceError extends Iso20022JsError {
+}
+class InvalidStructureError extends Iso20022JsError {
 }
 
 const nameStartChar = ':A-Za-z_\\u00C0-\\u00D6\\u00D8-\\u00F6\\u00F8-\\u02FF\\u0370-\\u037D\\u037F-\\u1FFF\\u200C-\\u200D\\u2070-\\u218F\\u2C00-\\u2FEF\\u3001-\\uD7FF\\uF900-\\uFDCF\\uFDF0-\\uFFFD';
@@ -4637,73 +4622,79 @@ function registerISO20022Implementation(cl) {
 function getISO20022Implementation(type) {
     return ISO20022Implementations.get(type);
 }
-class XML {
-    /**
-     * Creates and configures the XML Parser
-     *
-     * @returns {XMLParser} A configured instance of XMLParser
-     */
-    static getParser() {
-        return new XMLParser({
-            ignoreAttributes: false,
-            attributeNamePrefix: '@_',
-            textNodeName: '#text',
-            /**
-             * Disable automatic numeric parsing. ISO 20022 fields are semantically
-             * strings (Max35Text, etc.). Numeric-looking values like AcctSvcrRef,
-             * EndToEndId, NtryRef, and Cd must stay as strings to preserve leading
-             * zeros and avoid precision loss on large numbers. Amounts are explicitly
-             * converted to numbers downstream via parseAmountToMinorUnits.
-             */
-            parseTagValue: false,
-        });
-    }
-    static getBuilder() {
-        return new Builder({
-            ignoreAttributes: false,
-            attributeNamePrefix: '@_',
-            textNodeName: '#text',
-            format: true,
-        });
-    }
+/**
+ * Creates and configures the XML Parser
+ *
+ * @returns {XMLParser} A configured instance of XMLParser
+ */
+function getXmlParser() {
+    return new XMLParser({
+        ignoreAttributes: false,
+        attributeNamePrefix: '@_',
+        textNodeName: '#text',
+        /**
+         * Disable automatic numeric parsing. ISO 20022 fields are semantically
+         * strings (Max35Text, etc.). Numeric-looking values like AcctSvcrRef,
+         * EndToEndId, NtryRef, and Cd must stay as strings to preserve leading
+         * zeros and avoid precision loss on large numbers. Amounts are explicitly
+         * converted to numbers downstream via parseAmountToMinorUnits.
+         */
+        parseTagValue: false,
+    });
+}
+function getXmlBuilder() {
+    return new Builder({
+        ignoreAttributes: false,
+        attributeNamePrefix: '@_',
+        textNodeName: '#text',
+        format: true,
+    });
 }
 
-/**
- * Base error class for all ISO 20022 related errors in the library.
- * Extends the native Error class with proper stack trace capture.
- */
-class Iso20022JsError extends Error {
-    constructor(message) {
-        super(message);
-        this.name = this.constructor.name;
-        // Maintains proper stack trace for where the error was thrown
-        if (Error.captureStackTrace) {
-            Error.captureStackTrace(this, this.constructor);
-        }
+function getCurrencyPrecision(currency) {
+    switch (currency) {
+        case 'BHD': // Bahraini Dinar
+        case 'IQD': // Iraqi Dinar
+        case 'JOD': // Jordanian Dinar
+        case 'KWD': // Kuwaiti Dinar
+        case 'LYD': // Libyan Dinar
+        case 'OMR': // Omani Rial
+        case 'TND': // Tunisian Dinar
+            return 3;
+        case 'CLF': // Unidad de Fomento (Chile)
+            return 4;
+        case 'BIF': // Burundian Franc
+        case 'BYN': // Belarusian Ruble
+        case 'CVE': // Cape Verdean Escudo
+        case 'DJF': // Djiboutian Franc
+        case 'GNF': // Guinean Franc
+        case 'ISK': // Icelandic Krona
+        case 'JPY': // Japanese Yen
+        case 'KMF': // Comorian Franc
+        case 'KRW': // South Korean Won
+        case 'PYG': // Paraguayan Guarani
+        case 'RWF': // Rwandan Franc
+        case 'UGX': // Ugandan Shilling
+        case 'UYI': // Uruguayan Peso (Indexed Units)
+        case 'VND': // Vietnamese Dong
+        case 'VUV': // Vanuatu Vatu
+        case 'XAF': // Central African CFA Franc
+        case 'XOF': // West African CFA Franc
+        case 'XPF': // CFP Franc
+            return 0;
+        default:
+            return 2; // Default to 2 decimal places for most currencies
     }
 }
-/**
- * Error thrown when XML parsing or validation fails.
- * This error indicates that the provided XML is malformed or does not conform to expected structure.
- */
-class InvalidXmlError extends Iso20022JsError {
-    constructor(message) {
-        super(message);
-    }
+function formatMinorUnits(amount, currency) {
+    const precision = getCurrencyPrecision(currency);
+    return new decimal_js.Decimal(amount)
+        .div(new decimal_js.Decimal(10).pow(precision))
+        .toFixed(precision);
 }
-/**
- * Error thrown when XML namespace validation fails.
- * This error indicates that the XML document contains invalid or missing required ISO 20022 namespaces.
- */
-class InvalidXmlNamespaceError extends Iso20022JsError {
-    constructor(message) {
-        super(message);
-    }
-}
-class InvalidStructureError extends Iso20022JsError {
-    constructor(message) {
-        super(message);
-    }
+function minorUnitsToNumber(amount, currency) {
+    const precision = getCurrencyPrecision(currency);
+    return new decimal_js.Decimal(amount).div(new decimal_js.Decimal(10).pow(precision)).toNumber();
 }
 
 const parseAccount = (account) => {
@@ -4742,34 +4733,30 @@ const parseAccountIdentification = (accountId) => {
             iban: accountId.IBAN,
         };
     }
-    else {
-        return {
-            id: accountId.Othr?.Id,
-            schemeName: accountId.Othr?.SchmeNm?.Cd || accountId.Othr?.SchmeNm?.Prtry,
-            issuer: accountId.Othr?.Issr,
-        };
-    }
+    return {
+        id: accountId.Othr?.Id,
+        schemeName: accountId.Othr?.SchmeNm?.Cd || accountId.Othr?.SchmeNm?.Prtry,
+        issuer: accountId.Othr?.Issr,
+    };
 };
 const exportAccountIdentification = (accountId) => {
     if (accountId.iban) {
         return { IBAN: accountId.iban };
     }
-    else {
-        const obj = {
-            Othr: {
-                Id: accountId.id,
-            },
-        };
-        if (accountId.schemeName) {
-            obj.Othr.SchmeNm = {
-                Cd: accountId.schemeName,
-            }; // TODO: Add support for Prtry scheme name
-        }
-        if (accountId.issuer) {
-            obj.Othr.Issr = accountId.issuer;
-        }
-        return obj;
+    const obj = {
+        Othr: {
+            Id: accountId.id,
+        },
+    };
+    if (accountId.schemeName) {
+        obj.Othr.SchmeNm = {
+            Cd: accountId.schemeName,
+        }; // TODO: Add support for Prtry scheme name
     }
+    if (accountId.issuer) {
+        obj.Othr.Issr = accountId.issuer;
+    }
+    return obj;
 };
 // TODO: Add both BIC and ABA routing numbers at the same time
 const parseAgent = (agent) => {
@@ -4783,33 +4770,31 @@ const parseAgent = (agent) => {
     }
     throw new Error('Unable to parse agent: no BIC, BICFI, Othr.Id, or ClrSysMmbId.MmbId present');
 };
-const parseMandate = (mandateInfo) => {
-    return {
-        mandateId: mandateInfo?.MndtId,
-        dateOfSignature: new Date(mandateInfo?.DtOfSgntr),
-        amendmentIndicator: mandateInfo?.AmdmntInd === 'true' || mandateInfo?.AmdmntInd === true,
-        ...(mandateInfo?.AmdmntInd &&
-            mandateInfo?.AmdmntInfDtls && {
-            amendmentInformation: {
-                ...(mandateInfo.AmdmntInfDtls.OrgnlMndtId && {
-                    originalMandateId: mandateInfo.AmdmntInfDtls.OrgnlMndtId,
-                }),
-                ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId && {
-                    originalCreditorSchemeId: {
-                        ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Nm && {
-                            name: mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Nm,
-                        }),
-                        ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Id?.PrvtId?.Othr
-                            ?.Id && {
-                            id: mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Id.PrvtId.Othr
-                                .Id,
-                        }),
-                    },
-                }),
-            },
-        }),
-    };
-};
+const parseMandate = (mandateInfo) => ({
+    mandateId: mandateInfo?.MndtId,
+    dateOfSignature: new Date(mandateInfo?.DtOfSgntr),
+    amendmentIndicator: mandateInfo?.AmdmntInd === 'true' || mandateInfo?.AmdmntInd === true,
+    ...(mandateInfo?.AmdmntInd &&
+        mandateInfo?.AmdmntInfDtls && {
+        amendmentInformation: {
+            ...(mandateInfo.AmdmntInfDtls.OrgnlMndtId && {
+                originalMandateId: mandateInfo.AmdmntInfDtls.OrgnlMndtId,
+            }),
+            ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId && {
+                originalCreditorSchemeId: {
+                    ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Nm && {
+                        name: mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Nm,
+                    }),
+                    ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Id?.PrvtId?.Othr
+                        ?.Id && {
+                        id: mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Id.PrvtId.Othr
+                            .Id,
+                    }),
+                },
+            }),
+        },
+    }),
+});
 const exportAgent = (agent) => {
     const obj = {
         FinInstnId: {},
@@ -4828,59 +4813,47 @@ const parseAmountToMinorUnits = (rawAmount, currency = 'USD') => {
     // Decimal.js guards against JS float parsing errors (e.g. 0.29 * 100).
     return new decimal_js.Decimal(rawAmount).mul(new decimal_js.Decimal(10).pow(precision)).toNumber();
 };
-const exportAmountToString = (amount, currency = 'USD') => {
-    return formatMinorUnits(amount, currency);
-};
+const exportAmountToString = (amount, currency = 'USD') => formatMinorUnits(amount, currency);
 const parseDate = (dateElement) => {
     // Find the date element, which can be DtTm or Dt
     const date = dateElement.DtTm || dateElement.Dt || dateElement;
     return new Date(date);
 };
-const parseParty = (party) => {
-    return {
-        id: party.Id?.OrgId?.Othr?.Id,
-        name: party.Nm,
-    };
-};
-const parseRecipient = (recipient) => {
-    return {
-        id: recipient.Id?.OrgId?.Othr?.Id,
-        name: recipient.Nm,
-    };
-};
-const exportRecipient = (recipient) => {
-    return {
-        Id: recipient.id ? { OrgId: { Othr: { Id: recipient.id } } } : undefined,
-        Nm: recipient.name,
-    };
-};
+const parseParty = (party) => ({
+    id: party.Id?.OrgId?.Othr?.Id,
+    name: party.Nm,
+});
+const parseRecipient = (recipient) => ({
+    id: recipient.Id?.OrgId?.Othr?.Id,
+    name: recipient.Nm,
+});
+const exportRecipient = (recipient) => ({
+    Id: recipient.id ? { OrgId: { Othr: { Id: recipient.id } } } : undefined,
+    Nm: recipient.name,
+});
 // Standardize into a single string
 const parseAdditionalInformation = (additionalInformation) => {
     if (!additionalInformation) {
-        return undefined;
+        return;
     }
     if (Array.isArray(additionalInformation)) {
         return additionalInformation.join('\n');
     }
-    else {
-        return additionalInformation;
-    }
+    return additionalInformation;
 };
-const parseMessageHeader = (rawHeader) => {
-    return {
-        id: rawHeader.MsgId,
-        creationDateTime: rawHeader.CreDtTm
-            ? parseDate(rawHeader.CreDtTm)
-            : undefined,
-        queryName: rawHeader.QueryNm,
-        requestType: rawHeader.ReqTp?.PmtCtrl ||
-            rawHeader.ReqTp?.Enqry ||
-            rawHeader.ReqTp?.Prtry,
-        originalMessageHeader: rawHeader.OrgnlBizQry
-            ? parseMessageHeader(rawHeader.OrgnlBizQry)
-            : undefined,
-    };
-};
+const parseMessageHeader = (rawHeader) => ({
+    id: rawHeader.MsgId,
+    creationDateTime: rawHeader.CreDtTm
+        ? parseDate(rawHeader.CreDtTm)
+        : undefined,
+    queryName: rawHeader.QueryNm,
+    requestType: rawHeader.ReqTp?.PmtCtrl ||
+        rawHeader.ReqTp?.Enqry ||
+        rawHeader.ReqTp?.Prtry,
+    originalMessageHeader: rawHeader.OrgnlBizQry
+        ? parseMessageHeader(rawHeader.OrgnlBizQry)
+        : undefined,
+});
 const exportMessageHeader = (header) => {
     const obj = {
         MsgId: header.id,
@@ -4898,2127 +4871,6 @@ const exportMessageHeader = (header) => {
     return obj;
 };
 
-const sanitize = (value, length) => {
-    return value.slice(0, length);
-};
-const generateId = () => {
-    return node_crypto.randomUUID().replace(/-/g, '');
-};
-
-/**
- * Abstract base class for ISO20022 payment initiation (PAIN) messages.
- * @abstract
- */
-class PaymentInitiation {
-    type;
-    constructor({ type }) {
-        this.type = type;
-    }
-    /**
-     * Returns the full XML namespace URI for this message type
-     * (e.g. 'urn:iso:std:iso:20022:tech:xsd:pain.007.001.02').
-     */
-    get namespace() {
-        return `${XMLNS_PREFIX}${this.schemaId}`;
-    }
-    /**
-     * Formats a party's information according to ISO20022 standards.
-     * @param {Party} party - The party's information.
-     * @returns {Object} Formatted XML party information.
-     */
-    party(party) {
-        const result = {
-            Nm: party.name,
-        };
-        // Only include address information if it exists
-        if (party.address) {
-            result.PstlAdr = {
-                StrtNm: party.address.streetName,
-                BldgNb: party.address.buildingNumber,
-                PstCd: party.address.postalCode,
-                TwnNm: party.address.townName,
-                CtrySubDvsn: party.address.countrySubDivision,
-                Ctry: party.address.country,
-            };
-        }
-        return result;
-    }
-    /**
-     * Formats an account according to ISO20022 standards.
-     * This method handles both IBAN and non-IBAN accounts.
-     *
-     * @param {Account} account - The account to be formatted. Can be either an IBANAccount or a BaseAccount.
-     * @returns {Object} An object representing the formatted account information.
-     *                   For IBAN accounts, it returns an object with an IBAN identifier.
-     *                   For non-IBAN accounts, it returns an object with an 'Other' identifier.
-     *
-     * @example
-     * // For an IBAN account
-     * account({ iban: 'DE89370400440532013000' })
-     * // Returns: { Id: { IBAN: 'DE89370400440532013000' } }
-     *
-     * @example
-     * // For a non-IBAN account
-     * account({ accountNumber: '1234567890' })
-     * // Returns: { Id: { Othr: { Id: '1234567890' } } }
-     */
-    account(account) {
-        if (account.iban) {
-            return this.internationalAccount(account);
-        }
-        return {
-            Id: {
-                Othr: {
-                    Id: account.accountNumber,
-                },
-            },
-        };
-    }
-    /**
-     * Formats an IBAN account according to ISO20022 standards.
-     * @param {IBANAccount} account - The IBAN account information.
-     * @returns {Object} Formatted XML IBAN account information.
-     */
-    internationalAccount(account) {
-        return {
-            Id: {
-                IBAN: account.iban,
-            },
-        };
-    }
-    /**
-     * Formats an agent according to ISO20022 standards.
-     * This method handles both BIC and ABA agents.
-     *
-     * @param {Agent} agent - The agent to be formatted. Can be either a BICAgent or an ABAAgent.
-     * @returns {Object} An object representing the formatted agent information.
-     *                   For BIC agents, it returns an object with a BIC identifier.
-     *                   For ABA agents, it returns an object with clearing system member identification.
-     *
-     * @example
-     * // For a BIC agent
-     * agent({ bic: 'BOFAUS3NXXX' })
-     * // Returns: { FinInstnId: { BIC: 'BOFAUS3NXXX' } }
-     *
-     * @example
-     * // For an ABA agent
-     * agent({ abaRoutingNumber: '026009593' })
-     * // Returns: { FinInstnId: { ClrSysMmbId: { MmbId: '026009593' } } }
-     */
-    agent(agent) {
-        if (agent.bic !== undefined) {
-            return {
-                FinInstnId: {
-                    BIC: agent.bic,
-                },
-            };
-        }
-        else {
-            return {
-                FinInstnId: {
-                    ClrSysMmbId: {
-                        ClrSysId: {
-                            Cd: 'USABA',
-                        },
-                        MmbId: agent.abaRoutingNumber,
-                    },
-                },
-            };
-        }
-    }
-    buildMandateRelatedInfo(mandate) {
-        return {
-            MndtId: mandate.mandateId,
-            DtOfSgntr: mandate.dateOfSignature.toISOString().split('T')[0],
-            AmdmntInd: mandate.amendmentIndicator,
-            ...(mandate.amendmentIndicator &&
-                mandate.amendmentInformation && {
-                AmdmntInfDtls: {
-                    ...(mandate.amendmentInformation.originalMandateId && {
-                        OrgnlMndtId: mandate.amendmentInformation.originalMandateId,
-                    }),
-                    ...(mandate.amendmentInformation.originalCreditorSchemeId && {
-                        OrgnlCdtrSchmeId: {
-                            ...(mandate.amendmentInformation.originalCreditorSchemeId
-                                .name && {
-                                Nm: mandate.amendmentInformation.originalCreditorSchemeId
-                                    .name,
-                            }),
-                            ...(mandate.amendmentInformation.originalCreditorSchemeId
-                                .id && {
-                                Id: {
-                                    PrvtId: {
-                                        Othr: {
-                                            Id: mandate.amendmentInformation
-                                                .originalCreditorSchemeId.id,
-                                            SchmeNm: { Prtry: 'SEPA' },
-                                        },
-                                    },
-                                },
-                            }),
-                        },
-                    }),
-                },
-            }),
-        };
-    }
-    buildCreditorSchemeId(schemeId) {
-        return {
-            Id: {
-                PrvtId: {
-                    Othr: {
-                        Id: schemeId,
-                        SchmeNm: { Prtry: 'SEPA' },
-                    },
-                },
-            },
-        };
-    }
-    /**
-     * Returns the string representation of the payment initiation.
-     * @returns {string} The serialized payment initiation.
-     */
-    toString() {
-        return this.serialize();
-    }
-    static getBuilder() {
-        return new Builder({
-            ignoreAttributes: false,
-            attributeNamePrefix: '@',
-            textNodeName: '#',
-            format: true,
-        });
-    }
-}
-
-/**
- * Represents a SWIFT Credit Payment v3 Initiation message (pain.001.001.03).
- * @class
- * @extends PaymentInitiation
- * @param {SWIFTCreditPaymentInitiationConfig} config - The configuration for the SWIFT Credit Payment Initiation message.
- * @example
- * ```typescript
- * // Creating a payment message
- * const payment = new SWIFTCreditPaymentInitiation({
- *   ...
- * });
- * // Uploading to fiatwebservices.com
- * client.paymentTransfers.create(payment);
- * // Parsing from XML
- * const xml = '<xml>...</xml>';
- * const parsedTransfer = SWIFTCreditPaymentInitiation.fromXML(xml);
- * ```
- * @see {@link https://docs.iso20022js.com/pain/sepacredit} for more information.
- */
-class SWIFTCreditPaymentInitiation extends PaymentInitiation {
-    initiatingParty;
-    messageId;
-    creationDate;
-    paymentInstructions;
-    paymentInformationId;
-    get schemaId() {
-        return ISO20022SchemaId.PAIN_001_001_03;
-    }
-    /**
-     * Creates an instance of SWIFTCreditPaymentInitiation.
-     * @param {SWIFTCreditPaymentInitiationConfig} config - The configuration object.
-     */
-    constructor(config) {
-        super({ type: 'swift' });
-        this.initiatingParty = config.initiatingParty;
-        this.paymentInstructions = config.paymentInstructions;
-        this.messageId = config.messageId || generateId();
-        this.creationDate = config.creationDate || new Date();
-        this.paymentInformationId = generateId();
-        this.validate();
-    }
-    /**
-     * Validates the payment initiation data has the information required to create a valid XML file.
-     * @private
-     * @throws {Error} If messageId exceeds 35 characters.
-     * @throws {Error} If any creditor has incomplete address information.
-     */
-    validate() {
-        if (this.messageId.length > 35) {
-            throw new Error('messageId must not exceed 35 characters');
-        }
-        // Validate that all creditors have complete addresses
-        // According to spec, the country is required for all addresses
-        const creditorWithIncompleteAddress = this.paymentInstructions.find(instruction => {
-            const address = instruction.creditor.address;
-            return !address || !address.country;
-        });
-        if (creditorWithIncompleteAddress) {
-            throw new Error('All creditors must have complete addresses (street name, building number, postal code, town name, and country)');
-        }
-        // Add more validation as needed
-    }
-    /**
-     * Generates payment information for a single payment instruction.
-     * @param {SWIFTCreditPaymentInstruction} paymentInstruction - The payment instruction.
-     * @returns {Object} The credit transfer object.
-     */
-    creditTransfer(paymentInstruction) {
-        const paymentInstructionId = sanitize(paymentInstruction.id || generateId(), 35);
-        const amount = minorUnitsToNumber(paymentInstruction.amount, paymentInstruction.currency);
-        return {
-            PmtId: {
-                InstrId: paymentInstructionId,
-                EndToEndId: paymentInstructionId,
-            },
-            Amt: {
-                InstdAmt: {
-                    '#': amount,
-                    '@Ccy': paymentInstruction.currency,
-                },
-            },
-            // TODO: Add support for intermediary bank information
-            // This is necessary when the SWIFT Payment needs to be routed through multiple banks in order to reach the recipient
-            // intermediaryBanks will probably need to be an array of BICAgents. There needs to be an easy way to get this information for users
-            CdtrAgt: this.agent(paymentInstruction.creditor.agent),
-            Cdtr: this.party(paymentInstruction.creditor),
-            CdtrAcct: this.internationalAccount(paymentInstruction.creditor.account),
-            RmtInf: paymentInstruction.remittanceInformation
-                ? {
-                    Ustrd: paymentInstruction.remittanceInformation,
-                }
-                : undefined,
-        };
-    }
-    /**
-     * Serializes the payment initiation to an XML string.
-     * @returns {string} The XML representation of the payment initiation.
-     */
-    static fromXML(rawXml) {
-        const parser = XML.getParser();
-        const xml = parser.parse(rawXml);
-        if (!xml.Document) {
-            throw new InvalidXmlError('Invalid XML format');
-        }
-        const namespace = (xml.Document['@_xmlns'] ||
-            xml.Document['@_Xmlns']);
-        if (!namespace.startsWith(`${XMLNS_PREFIX}pain.001.001`)) {
-            throw new InvalidXmlNamespaceError('Invalid PAIN.001 namespace');
-        }
-        const messageId = xml.Document.CstmrCdtTrfInitn.GrpHdr.MsgId;
-        const creationDate = new Date(xml.Document.CstmrCdtTrfInitn.GrpHdr.CreDtTm);
-        // Parse and validate accounts
-        // Create base initiating party
-        const baseInitiatingParty = {
-            name: xml.Document.CstmrCdtTrfInitn.GrpHdr.InitgPty.Nm,
-            id: xml.Document.CstmrCdtTrfInitn.GrpHdr.InitgPty.Id?.OrgId?.Othr?.Id,
-            account: parseAccount(xml.Document.CstmrCdtTrfInitn.PmtInf.DbtrAcct),
-            agent: {
-                bic: xml.Document.CstmrCdtTrfInitn.PmtInf.DbtrAgt?.FinInstnId?.BIC,
-            },
-        };
-        const rawInstructions = Array.isArray(xml.Document.CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf)
-            ? xml.Document.CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf
-            : [xml.Document.CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf];
-        const paymentInstructions = rawInstructions.map((inst) => {
-            const currency = inst.Amt.InstdAmt['@_Ccy'];
-            const amount = parseAmountToMinorUnits(Number(inst.Amt.InstdAmt['#text']), currency);
-            // Create base creditor party
-            const creditor = {
-                name: inst.Cdtr.Nm,
-                agent: {
-                    bic: inst.CdtrAgt?.FinInstnId?.BIC,
-                },
-                account: inst.CdtrAcct?.Id?.IBAN || inst.CdtrAcct?.Id?.Othr?.Id
-                    ? parseAccount(inst.CdtrAcct)
-                    : undefined,
-                address: {
-                    streetName: inst.Cdtr.PstlAdr.StrtNm,
-                    buildingNumber: inst.Cdtr.PstlAdr.BldgNb,
-                    postalCode: inst.Cdtr.PstlAdr.PstCd,
-                    townName: inst.Cdtr.PstlAdr.TwnNm,
-                    countrySubDivision: inst.Cdtr.PstlAdr.CtrySubDvsn,
-                    country: inst.Cdtr.PstlAdr.Ctry,
-                },
-            };
-            // Return instruction with validated data
-            return {
-                type: 'swift',
-                direction: 'credit',
-                ...(inst.PmtId.InstrId && { id: inst.PmtId.InstrId.toString() }),
-                ...(inst.PmtId.EndToEndId && {
-                    endToEndId: inst.PmtId.EndToEndId.toString(),
-                }),
-                amount,
-                currency,
-                creditor,
-            };
-        });
-        return new SWIFTCreditPaymentInitiation({
-            messageId,
-            creationDate,
-            initiatingParty: baseInitiatingParty,
-            paymentInstructions: paymentInstructions,
-        });
-    }
-    serialize() {
-        const builder = PaymentInitiation.getBuilder();
-        const xml = {
-            '?xml': {
-                '@version': '1.0',
-                '@encoding': 'UTF-8',
-            },
-            Document: {
-                '@xmlns': this.namespace,
-                CstmrCdtTrfInitn: {
-                    GrpHdr: {
-                        MsgId: this.messageId,
-                        CreDtTm: this.creationDate.toISOString(),
-                        NbOfTxs: this.paymentInstructions.length.toString(),
-                        InitgPty: {
-                            Nm: this.initiatingParty.name,
-                            Id: {
-                                OrgId: {
-                                    Othr: {
-                                        Id: this.initiatingParty.id,
-                                    },
-                                },
-                            },
-                        },
-                    },
-                    PmtInf: {
-                        PmtInfId: this.paymentInformationId,
-                        PmtMtd: 'TRF',
-                        BtchBookg: 'false',
-                        PmtTpInf: {
-                            InstrPrty: 'NORM',
-                            SvcLvl: {
-                                Cd: 'URGP',
-                            },
-                        },
-                        ReqdExctnDt: this.creationDate.toISOString().split('T')[0], // TODO: Check time zone eventually
-                        Dbtr: this.party(this.initiatingParty),
-                        DbtrAcct: this.account(this.initiatingParty.account),
-                        DbtrAgt: this.agent(this.initiatingParty.agent),
-                        ChrgBr: 'SHAR',
-                        CdtTrfTxInf: this.paymentInstructions.map(p => this.creditTransfer(p)),
-                    },
-                },
-            },
-        };
-        return builder.build(xml);
-    }
-}
-
-/**
- * Represents a SEPA Credit Payment Initiation.
- * This class handles the creation and serialization of SEPA credit transfer messages
- * according to the ISO20022 standard.
- * @class
- * @extends PaymentInitiation
- * @param {SEPACreditPaymentInitiationConfig} config - The configuration for the SEPA Credit Payment Initiation message.
- * @example
- * ```typescript
- * // Creating a SEPA payment message
- * const payment = new SEPACreditPaymentInitiation({
- *   // configuration options
- * });
- * // Uploading the payment
- * client.paymentTransfers.create(payment);
- * // Parsing from XML
- * const xml = '<xml>...</xml>';
- * const parsedTransfer = SEPACreditPaymentInitiation.fromXML(xml);
- * ```
- * @see {@link https://docs.iso20022js.com/pain/sepacredit} for more information.
- */
-class SEPACreditPaymentInitiation extends PaymentInitiation {
-    initiatingParty;
-    messageId;
-    creationDate;
-    paymentInstructions;
-    paymentInformationId;
-    categoryPurpose;
-    formattedPaymentSum;
-    get schemaId() {
-        return ISO20022SchemaId.PAIN_001_001_03;
-    }
-    /**
-     * Creates an instance of SEPACreditPaymentInitiation.
-     * @param {SEPACreditPaymentInitiationConfig} config - The configuration object for the SEPA credit transfer.
-     */
-    constructor(config) {
-        super({ type: 'sepa' });
-        this.initiatingParty = config.initiatingParty;
-        this.paymentInstructions = config.paymentInstructions;
-        this.messageId = config.messageId || generateId();
-        this.creationDate = config.creationDate || new Date();
-        this.formattedPaymentSum = this.sumPaymentInstructions(this.paymentInstructions);
-        this.paymentInformationId = generateId();
-        this.categoryPurpose = config.categoryPurpose;
-        this.validate();
-    }
-    // NOTE: Does not work with different currencies. In the meantime we will use a guard.
-    // TODO: Figure out what to do with different currencies
-    /**
-     * Calculates the sum of all payment instructions.
-     * @private
-     * @param {AtLeastOne<SEPACreditPaymentInstruction>} instructions - Array of payment instructions.
-     * @returns {string} The total sum formatted as a string with 2 decimal places.
-     * @throws {Error} If payment instructions have different currencies.
-     */
-    sumPaymentInstructions(instructions) {
-        this.validateAllInstructionsHaveSameCurrency();
-        const total = instructions.reduce((acc, i) => acc + i.amount, 0);
-        return formatMinorUnits(total, instructions[0].currency);
-    }
-    /**
-     * Validates the payment initiation data according to SEPA requirements.
-     * @private
-     * @throws {Error} If messageId exceeds 35 characters.
-     * @throws {Error} If payment instructions have different currencies.
-     * @throws {Error} If any creditor has incomplete address information.
-     */
-    validate() {
-        if (this.messageId.length > 35) {
-            throw new Error('messageId must not exceed 35 characters');
-        }
-        this.validateAllInstructionsHaveSameCurrency();
-    }
-    // Validates that all payment instructions have the same currency
-    // TODO: Remove this when we figure out how to run sumPaymentInstructions safely
-    validateAllInstructionsHaveSameCurrency() {
-        if (!this.paymentInstructions.every(i => {
-            return i.currency === this.paymentInstructions[0].currency;
-        })) {
-            throw new Error('In order to calculate the payment instructions sum, all payment instruction currencies must be the same.');
-        }
-    }
-    /**
-     * Generates payment information for a single SEPA credit transfer instruction.
-     * @param {SEPACreditPaymentInstruction} instruction - The payment instruction.
-     * @returns {Object} The payment information object formatted according to SEPA specifications.
-     */
-    creditTransfer(instruction) {
-        const paymentInstructionId = sanitize(instruction.id || generateId(), 35);
-        const endToEndId = sanitize(instruction.endToEndId || instruction.id || generateId(), 35);
-        return {
-            PmtId: {
-                InstrId: paymentInstructionId,
-                EndToEndId: endToEndId,
-            },
-            Amt: {
-                InstdAmt: {
-                    '#': formatMinorUnits(instruction.amount, instruction.currency),
-                    '@Ccy': instruction.currency,
-                },
-            },
-            ...(instruction.creditor.agent && {
-                CdtrAgt: this.agent(instruction.creditor.agent),
-            }),
-            Cdtr: this.party(instruction.creditor),
-            CdtrAcct: {
-                Id: { IBAN: instruction.creditor.account.iban },
-                Ccy: instruction.currency,
-            },
-            RmtInf: instruction.remittanceInformation
-                ? {
-                    Ustrd: instruction.remittanceInformation,
-                }
-                : undefined,
-        };
-    }
-    /**
-     * Serializes the SEPA credit transfer initiation to an XML string.
-     * @returns {string} The XML representation of the SEPA credit transfer initiation.
-     */
-    serialize() {
-        const builder = PaymentInitiation.getBuilder();
-        const xml = {
-            '?xml': {
-                '@version': '1.0',
-                '@encoding': 'UTF-8',
-            },
-            Document: {
-                '@xmlns': this.namespace,
-                '@xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-                CstmrCdtTrfInitn: {
-                    GrpHdr: {
-                        MsgId: this.messageId,
-                        CreDtTm: this.creationDate.toISOString(),
-                        NbOfTxs: this.paymentInstructions.length.toString(),
-                        CtrlSum: this.formattedPaymentSum,
-                        InitgPty: {
-                            Nm: this.initiatingParty.name,
-                            ...(this.initiatingParty.id && {
-                                Id: {
-                                    OrgId: {
-                                        Othr: {
-                                            Id: this.initiatingParty.id,
-                                        },
-                                    },
-                                },
-                            }),
-                        },
-                    },
-                    PmtInf: {
-                        PmtInfId: this.paymentInformationId,
-                        PmtMtd: 'TRF',
-                        NbOfTxs: this.paymentInstructions.length.toString(),
-                        CtrlSum: this.formattedPaymentSum,
-                        PmtTpInf: {
-                            SvcLvl: { Cd: 'SEPA' },
-                            ...(this.categoryPurpose && {
-                                CtgyPurp: { Cd: this.categoryPurpose },
-                            }),
-                        },
-                        ReqdExctnDt: this.creationDate.toISOString().split('T').at(0),
-                        Dbtr: this.party(this.initiatingParty),
-                        DbtrAcct: this.account(this.initiatingParty.account),
-                        ...(this.initiatingParty.agent && {
-                            DbtrAgt: this.agent(this.initiatingParty.agent),
-                        }),
-                        ChrgBr: 'SLEV',
-                        // payments[]
-                        CdtTrfTxInf: this.paymentInstructions.map(p => this.creditTransfer(p)),
-                    },
-                },
-            },
-        };
-        return builder.build(xml);
-    }
-    static fromXML(rawXml) {
-        const parser = XML.getParser();
-        const xml = parser.parse(rawXml);
-        if (!xml.Document) {
-            throw new InvalidXmlError('Invalid XML format');
-        }
-        const namespace = (xml.Document['@_xmlns'] ||
-            xml.Document['@_Xmlns']);
-        if (!namespace.startsWith(`${XMLNS_PREFIX}${ISO20022SchemaId.PAIN_001_001_03}`)) {
-            throw new InvalidXmlNamespaceError('Invalid PAIN.001 namespace');
-        }
-        const messageId = xml.Document.CstmrCdtTrfInitn.GrpHdr.MsgId;
-        const creationDate = new Date(xml.Document.CstmrCdtTrfInitn.GrpHdr.CreDtTm);
-        if (Array.isArray(xml.Document.CstmrCdtTrfInitn.PmtInf)) {
-            throw new Error('Multiple PmtInf is not supported');
-        }
-        // Assuming we have one PmtInf / one Debtor, we can hack together this information from InitgPty / Dbtr
-        const initiatingParty = {
-            name: xml.Document.CstmrCdtTrfInitn.GrpHdr.InitgPty.Nm ||
-                xml.Document.CstmrCdtTrfInitn.PmtInf.Dbtr.Nm,
-            id: xml.Document.CstmrCdtTrfInitn.GrpHdr.InitgPty.Id.OrgId.Othr
-                .Id,
-            agent: parseAgent(xml.Document.CstmrCdtTrfInitn.PmtInf.DbtrAgt),
-            account: parseAccount(xml.Document.CstmrCdtTrfInitn.PmtInf.DbtrAcct),
-        };
-        const rawInstructions = Array.isArray(xml.Document.CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf)
-            ? xml.Document.CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf
-            : [xml.Document.CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf];
-        const paymentInstructions = rawInstructions.map((inst) => {
-            const currency = inst.Amt.InstdAmt['@_Ccy'];
-            const amount = parseAmountToMinorUnits(Number(inst.Amt.InstdAmt['#text']), currency);
-            const rawPostalAddress = inst.Cdtr.PstlAdr;
-            return {
-                ...(inst.PmtId.InstrId && {
-                    id: inst.PmtId.InstrId.toString(),
-                }),
-                ...(inst.PmtId.EndToEndId && {
-                    endToEndId: inst.PmtId.EndToEndId.toString(),
-                }),
-                type: 'sepa',
-                direction: 'credit',
-                amount: amount,
-                currency: currency,
-                creditor: {
-                    name: inst.Cdtr?.Nm,
-                    agent: parseAgent(inst.CdtrAgt),
-                    account: parseAccount(inst.CdtrAcct),
-                    ...(rawPostalAddress &&
-                        (rawPostalAddress.StreetName ||
-                            rawPostalAddress.BldgNb ||
-                            rawPostalAddress.PstlCd ||
-                            rawPostalAddress.TwnNm ||
-                            rawPostalAddress.Ctry)
-                        ? {
-                            address: {
-                                ...(rawPostalAddress.StrtNm && {
-                                    streetName: rawPostalAddress.StrtNm.toString(),
-                                }),
-                                ...(rawPostalAddress.BldgNb && {
-                                    buildingNumber: rawPostalAddress.BldgNb.toString(),
-                                }),
-                                ...(rawPostalAddress.TwnNm && {
-                                    townName: rawPostalAddress.TwnNm.toString(),
-                                }),
-                                ...(rawPostalAddress.CtrySubDvsn && {
-                                    countrySubDivision: rawPostalAddress.CtrySubDvsn.toString(),
-                                }),
-                                ...(rawPostalAddress.PstCd && {
-                                    postalCode: rawPostalAddress.PstCd.toString(),
-                                }),
-                                ...(rawPostalAddress.Ctry && {
-                                    country: rawPostalAddress.Ctry,
-                                }),
-                            },
-                        }
-                        : {}),
-                },
-                ...(inst.RmtInf?.Ustrd && {
-                    remittanceInformation: inst.RmtInf.Ustrd.toString(),
-                }),
-            };
-        });
-        return new SEPACreditPaymentInitiation({
-            messageId: messageId,
-            creationDate: creationDate,
-            initiatingParty: initiatingParty,
-            paymentInstructions: paymentInstructions,
-        });
-    }
-}
-
-/**
- * Represents a SEPA Multi Credit Payment Initiation.
- * This class handles the creation and serialization of SEPA credit transfer messages
- * with multiple payment information blocks (multiple debtors) according to the ISO20022 standard.
- * @class
- * @extends PaymentInitiation
- * @param {SEPAMultiCreditPaymentInitiationConfig} config - The configuration for the SEPA Multi Credit Payment Initiation message.
- * @example
- * ```typescript
- * // Creating a SEPA multi-payment message
- * const payment = new SEPAMultiCreditPaymentInitiation({
- *   initiatingParty: { name: 'Company Ltd', id: '12345' },
- *   paymentInstructions: [
- *     {
- *       initiatingParty: debtor1,
- *       payments: [payment1, payment2]
- *     },
- *     {
- *       initiatingParty: debtor2,
- *       payments: [payment3]
- *     }
- *   ]
- * });
- * ```
- */
-class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
-    initiatingParty;
-    messageId;
-    creationDate;
-    paymentInstructions;
-    formattedPaymentSum;
-    totalTransactionCount;
-    get schemaId() {
-        return ISO20022SchemaId.PAIN_001_001_03;
-    }
-    /**
-     * Creates an instance of SEPAMultiCreditPaymentInitiation.
-     * @param {SEPAMultiCreditPaymentInitiationConfig} config - The configuration object for the SEPA multi credit transfer.
-     */
-    constructor(config) {
-        super({ type: 'sepa' });
-        this.initiatingParty = config.initiatingParty;
-        this.paymentInstructions = config.paymentInstructions;
-        this.messageId = config.messageId || generateId();
-        this.creationDate = config.creationDate || new Date();
-        this.totalTransactionCount = this.countAllTransactions();
-        this.formattedPaymentSum = this.sumAllPayments();
-        this.validate();
-    }
-    /**
-     * Counts the total number of transactions across all payment instruction groups.
-     * @private
-     * @returns {number} The total count of all transactions.
-     */
-    countAllTransactions() {
-        return this.paymentInstructions.reduce((total, group) => {
-            return total + group.payments.length;
-        }, 0);
-    }
-    /**
-     * Calculates the sum of all payment instructions across all groups.
-     * @private
-     * @returns {string} The total sum formatted as a string with 2 decimal places.
-     */
-    sumAllPayments() {
-        let totalAmount = 0;
-        let currency = null;
-        for (const group of this.paymentInstructions) {
-            for (const payment of group.payments) {
-                if (currency === null) {
-                    currency = payment.currency;
-                }
-                totalAmount += payment.amount;
-            }
-        }
-        if (currency === null) {
-            throw new Error('No payments found');
-        }
-        return formatMinorUnits(totalAmount, currency);
-    }
-    /**
-     * Validates the payment initiation data according to SEPA requirements.
-     * @private
-     * @throws {Error} If messageId exceeds 35 characters.
-     * @throws {Error} If any group's payment instructions have different currencies.
-     */
-    validate() {
-        if (this.messageId.length > 35) {
-            throw new Error('messageId must not exceed 35 characters');
-        }
-        // Validate each group has same currency within its payments
-        for (const group of this.paymentInstructions) {
-            this.validateGroupInstructionsHaveSameCurrency(group.payments);
-        }
-    }
-    /**
-     * Validates that all payment instructions in a group have the same currency.
-     * @private
-     * @param {AtLeastOne<SEPACreditPaymentInstruction>} payments - Array of payment instructions.
-     * @throws {Error} If payment instructions have different currencies.
-     */
-    validateGroupInstructionsHaveSameCurrency(payments) {
-        if (!payments.every(i => {
-            return i.currency === payments[0].currency;
-        })) {
-            throw new Error('In order to calculate the payment instructions sum, all payment instruction currencies within a group must be the same.');
-        }
-    }
-    /**
-     * Generates payment information for a single SEPA credit transfer instruction.
-     * @param {SEPACreditPaymentInstruction} instruction - The payment instruction.
-     * @returns {Object} The payment information object formatted according to SEPA specifications.
-     */
-    creditTransfer(instruction) {
-        const paymentInstructionId = sanitize(instruction.id || generateId(), 35);
-        const endToEndId = sanitize(instruction.endToEndId || instruction.id || generateId(), 35);
-        return {
-            PmtId: {
-                InstrId: paymentInstructionId,
-                EndToEndId: endToEndId,
-            },
-            Amt: {
-                InstdAmt: {
-                    '#': formatMinorUnits(instruction.amount, instruction.currency),
-                    '@Ccy': instruction.currency,
-                },
-            },
-            ...(instruction.creditor.agent && {
-                CdtrAgt: this.agent(instruction.creditor.agent),
-            }),
-            Cdtr: this.party(instruction.creditor),
-            CdtrAcct: {
-                Id: { IBAN: instruction.creditor.account.iban },
-                Ccy: instruction.currency,
-            },
-            RmtInf: instruction.remittanceInformation
-                ? {
-                    Ustrd: instruction.remittanceInformation,
-                }
-                : undefined,
-        };
-    }
-    /**
-     * Serializes the SEPA multi credit transfer initiation to an XML string.
-     * @returns {string} The XML representation of the SEPA multi credit transfer initiation.
-     */
-    serialize() {
-        const builder = PaymentInitiation.getBuilder();
-        // Generate one PmtInf entry per individual payment
-        const paymentInfoEntries = this.paymentInstructions.flatMap(group => {
-            return group.payments.map(payment => {
-                const pmtInfId = generateId();
-                const requestedExecutionDate = payment.requestedPaymentExecutionDate || new Date();
-                const batchBooking = group.batchBooking !== undefined ? group.batchBooking : false;
-                return {
-                    PmtInfId: pmtInfId,
-                    PmtMtd: 'TRF',
-                    BtchBookg: batchBooking,
-                    NbOfTxs: '1',
-                    CtrlSum: formatMinorUnits(payment.amount, payment.currency),
-                    PmtTpInf: {
-                        SvcLvl: { Cd: 'SEPA' },
-                        ...(group.categoryPurpose && {
-                            CtgyPurp: { Cd: group.categoryPurpose },
-                        }),
-                    },
-                    ReqdExctnDt: requestedExecutionDate.toISOString().split('T')[0],
-                    Dbtr: this.party(group.initiatingParty),
-                    DbtrAcct: this.account(group.initiatingParty.account),
-                    DbtrAgt: this.agent(group.initiatingParty.agent),
-                    ChrgBr: 'SLEV',
-                    CdtTrfTxInf: this.creditTransfer(payment),
-                };
-            });
-        });
-        const xml = {
-            '?xml': {
-                '@version': '1.0',
-                '@encoding': 'UTF-8',
-            },
-            Document: {
-                '@xmlns': this.namespace,
-                '@xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-                '@xsi:schemaLocation': `${this.namespace} ${this.schemaId}.xsd`,
-                CstmrCdtTrfInitn: {
-                    GrpHdr: {
-                        MsgId: this.messageId,
-                        CreDtTm: this.creationDate.toISOString(),
-                        NbOfTxs: this.totalTransactionCount.toString(),
-                        CtrlSum: this.formattedPaymentSum,
-                        InitgPty: {
-                            Nm: this.initiatingParty.name,
-                            ...(this.initiatingParty.id && {
-                                Id: {
-                                    OrgId: {
-                                        Othr: {
-                                            Id: this.initiatingParty.id,
-                                        },
-                                    },
-                                },
-                            }),
-                        },
-                    },
-                    PmtInf: paymentInfoEntries,
-                },
-            },
-        };
-        return builder.build(xml);
-    }
-    /**
-     * Parses an XML string and creates a SEPAMultiCreditPaymentInitiation instance.
-     * Supports multiple PmtInf blocks in the XML document.
-     * @param {string} rawXml - The XML string to parse.
-     * @returns {SEPAMultiCreditPaymentInitiation} A new instance created from the XML data.
-     * @throws {InvalidXmlError} If the XML format is invalid.
-     * @throws {InvalidXmlNamespaceError} If the namespace is not pain.001.001.03.
-     */
-    static fromXML(rawXml) {
-        const parser = XML.getParser();
-        const xml = parser.parse(rawXml);
-        // Validate XML structure
-        if (!xml.Document) {
-            throw new InvalidXmlError('Invalid XML format');
-        }
-        // Validate namespace
-        const namespace = (xml.Document['@_xmlns'] ||
-            xml.Document['@_Xmlns']);
-        if (!namespace.startsWith(`${XMLNS_PREFIX}${ISO20022SchemaId.PAIN_001_001_03}`)) {
-            throw new InvalidXmlNamespaceError('Invalid PAIN.001 namespace');
-        }
-        // Extract GrpHdr data
-        const messageId = xml.Document.CstmrCdtTrfInitn.GrpHdr.MsgId;
-        const creationDate = new Date(xml.Document.CstmrCdtTrfInitn.GrpHdr.CreDtTm);
-        // Extract top-level initiating party from GrpHdr
-        const topLevelInitiatingParty = {
-            name: xml.Document.CstmrCdtTrfInitn.GrpHdr.InitgPty.Nm,
-            id: xml.Document.CstmrCdtTrfInitn.GrpHdr.InitgPty.Id?.OrgId?.Othr
-                ?.Id,
-        };
-        // Normalize PmtInf to array (handle both single object and array cases)
-        const rawPmtInf = Array.isArray(xml.Document.CstmrCdtTrfInitn.PmtInf)
-            ? xml.Document.CstmrCdtTrfInitn.PmtInf
-            : [xml.Document.CstmrCdtTrfInitn.PmtInf];
-        // Map each PmtInf to SEPAMultiCreditPaymentInstructionGroup
-        const paymentInstructions = rawPmtInf.map((pmtInf) => {
-            // Extract debtor info as the group's initiating party
-            const groupInitiatingParty = {
-                name: pmtInf.Dbtr.Nm,
-                id: pmtInf.Dbtr.Id?.OrgId?.Othr?.Id,
-                agent: parseAgent(pmtInf.DbtrAgt),
-                account: parseAccount(pmtInf.DbtrAcct),
-            };
-            // Extract optional category purpose
-            const categoryPurpose = pmtInf.PmtTpInf?.CtgyPurp?.Cd;
-            // Extract requested execution date
-            const requestedExecutionDate = pmtInf.ReqdExctnDt
-                ? new Date(pmtInf.ReqdExctnDt)
-                : undefined;
-            // Normalize CdtTrfTxInf to array
-            const rawInstructions = Array.isArray(pmtInf.CdtTrfTxInf)
-                ? pmtInf.CdtTrfTxInf
-                : [pmtInf.CdtTrfTxInf];
-            // Parse each CdtTrfTxInf to SEPACreditPaymentInstruction
-            const payments = rawInstructions.map((inst) => {
-                const currency = inst.Amt.InstdAmt['@_Ccy'];
-                const amount = parseAmountToMinorUnits(Number(inst.Amt.InstdAmt['#text']), currency);
-                const rawPostalAddress = inst.Cdtr.PstlAdr;
-                return {
-                    ...(inst.PmtId.InstrId && {
-                        id: inst.PmtId.InstrId.toString(),
-                    }),
-                    ...(inst.PmtId.EndToEndId && {
-                        endToEndId: inst.PmtId.EndToEndId.toString(),
-                    }),
-                    type: 'sepa',
-                    direction: 'credit',
-                    amount: amount,
-                    currency: currency,
-                    ...(requestedExecutionDate && {
-                        requestedPaymentExecutionDate: requestedExecutionDate,
-                    }),
-                    creditor: {
-                        name: inst.Cdtr?.Nm,
-                        agent: parseAgent(inst.CdtrAgt),
-                        account: parseAccount(inst.CdtrAcct),
-                        ...(rawPostalAddress &&
-                            (rawPostalAddress.StrtNm ||
-                                rawPostalAddress.BldgNb ||
-                                rawPostalAddress.PstCd ||
-                                rawPostalAddress.TwnNm ||
-                                rawPostalAddress.Ctry)
-                            ? {
-                                address: {
-                                    ...(rawPostalAddress.StrtNm && {
-                                        streetName: rawPostalAddress.StrtNm.toString(),
-                                    }),
-                                    ...(rawPostalAddress.BldgNb && {
-                                        buildingNumber: rawPostalAddress.BldgNb.toString(),
-                                    }),
-                                    ...(rawPostalAddress.TwnNm && {
-                                        townName: rawPostalAddress.TwnNm.toString(),
-                                    }),
-                                    ...(rawPostalAddress.CtrySubDvsn && {
-                                        countrySubDivision: rawPostalAddress.CtrySubDvsn.toString(),
-                                    }),
-                                    ...(rawPostalAddress.PstCd && {
-                                        postalCode: rawPostalAddress.PstCd.toString(),
-                                    }),
-                                    ...(rawPostalAddress.Ctry && {
-                                        country: rawPostalAddress.Ctry,
-                                    }),
-                                },
-                            }
-                            : {}),
-                    },
-                    ...(inst.RmtInf?.Ustrd && {
-                        remittanceInformation: inst.RmtInf.Ustrd.toString(),
-                    }),
-                };
-            });
-            // Extract batch booking
-            const batchBooking = pmtInf.BtchBookg === 'true' || pmtInf.BtchBookg === true;
-            return {
-                initiatingParty: groupInitiatingParty,
-                payments: payments,
-                ...(categoryPurpose && { categoryPurpose }),
-                batchBooking: batchBooking,
-            };
-        });
-        // Return new instance
-        return new SEPAMultiCreditPaymentInitiation({
-            messageId: messageId,
-            creationDate: creationDate,
-            initiatingParty: topLevelInitiatingParty,
-            paymentInstructions: paymentInstructions,
-        });
-    }
-}
-
-/**
- * Represents a RTP Credit Payment Initiation.
- * This class handles the creation and serialization of RTP credit transfer messages
- * according to the ISO20022 standard.
- * @class
- * @extends PaymentInitiation
- * @param {RTPCreditPaymentInitiationConfig} config - The configuration for the RTP Credit Payment Initiation message.
- * @example
- * ```typescript
- * // Creating a payment message
- * const payment = new RTPCreditPaymentInitiation({
- *   ...
- * });
- * // Uploading to fiatwebservices.com
- * client.paymentTransfers.create(payment);
- * // Parsing from XML
- * const xml = '<xml>...</xml>';
- * const parsedTransfer = RTPCreditPaymentInitiation.fromXML(xml);
- * ```
- * @see {@link https://docs.iso20022js.com/pain/rtpcredit} for more information.
- */
-class RTPCreditPaymentInitiation extends PaymentInitiation {
-    initiatingParty;
-    paymentInstructions;
-    messageId;
-    creationDate;
-    paymentInformationId;
-    formattedPaymentSum;
-    get schemaId() {
-        return ISO20022SchemaId.PAIN_001_001_03;
-    }
-    constructor(config) {
-        super({ type: 'rtp' });
-        this.initiatingParty = config.initiatingParty;
-        this.paymentInstructions = config.paymentInstructions;
-        this.messageId = config.messageId || generateId();
-        this.creationDate = config.creationDate || new Date();
-        this.paymentInformationId = generateId();
-        this.formattedPaymentSum = this.sumPaymentInstructions(this.paymentInstructions);
-        this.validate();
-    }
-    /**
-     * Calculates the sum of all payment instructions.
-     * @private
-     * @param {AtLeastOne<RTPCreditPaymentInstruction>} instructions - Array of payment instructions.
-     * @returns {string} The total sum formatted as a string with 2 decimal places.
-     * @throws {Error} If payment instructions have different currencies.
-     */
-    sumPaymentInstructions(instructions) {
-        const total = instructions.reduce((acc, i) => acc + i.amount, 0);
-        return formatMinorUnits(total, instructions[0].currency);
-    }
-    /**
-     * Validates the payment initiation data according to SEPA requirements.
-     * @private
-     * @throws {Error} If messageId exceeds 35 characters.
-     * @throws {Error} If payment instructions have different currencies.
-     * @throws {Error} If any creditor has incomplete address information.
-     */
-    validate() {
-        if (this.messageId.length > 35) {
-            throw new Error('messageId must not exceed 35 characters');
-        }
-    }
-    /**
-     * Generates payment information for a single SEPA credit transfer instruction.
-     * @param {RTPCreditPaymentInstruction} instruction - The payment instruction.
-     * @returns {Object} The payment information object formatted according to SEPA specifications.
-     */
-    creditTransfer(instruction) {
-        const paymentInstructionId = sanitize(instruction.id || generateId(), 35);
-        const endToEndId = sanitize(instruction.endToEndId || instruction.id || generateId(), 35);
-        return {
-            PmtId: {
-                InstrId: paymentInstructionId,
-                EndToEndId: endToEndId,
-            },
-            Amt: {
-                InstdAmt: {
-                    '#': formatMinorUnits(instruction.amount, instruction.currency),
-                    '@Ccy': instruction.currency,
-                },
-            },
-            CdtrAgt: this.agent(instruction.creditor.agent),
-            Cdtr: this.party(instruction.creditor),
-            CdtrAcct: {
-                Id: {
-                    Othr: {
-                        Id: instruction.creditor.account.accountNumber,
-                    },
-                },
-            },
-            RmtInf: instruction.remittanceInformation
-                ? {
-                    Ustrd: instruction.remittanceInformation,
-                }
-                : undefined,
-        };
-    }
-    /**
-     * Serializes the RTP credit transfer initiation to an XML string.
-     * @returns {string} The XML representation of the RTP credit transfer initiation.
-     */
-    serialize() {
-        const builder = PaymentInitiation.getBuilder();
-        const xml = {
-            '?xml': {
-                '@version': '1.0',
-                '@encoding': 'UTF-8',
-            },
-            Document: {
-                '@xmlns': this.namespace,
-                '@xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-                CstmrCdtTrfInitn: {
-                    GrpHdr: {
-                        MsgId: this.messageId,
-                        CreDtTm: this.creationDate.toISOString(),
-                        NbOfTxs: this.paymentInstructions.length.toString(),
-                        CtrlSum: this.formattedPaymentSum,
-                        InitgPty: {
-                            Nm: this.initiatingParty.name,
-                            Id: {
-                                OrgId: {
-                                    Othr: {
-                                        Id: this.initiatingParty.id,
-                                    },
-                                },
-                            },
-                        },
-                    },
-                    PmtInf: {
-                        PmtInfId: this.paymentInformationId,
-                        PmtMtd: 'TRF',
-                        NbOfTxs: this.paymentInstructions.length.toString(),
-                        CtrlSum: this.formattedPaymentSum,
-                        PmtTpInf: {
-                            SvcLvl: { Cd: 'URNS' },
-                            LclInstrm: { Prtry: 'RTP' },
-                        },
-                        ReqdExctnDt: this.creationDate.toISOString().split('T').at(0),
-                        Dbtr: this.party(this.initiatingParty),
-                        DbtrAcct: this.account(this.initiatingParty.account),
-                        DbtrAgt: this.agent(this.initiatingParty.agent),
-                        ChrgBr: 'SLEV',
-                        // payments[]
-                        CdtTrfTxInf: this.paymentInstructions.map(p => this.creditTransfer(p)),
-                    },
-                },
-            },
-        };
-        return builder.build(xml);
-    }
-    static fromXML(rawXml) {
-        const parser = XML.getParser();
-        const xml = parser.parse(rawXml);
-        if (!xml.Document) {
-            throw new InvalidXmlError('Invalid XML format');
-        }
-        const namespace = (xml.Document['@_xmlns'] ||
-            xml.Document['@_Xmlns']);
-        if (!namespace.startsWith(`${XMLNS_PREFIX}${ISO20022SchemaId.PAIN_001_001_03}`)) {
-            throw new InvalidXmlNamespaceError('Invalid PAIN.001 namespace');
-        }
-        const messageId = xml.Document.CstmrCdtTrfInitn.GrpHdr.MsgId;
-        const creationDate = new Date(xml.Document.CstmrCdtTrfInitn.GrpHdr.CreDtTm);
-        if (Array.isArray(xml.Document.CstmrCdtTrfInitn.PmtInf)) {
-            throw new Error('Multiple PmtInf is not supported');
-        }
-        // Assuming we have one PmtInf / one Debtor, we can hack together this information from InitgPty / Dbtr
-        const initiatingParty = {
-            name: xml.Document.CstmrCdtTrfInitn.GrpHdr.InitgPty.Nm ||
-                xml.Document.CstmrCdtTrfInitn.PmtInf.Dbtr.Nm,
-            id: xml.Document.CstmrCdtTrfInitn.GrpHdr.InitgPty.Id.OrgId?.Othr?.Id ||
-                xml.Document.CstmrCdtTrfInitn.GrpHdr.InitgPty.Id.OrgId?.BICOrBEI,
-            agent: parseAgent(xml.Document.CstmrCdtTrfInitn.PmtInf.DbtrAgt),
-            account: parseAccount(xml.Document.CstmrCdtTrfInitn.PmtInf.DbtrAcct),
-        };
-        const rawInstructions = Array.isArray(xml.Document.CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf)
-            ? xml.Document.CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf
-            : [xml.Document.CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf];
-        const paymentInstructions = rawInstructions.map((inst) => {
-            const currency = inst.Amt.InstdAmt['@_Ccy'];
-            const amount = parseAmountToMinorUnits(Number(inst.Amt.InstdAmt['#text']), currency);
-            const rawPostalAddress = inst.Cdtr.PstlAdr;
-            return {
-                ...(inst.PmtId.InstrId && {
-                    id: inst.PmtId.InstrId.toString(),
-                }),
-                ...(inst.PmtId.EndToEndId && {
-                    endToEndId: inst.PmtId.EndToEndId.toString(),
-                }),
-                type: 'sepa',
-                direction: 'credit',
-                amount: amount,
-                currency: currency,
-                creditor: {
-                    name: inst.Cdtr?.Nm,
-                    agent: parseAgent(inst.CdtrAgt),
-                    account: parseAccount(inst.CdtrAcct),
-                    ...(rawPostalAddress &&
-                        (rawPostalAddress.StreetName ||
-                            rawPostalAddress.BldgNb ||
-                            rawPostalAddress.PstlCd ||
-                            rawPostalAddress.TwnNm ||
-                            rawPostalAddress.Ctry)
-                        ? {
-                            address: {
-                                ...(rawPostalAddress.StrtNm && {
-                                    streetName: rawPostalAddress.StrtNm.toString(),
-                                }),
-                                ...(rawPostalAddress.BldgNb && {
-                                    buildingNumber: rawPostalAddress.BldgNb.toString(),
-                                }),
-                                ...(rawPostalAddress.TwnNm && {
-                                    townName: rawPostalAddress.TwnNm.toString(),
-                                }),
-                                ...(rawPostalAddress.CtrySubDvsn && {
-                                    countrySubDivision: rawPostalAddress.CtrySubDvsn.toString(),
-                                }),
-                                ...(rawPostalAddress.PstCd && {
-                                    postalCode: rawPostalAddress.PstCd.toString(),
-                                }),
-                                ...(rawPostalAddress.Ctry && {
-                                    country: rawPostalAddress.Ctry,
-                                }),
-                            },
-                        }
-                        : {}),
-                },
-                ...(inst.RmtInf?.Ustrd && {
-                    remittanceInformation: inst.RmtInf.Ustrd.toString(),
-                }),
-            };
-        });
-        return new RTPCreditPaymentInitiation({
-            messageId: messageId,
-            creationDate: creationDate,
-            initiatingParty: initiatingParty,
-            paymentInstructions: paymentInstructions,
-        });
-    }
-}
-
-/*
- * Represents a SEPA credit payment instruction, extending the base PaymentInstruction.
- */
-/**
- * Category purpose codes as defined in ISO 20022 ExternalCategoryPurpose1Code.
- * @see {@link https://www.iso20022.org/catalogue-messages/additional-content-messages/external-code-sets}
- */
-/**
- * ACH Local Instrument Codes as defined in NACHA standards.
- * These codes identify the specific type of ACH transaction.
- */
-const ACHLocalInstrumentCode = {
-    /** Corporate Credit or Debit */
-    CorporateCreditDebit: 'CCD',
-    /** Prearranged Payment and Deposit */
-    PrearrangedPaymentDeposit: 'PPD',
-    /** Internet-Initiated Entry */
-    InternetInitiated: 'WEB',
-    /** Telephone-Initiated Entry */
-    TelephoneInitiated: 'TEL',
-    /** Point-of-Purchase Entry */
-    PointOfPurchase: 'POP',
-    /** Accounts Receivable Entry */
-    AccountsReceivable: 'ARC',
-    /** Back Office Conversion */
-    BackOfficeConversion: 'BOC',
-    /** Represented Check Entry */
-    RepresentedCheck: 'RCK',
-};
-const ACHLocalInstrumentCodeDescriptionMap = {
-    CCD: 'Corporate Credit or Debit',
-    PPD: 'Prearranged Payment and Deposit',
-    WEB: 'Internet-Initiated Entry',
-    TEL: 'Telephone-Initiated Entry',
-    POP: 'Point-of-Purchase Entry',
-    ARC: 'Accounts Receivable Entry',
-    BOC: 'Back Office Conversion',
-    RCK: 'Represented Check Entry',
-};
-const SEPAReversalReasonCode = {
-    Duplication: 'DUPL',
-    TechnicalProblem: 'TECH',
-    FraudulentOriginal: 'FRAD',
-    CutOffTime: 'CUTA',
-    AmountDiffers: 'AM05',
-    InvalidDebtorAccount: 'AC04',
-    NotSpecifiedCustomerGenerated: 'MS02',
-    NotSpecifiedAgentGenerated: 'MS03',
-};
-
-/**
- * Represents an ACH Credit Payment Initiation.
- * This class handles the creation and serialization of ACH credit transfer messages
- * according to the ISO20022 standard.
- * @class
- * @extends PaymentInitiation
- * @param {ACHCreditPaymentInitiationConfig} config - The configuration for the ACH Credit Payment Initiation message.
- * @example
- * ```typescript
- * // Creating a payment message
- * const payment = new ACHCreditPaymentInitiation({
- *   initiatingParty: {
- *     name: 'John Doe Corporation',
- *     id: 'JOHNDOE99',
- *     account: {
- *       accountNumber: '0123456789'
- *     },
- *     agent: {
- *       abaRoutingNumber: '123456789',
- *     }
- *   },
- *   paymentInstructions: [{
- *     type: 'ach',
- *     direction: 'credit',
- *     amount: 1000,
- *     currency: 'USD',
- *     creditor: {
- *       name: 'John Doe Funding LLC',
- *       account: {
- *         accountNumber: '0123456789'
- *       },
- *       agent: {
- *         abaRoutingNumber: '0123456789'
- *       }
- *     }
- *   }]
- * });
- *
- * // Serializing to XML
- * const xml = payment.serialize();
- *
- * // Parsing from XML
- * const parsedPayment = ACHCreditPaymentInitiation.fromXML(xml);
- * ```
- */
-class ACHCreditPaymentInitiation extends PaymentInitiation {
-    initiatingParty;
-    paymentInstructions;
-    messageId;
-    creationDate;
-    paymentInformationId;
-    localInstrument;
-    serviceLevel;
-    instructionPriority;
-    formattedPaymentSum;
-    get schemaId() {
-        return ISO20022SchemaId.PAIN_001_001_03;
-    }
-    constructor(config) {
-        super({ type: 'ach' });
-        this.initiatingParty = config.initiatingParty;
-        this.paymentInstructions = config.paymentInstructions;
-        this.messageId = config.messageId || generateId();
-        this.creationDate = config.creationDate || new Date();
-        this.paymentInformationId = generateId();
-        this.localInstrument =
-            config.localInstrument || ACHLocalInstrumentCode.CorporateCreditDebit;
-        this.serviceLevel = 'NURG'; // Normal Urgency
-        this.instructionPriority = 'NORM'; // Normal Priority
-        this.formattedPaymentSum = this.sumPaymentInstructions(this.paymentInstructions);
-        this.validate();
-    }
-    /**
-     * Calculates the sum of all payment instructions.
-     * @private
-     * @param {AtLeastOne<ACHCreditPaymentInstruction>} instructions - Array of payment instructions.
-     * @returns {string} The total sum formatted as a string with 2 decimal places.
-     * @throws {Error} If payment instructions have different currencies.
-     */
-    sumPaymentInstructions(instructions) {
-        const total = instructions.reduce((acc, i) => acc + i.amount, 0);
-        return formatMinorUnits(total, instructions[0].currency);
-    }
-    /**
-     * Validates the payment initiation data according to ACH requirements.
-     * @private
-     * @throws {Error} If messageId exceeds 35 characters.
-     * @throws {Error} If payment instructions have different currencies.
-     * @throws {Error} If any creditor has incomplete information.
-     */
-    validate() {
-        if (this.messageId.length > 35) {
-            throw new Error('messageId must not exceed 35 characters');
-        }
-        // Ensure all payment instructions have USD as currency
-        for (const instruction of this.paymentInstructions) {
-            if (instruction.currency !== 'USD') {
-                throw new Error('ACH payments must use USD as currency');
-            }
-        }
-    }
-    /**
-     * Generates payment information for a single ACH credit transfer instruction.
-     * @param {ACHCreditPaymentInstruction} instruction - The payment instruction.
-     * @returns {Object} The payment information object formatted according to ACH specifications.
-     */
-    creditTransfer(instruction) {
-        const paymentInstructionId = sanitize(instruction.id || generateId(), 35);
-        const endToEndId = sanitize(instruction.endToEndId || instruction.id || generateId(), 35);
-        return {
-            PmtId: {
-                InstrId: paymentInstructionId,
-                EndToEndId: endToEndId,
-            },
-            Amt: {
-                InstdAmt: {
-                    '#': formatMinorUnits(instruction.amount, instruction.currency),
-                    '@Ccy': instruction.currency,
-                },
-            },
-            CdtrAgt: this.agent(instruction.creditor.agent),
-            Cdtr: this.party(instruction.creditor),
-            CdtrAcct: {
-                Id: {
-                    Othr: {
-                        Id: instruction.creditor.account.accountNumber,
-                    },
-                },
-                Tp: {
-                    Cd: 'CACC',
-                },
-                Ccy: instruction.currency,
-            },
-            RmtInf: instruction.remittanceInformation
-                ? {
-                    Ustrd: instruction.remittanceInformation,
-                }
-                : undefined,
-        };
-    }
-    /**
-     * Serializes the ACH credit transfer initiation to an XML string.
-     * @returns {string} The XML representation of the ACH credit transfer initiation.
-     */
-    serialize() {
-        const builder = PaymentInitiation.getBuilder();
-        const xml = {
-            '?xml': {
-                '@version': '1.0',
-                '@encoding': 'UTF-8',
-            },
-            Document: {
-                '@xmlns': this.namespace,
-                '@xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-                CstmrCdtTrfInitn: {
-                    GrpHdr: {
-                        MsgId: this.messageId,
-                        CreDtTm: this.creationDate.toISOString(),
-                        NbOfTxs: this.paymentInstructions.length.toString(),
-                        CtrlSum: this.formattedPaymentSum,
-                        InitgPty: {
-                            Nm: this.initiatingParty.name,
-                            Id: {
-                                OrgId: {
-                                    BICOrBEI: this.initiatingParty.id,
-                                },
-                            },
-                        },
-                    },
-                    PmtInf: {
-                        PmtInfId: this.paymentInformationId,
-                        PmtMtd: 'TRF',
-                        BtchBookg: false,
-                        NbOfTxs: this.paymentInstructions.length.toString(),
-                        CtrlSum: this.formattedPaymentSum,
-                        PmtTpInf: {
-                            InstrPrty: this.instructionPriority,
-                            SvcLvl: { Cd: this.serviceLevel },
-                            LclInstrm: { Prtry: this.localInstrument },
-                        },
-                        ReqdExctnDt: this.creationDate.toISOString().split('T')[0],
-                        Dbtr: this.party(this.initiatingParty),
-                        DbtrAcct: this.account(this.initiatingParty.account),
-                        DbtrAgt: this.agent(this.initiatingParty.agent),
-                        ChrgBr: 'SHAR',
-                        // payments[]
-                        CdtTrfTxInf: this.paymentInstructions.map(p => this.creditTransfer(p)),
-                    },
-                },
-            },
-        };
-        return builder.build(xml);
-    }
-    /**
-     * Creates an ACHCreditPaymentInitiation instance from an XML string.
-     * @param {string} rawXml - The XML string to parse.
-     * @returns {ACHCreditPaymentInitiation} A new ACHCreditPaymentInitiation instance.
-     * @throws {InvalidXmlError} If the XML format is invalid.
-     * @throws {InvalidXmlNamespaceError} If the XML namespace is invalid.
-     * @throws {Error} If multiple payment information blocks are found.
-     */
-    static fromXML(rawXml) {
-        const parser = XML.getParser();
-        const xml = parser.parse(rawXml);
-        if (!xml.Document) {
-            throw new InvalidXmlError('Invalid XML format');
-        }
-        const namespace = (xml.Document['@_xmlns'] ||
-            xml.Document['@_Xmlns']);
-        if (!namespace.startsWith(`${XMLNS_PREFIX}${ISO20022SchemaId.PAIN_001_001_03}`)) {
-            throw new InvalidXmlNamespaceError('Invalid PAIN.001 namespace');
-        }
-        const messageId = xml.Document.CstmrCdtTrfInitn.GrpHdr.MsgId;
-        const creationDate = new Date(xml.Document.CstmrCdtTrfInitn.GrpHdr.CreDtTm);
-        if (Array.isArray(xml.Document.CstmrCdtTrfInitn.PmtInf)) {
-            throw new Error('Multiple PmtInf is not supported');
-        }
-        // Extract payment type information
-        xml.Document.CstmrCdtTrfInitn.PmtInf.PmtTpInf;
-        // Assuming we have one PmtInf / one Debtor, we can hack together this information from InitgPty / Dbtr
-        const initiatingParty = {
-            name: xml.Document.CstmrCdtTrfInitn.GrpHdr.InitgPty.Nm ||
-                xml.Document.CstmrCdtTrfInitn.PmtInf.Dbtr.Nm,
-            id: xml.Document.CstmrCdtTrfInitn.GrpHdr.InitgPty.Id.OrgId?.BICOrBEI ||
-                xml.Document.CstmrCdtTrfInitn.GrpHdr.InitgPty.Id.OrgId?.Othr?.Id,
-            agent: parseAgent(xml.Document.CstmrCdtTrfInitn.PmtInf.DbtrAgt),
-            account: parseAccount(xml.Document.CstmrCdtTrfInitn.PmtInf.DbtrAcct),
-        };
-        const rawInstructions = Array.isArray(xml.Document.CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf)
-            ? xml.Document.CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf
-            : [xml.Document.CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf];
-        const paymentInstructions = rawInstructions.map((inst) => {
-            const currency = inst.Amt.InstdAmt['@_Ccy'];
-            const amount = parseAmountToMinorUnits(Number(inst.Amt.InstdAmt['#text']), currency);
-            const rawPostalAddress = inst.Cdtr.PstlAdr;
-            return {
-                ...(inst.PmtId.InstrId && {
-                    id: inst.PmtId.InstrId.toString(),
-                }),
-                ...(inst.PmtId.EndToEndId && {
-                    endToEndId: inst.PmtId.EndToEndId.toString(),
-                }),
-                type: 'ach',
-                direction: 'credit',
-                amount: amount,
-                currency: currency,
-                creditor: {
-                    name: inst.Cdtr?.Nm,
-                    agent: parseAgent(inst.CdtrAgt),
-                    account: parseAccount(inst.CdtrAcct),
-                    ...(rawPostalAddress &&
-                        (rawPostalAddress.StrtNm ||
-                            rawPostalAddress.BldgNb ||
-                            rawPostalAddress.PstCd ||
-                            rawPostalAddress.TwnNm ||
-                            rawPostalAddress.Ctry)
-                        ? {
-                            address: {
-                                ...(rawPostalAddress.StrtNm && {
-                                    streetName: rawPostalAddress.StrtNm.toString(),
-                                }),
-                                ...(rawPostalAddress.BldgNb && {
-                                    buildingNumber: rawPostalAddress.BldgNb.toString(),
-                                }),
-                                ...(rawPostalAddress.TwnNm && {
-                                    townName: rawPostalAddress.TwnNm.toString(),
-                                }),
-                                ...(rawPostalAddress.CtrySubDvsn && {
-                                    countrySubDivision: rawPostalAddress.CtrySubDvsn.toString(),
-                                }),
-                                ...(rawPostalAddress.PstCd && {
-                                    postalCode: rawPostalAddress.PstCd.toString(),
-                                }),
-                                ...(rawPostalAddress.Ctry && {
-                                    country: rawPostalAddress.Ctry,
-                                }),
-                            },
-                        }
-                        : {}),
-                },
-                ...(inst.RmtInf?.Ustrd && {
-                    remittanceInformation: inst.RmtInf.Ustrd.toString(),
-                }),
-            };
-        });
-        return new ACHCreditPaymentInitiation({
-            messageId: messageId,
-            creationDate: creationDate,
-            initiatingParty: initiatingParty,
-            paymentInstructions: paymentInstructions,
-        });
-    }
-}
-
-/**
- * Represents a SEPA Direct Debit Payment Initiation.
- * This class handles the creation and serialization of SEPA direct debit messages
- * with multiple payment information blocks (multiple creditors) according to the ISO20022 pain.008 standard.
- * @class
- * @extends PaymentInitiation
- * @param {SEPADirectDebitPaymentInitiationConfig} config - The configuration for the SEPA Direct Debit Payment Initiation message.
- * @example
- * ```typescript
- * // Creating a SEPA direct debit message
- * const payment = new SEPADirectDebitPaymentInitiation({
- *   initiatingParty: { name: 'Company Ltd', id: '12345' },
- *   paymentInstructions: [
- *     {
- *       creditor: creditor1,
- *       creditorSchemeId: 'DE96ZZZ00000345986',
- *       requestedCollectionDate: new Date('2025-11-22'),
- *       sequenceType: 'RCUR',
- *       payments: [debit1, debit2]
- *     }
- *   ]
- * });
- * ```
- */
-class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
-    initiatingParty;
-    messageId;
-    creationDate;
-    paymentInstructions;
-    formattedPaymentSum;
-    totalTransactionCount;
-    get schemaId() {
-        return ISO20022SchemaId.PAIN_008_001_02;
-    }
-    /**
-     * Creates an instance of SEPADirectDebitPaymentInitiation.
-     * @param {SEPADirectDebitPaymentInitiationConfig} config - The configuration object for the SEPA direct debit.
-     */
-    constructor(config) {
-        super({ type: 'sepa' });
-        this.initiatingParty = config.initiatingParty;
-        this.paymentInstructions = config.paymentInstructions;
-        this.messageId = config.messageId || generateId();
-        this.creationDate = config.creationDate || new Date();
-        this.totalTransactionCount = this.countAllTransactions();
-        this.formattedPaymentSum = this.sumAllPayments();
-        this.validate();
-    }
-    /**
-     * Counts the total number of transactions across all payment instruction groups.
-     * @private
-     * @returns {number} The total count of all transactions.
-     */
-    countAllTransactions() {
-        return this.paymentInstructions.reduce((total, group) => {
-            return total + group.payments.length;
-        }, 0);
-    }
-    /**
-     * Calculates the sum of all payment instructions across all groups.
-     * @private
-     * @returns {string} The total sum formatted as a string with 2 decimal places.
-     */
-    sumAllPayments() {
-        let totalAmount = 0;
-        let currency = null;
-        for (const group of this.paymentInstructions) {
-            for (const payment of group.payments) {
-                if (currency === null) {
-                    currency = payment.currency;
-                }
-                totalAmount += payment.amount;
-            }
-        }
-        if (currency === null) {
-            throw new Error('No payments found');
-        }
-        return formatMinorUnits(totalAmount, currency);
-    }
-    /**
-     * Validates the payment initiation data according to SEPA requirements.
-     * @private
-     * @throws {Error} If messageId exceeds 35 characters.
-     * @throws {Error} If any group's payment instructions have different currencies.
-     */
-    validate() {
-        if (this.messageId.length > 35) {
-            throw new Error('messageId must not exceed 35 characters');
-        }
-        for (const group of this.paymentInstructions) {
-            if (group.paymentInformationId !== undefined) {
-                if (group.paymentInformationId.length === 0) {
-                    throw new Error('paymentInformationId must not be empty');
-                }
-                if (group.paymentInformationId.length > 35) {
-                    throw new Error('paymentInformationId must not exceed 35 characters');
-                }
-            }
-            for (const payment of group.payments) {
-                if (payment.instrId !== undefined) {
-                    if (payment.instrId.length === 0) {
-                        throw new Error('instrId must not be empty');
-                    }
-                    if (payment.instrId.length > 35) {
-                        throw new Error('instrId must not exceed 35 characters');
-                    }
-                }
-            }
-            this.validateGroupInstructionsHaveSameCurrency(group.payments);
-        }
-    }
-    /**
-     * Validates that all payment instructions in a group have the same currency (EUR).
-     * @private
-     * @param {AtLeastOne<SEPADirectDebitPaymentInstruction>} payments - Array of payment instructions.
-     * @throws {Error} If payment instructions have different currencies.
-     */
-    validateGroupInstructionsHaveSameCurrency(payments) {
-        if (!payments.every(i => {
-            return i.currency === payments[0].currency;
-        })) {
-            throw new Error('In order to calculate the payment instructions sum, all payment instruction currencies within a group must be the same.');
-        }
-    }
-    /**
-     * Generates payment information for a single SEPA direct debit transfer instruction.
-     * @param {SEPADirectDebitPaymentInstruction} instruction - The payment instruction.
-     * @returns {Object} The payment information object formatted according to SEPA direct debit specifications.
-     */
-    directDebitTransfer(instruction) {
-        const endToEndId = sanitize(instruction.endToEndId || instruction.id || generateId(), 35);
-        return {
-            PmtId: {
-                ...(instruction.instrId && {
-                    InstrId: instruction.instrId,
-                }),
-                EndToEndId: endToEndId,
-            },
-            InstdAmt: {
-                '#': formatMinorUnits(instruction.amount, instruction.currency),
-                '@Ccy': instruction.currency,
-            },
-            DrctDbtTx: {
-                MndtRltdInf: this.buildMandateRelatedInfo(instruction.mandate),
-            },
-            ...(instruction.debtor.agent && {
-                DbtrAgt: this.agent(instruction.debtor.agent),
-            }),
-            Dbtr: this.party(instruction.debtor),
-            DbtrAcct: this.account(instruction.debtor.account),
-            ...(instruction.remittanceInformation && {
-                RmtInf: {
-                    Ustrd: instruction.remittanceInformation,
-                },
-            }),
-        };
-    }
-    /**
-     * Serializes the SEPA direct debit initiation to an XML string.
-     * @returns {string} The XML representation of the SEPA direct debit initiation.
-     */
-    serialize() {
-        const builder = PaymentInitiation.getBuilder();
-        // Generate one PmtInf entry per creditor group
-        const paymentInfoEntries = this.paymentInstructions.map(group => {
-            const pmtInfId = group.paymentInformationId ?? generateId();
-            const localInstrument = group.localInstrument || 'CORE';
-            const batchBooking = group.batchBooking !== undefined ? group.batchBooking : false;
-            // Calculate sum for this group
-            let groupSum = 0;
-            for (const payment of group.payments) {
-                groupSum += payment.amount;
-            }
-            const groupCtrlSum = formatMinorUnits(groupSum, 'EUR');
-            return {
-                PmtInfId: pmtInfId,
-                PmtMtd: 'DD',
-                BtchBookg: batchBooking,
-                NbOfTxs: group.payments.length.toString(),
-                CtrlSum: groupCtrlSum,
-                PmtTpInf: {
-                    SvcLvl: { Cd: 'SEPA' },
-                    LclInstrm: { Cd: localInstrument },
-                    SeqTp: group.sequenceType,
-                    ...(group.categoryPurpose && {
-                        CtgyPurp: { Cd: group.categoryPurpose },
-                    }),
-                },
-                ReqdColltnDt: group.requestedCollectionDate.toISOString().split('T')[0],
-                Cdtr: this.party(group.creditor),
-                CdtrAcct: this.account(group.creditor.account),
-                ...(group.creditor.agent && {
-                    CdtrAgt: this.agent(group.creditor.agent),
-                }),
-                ChrgBr: 'SLEV',
-                CdtrSchmeId: this.buildCreditorSchemeId(group.creditorSchemeId),
-                DrctDbtTxInf: group.payments.map(payment => this.directDebitTransfer(payment)),
-            };
-        });
-        const xml = {
-            '?xml': {
-                '@version': '1.0',
-                '@encoding': 'UTF-8',
-            },
-            Document: {
-                '@xmlns': this.namespace,
-                '@xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-                '@xsi:schemaLocation': `${this.namespace} ${this.schemaId}.xsd`,
-                CstmrDrctDbtInitn: {
-                    GrpHdr: {
-                        MsgId: this.messageId,
-                        CreDtTm: this.creationDate.toISOString(),
-                        NbOfTxs: this.totalTransactionCount.toString(),
-                        CtrlSum: this.formattedPaymentSum,
-                        InitgPty: {
-                            Nm: this.initiatingParty.name,
-                            ...(this.initiatingParty.id && {
-                                Id: {
-                                    OrgId: {
-                                        Othr: {
-                                            Id: this.initiatingParty.id,
-                                        },
-                                    },
-                                },
-                            }),
-                        },
-                    },
-                    PmtInf: paymentInfoEntries,
-                },
-            },
-        };
-        return builder.build(xml);
-    }
-    /**
-     * Parses an XML string and creates a SEPADirectDebitPaymentInitiation instance.
-     * Supports multiple PmtInf blocks in the XML document.
-     * @param {string} rawXml - The XML string to parse.
-     * @returns {SEPADirectDebitPaymentInitiation} A new instance created from the XML data.
-     * @throws {InvalidXmlError} If the XML format is invalid.
-     * @throws {InvalidXmlNamespaceError} If the namespace is not pain.008.
-     */
-    static fromXML(rawXml) {
-        const parser = XML.getParser();
-        const xml = parser.parse(rawXml);
-        // Validate XML structure
-        if (!xml.Document) {
-            throw new InvalidXmlError('Invalid XML format');
-        }
-        // Validate namespace
-        const namespace = (xml.Document['@_xmlns'] ||
-            xml.Document['@_Xmlns']);
-        if (!namespace.startsWith(`${XMLNS_PREFIX}pain.008`)) {
-            throw new InvalidXmlNamespaceError('Invalid PAIN.008 namespace');
-        }
-        // Extract GrpHdr data
-        const messageId = xml.Document.CstmrDrctDbtInitn.GrpHdr.MsgId;
-        const creationDate = new Date(xml.Document.CstmrDrctDbtInitn.GrpHdr.CreDtTm);
-        // Extract top-level initiating party from GrpHdr
-        const topLevelInitiatingParty = {
-            name: xml.Document.CstmrDrctDbtInitn.GrpHdr.InitgPty.Nm,
-            id: xml.Document.CstmrDrctDbtInitn.GrpHdr.InitgPty.Id?.OrgId?.Othr
-                ?.Id,
-        };
-        // Normalize PmtInf to array (handle both single object and array cases)
-        const rawPmtInf = Array.isArray(xml.Document.CstmrDrctDbtInitn.PmtInf)
-            ? xml.Document.CstmrDrctDbtInitn.PmtInf
-            : [xml.Document.CstmrDrctDbtInitn.PmtInf];
-        // Map each PmtInf to SEPADirectDebitPaymentInstructionGroup
-        const paymentInstructions = rawPmtInf.map((pmtInf) => {
-            // Extract creditor info as the group's collecting party
-            const groupCreditor = {
-                name: pmtInf.Cdtr.Nm,
-                id: pmtInf.Cdtr.Id?.OrgId?.Othr?.Id,
-                agent: parseAgent(pmtInf.CdtrAgt),
-                account: parseAccount(pmtInf.CdtrAcct),
-            };
-            // Extract creditor scheme ID
-            const creditorSchemeId = pmtInf.CdtrSchmeId?.Id?.PrvtId?.Othr?.Id || '';
-            // Extract optional category purpose
-            const categoryPurpose = pmtInf.PmtTpInf?.CtgyPurp?.Cd;
-            // Extract local instrument (CORE or B2B)
-            const localInstrument = pmtInf.PmtTpInf?.LclInstrm?.Cd || 'CORE';
-            // Extract sequence type from PmtInf level
-            const sequenceType = pmtInf.PmtTpInf?.SeqTp || 'RCUR';
-            // Extract requested collection date
-            const requestedCollectionDate = new Date(pmtInf.ReqdColltnDt);
-            // Extract batch booking
-            const batchBooking = pmtInf.BtchBookg === 'true' || pmtInf.BtchBookg === true;
-            // Normalize DrctDbtTxInf to array
-            const rawInstructions = Array.isArray(pmtInf.DrctDbtTxInf)
-                ? pmtInf.DrctDbtTxInf
-                : [pmtInf.DrctDbtTxInf];
-            // Parse each DrctDbtTxInf to SEPADirectDebitPaymentInstruction
-            const payments = rawInstructions.map((inst) => {
-                const currency = inst.InstdAmt['@_Ccy'];
-                const amount = parseAmountToMinorUnits(Number(inst.InstdAmt['#text']), currency);
-                const mandate = parseMandate(inst.DrctDbtTx?.MndtRltdInf);
-                return {
-                    ...(inst.PmtId?.InstrId && {
-                        instrId: inst.PmtId.InstrId.toString(),
-                    }),
-                    ...(inst.PmtId.EndToEndId && {
-                        endToEndId: inst.PmtId.EndToEndId.toString(),
-                    }),
-                    type: 'sepa',
-                    direction: 'debit',
-                    amount: amount,
-                    currency: currency,
-                    debtor: {
-                        name: inst.Dbtr?.Nm,
-                        agent: parseAgent(inst.DbtrAgt),
-                        account: parseAccount(inst.DbtrAcct),
-                    },
-                    mandate: mandate,
-                    ...(inst.RmtInf?.Ustrd && {
-                        remittanceInformation: inst.RmtInf.Ustrd.toString(),
-                    }),
-                };
-            });
-            const paymentInformationId = pmtInf.PmtInfId?.toString();
-            return {
-                creditor: groupCreditor,
-                creditorSchemeId: creditorSchemeId,
-                payments: payments,
-                requestedCollectionDate: requestedCollectionDate,
-                sequenceType: sequenceType,
-                localInstrument: localInstrument,
-                ...(categoryPurpose && { categoryPurpose }),
-                batchBooking: batchBooking,
-                ...(paymentInformationId && { paymentInformationId }),
-            };
-        });
-        // Return new instance
-        return new SEPADirectDebitPaymentInitiation({
-            messageId: messageId,
-            creationDate: creationDate,
-            initiatingParty: topLevelInitiatingParty,
-            paymentInstructions: paymentInstructions,
-        });
-    }
-}
-
-class CashManagementGetAccount {
-    _data;
-    constructor(data) {
-        this._data = data;
-    }
-    get data() {
-        return this._data;
-    }
-    static supportedMessages() {
-        return [ISO20022Messages.CAMT_003];
-    }
-    static fromDocumentOject(doc) {
-        const rawHeader = doc.Document?.GetAcct?.MsgHdr;
-        if (!rawHeader) {
-            throw new InvalidStructureError('Invalid CAMT.003 document: missing MsgHdr');
-        }
-        const header = parseMessageHeader(rawHeader);
-        const newCrit = doc.Document?.GetAcct?.AcctQryDef?.AcctCrit?.NewCrit;
-        if (!newCrit) {
-            throw new InvalidStructureError('Invalid CAMT.003 document: missing GetAcct.AcctQryDef.AcctCrit.NewCrit');
-        }
-        const name = newCrit.NewQryNm;
-        let searchCriteria = [];
-        let rawCriterias = newCrit.SchCrit;
-        if (!Array.isArray(rawCriterias)) {
-            rawCriterias = [rawCriterias];
-        }
-        rawCriterias = rawCriterias.filter((c) => !!c);
-        if (rawCriterias.length === 0) {
-            throw new InvalidStructureError('Invalid CAMT.003 document: missing search criteria');
-        }
-        for (const rawCriterium of rawCriterias) {
-            const crit = {};
-            // search on Ids, only one criterium supported for now
-            if (rawCriterium.AcctId) {
-                if (Array.isArray(rawCriterium.AcctId) &&
-                    rawCriterium.AcctId.length > 1) {
-                    throw new InvalidStructureError('Invalid CAMT.003 document: multiple AcctId criterium not supported');
-                }
-                const acctId = Array.isArray(rawCriterium.AcctId)
-                    ? rawCriterium.AcctId[0]
-                    : rawCriterium.AcctId;
-                if (acctId.CTTxt) {
-                    crit.accountRegExp = `.*${acctId.CTTxt}.*`; // contains
-                }
-                else if (acctId.NCTTxt) {
-                    crit.accountRegExp = `^((?!${acctId.NCTTxt}).)*$`; // does not contain
-                }
-                else if (acctId.EQ) {
-                    crit.accountEqualTo = parseAccountIdentification(acctId.EQ);
-                }
-            }
-            // search on currency
-            if (rawCriterium.Ccy) {
-                if (Array.isArray(rawCriterium.Ccy) && rawCriterium.Ccy.length > 1) {
-                    throw new InvalidStructureError('Invalid CAMT.003 document: multiple Ccy criterium not supported');
-                }
-                const ccy = Array.isArray(rawCriterium.Ccy)
-                    ? rawCriterium.Ccy[0]
-                    : rawCriterium.Ccy;
-                crit.currencyEqualTo = ccy;
-            }
-            // search on balance as of date
-            if (rawCriterium.Bal) {
-                if (Array.isArray(rawCriterium.Bal) && rawCriterium.Bal.length > 1) {
-                    throw new InvalidStructureError('Invalid CAMT.003 document: multiple Bal criterium not supported');
-                }
-                const bal = Array.isArray(rawCriterium.Bal)
-                    ? rawCriterium.Bal[0]
-                    : rawCriterium.Bal;
-                if (bal?.ValDt && Array.isArray(bal.ValDt) && bal.ValDt.length > 1) {
-                    throw new InvalidStructureError('Invalid CAMT.003 document: multiple ValDt criterium not supported');
-                }
-                const valDt = Array.isArray(bal?.ValDt) ? bal.ValDt[0] : bal?.ValDt;
-                if (valDt?.Dt?.EQDt) {
-                    crit.balanceAsOfDateEqualTo = parseDate(valDt.Dt.EQDt);
-                }
-            }
-            searchCriteria.push(crit);
-        }
-        return new CashManagementGetAccount({
-            header,
-            newCriteria: {
-                name,
-                searchCriteria,
-            },
-        });
-    }
-    static fromXML(xml) {
-        const parser = XML.getParser();
-        const doc = parser.parse(xml);
-        if (!doc.Document) {
-            throw new Error('Invalid XML format');
-        }
-        const namespace = (doc.Document['@_xmlns'] ||
-            doc.Document['@_Xmlns']);
-        if (!namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:camt.003.001.')) {
-            throw new InvalidXmlNamespaceError('Invalid CAMT.003 namespace');
-        }
-        return CashManagementGetAccount.fromDocumentOject(doc);
-    }
-    static fromJSON(json) {
-        const obj = JSON.parse(json);
-        if (!obj.Document) {
-            throw new Error('Invalid JSON format');
-        }
-        return CashManagementGetAccount.fromDocumentOject(obj);
-    }
-    serialize() {
-        const builder = XML.getBuilder();
-        const obj = this.toJSON();
-        obj.Document['@_xmlns'] = 'urn:iso:std:iso:20022:tech:xsd:camt.003.001.02';
-        obj.Document['@_xmlns:xsi'] = 'http://www.w3.org/2001/XMLSchema-instance';
-        return builder.build(obj);
-    }
-    toJSON() {
-        // we should not have to serialize but we do it for consistency
-        const Document = {
-            GetAcct: {
-                MsgHdr: exportMessageHeader(this._data.header),
-                AcctQryDef: {
-                    AcctCrit: {
-                        NewCrit: {
-                            NewQryNm: this._data.newCriteria?.name,
-                            SchCrit: this._data.newCriteria?.searchCriteria.map(c => {
-                                const obj = {};
-                                if (c.accountRegExp) {
-                                    if (c.accountRegExp.startsWith('.*') &&
-                                        c.accountRegExp.endsWith('.*')) {
-                                        obj.AcctId = {
-                                            CTTxt: c.accountRegExp
-                                                .replace(/^\.\*/, '')
-                                                .replace(/\.\*$/, ''),
-                                        }; // contains
-                                    }
-                                    else if (c.accountRegExp.startsWith('^((?!') &&
-                                        c.accountRegExp.endsWith(').)*$')) {
-                                        obj.AcctId = {
-                                            NCTTxt: c.accountRegExp
-                                                .replace(/^\^\(\(\!\(/, '')
-                                                .replace(/\)\.\)\*\$$/, ''),
-                                        }; // does not contain
-                                    }
-                                }
-                                else if (c.accountEqualTo) {
-                                    obj.AcctId = {
-                                        EQ: exportAccountIdentification(c.accountEqualTo),
-                                    };
-                                }
-                                if (c.currencyEqualTo) {
-                                    obj.Ccy = [c.currencyEqualTo];
-                                }
-                                if (c.balanceAsOfDateEqualTo) {
-                                    obj.Bal = [
-                                        {
-                                            ValDt: [
-                                                {
-                                                    Dt: {
-                                                        EQDt: c.balanceAsOfDateEqualTo
-                                                            .toISOString()
-                                                            .slice(0, 10),
-                                                    },
-                                                },
-                                            ],
-                                        },
-                                    ];
-                                }
-                                return obj;
-                            }),
-                        },
-                    },
-                },
-            },
-        };
-        return { Document };
-    }
-}
-registerISO20022Implementation(CashManagementGetAccount);
-
 const parseStatement = (stmt) => {
     const id = stmt.Id.toString();
     const electronicSequenceNumber = stmt.ElctrncSeqNb
@@ -7033,30 +4885,30 @@ const parseStatement = (stmt) => {
         toDate = new Date(stmt.FrToDt.ToDtTm);
     }
     // Txn Summaries
-    const numOfEntries = stmt.TxsSummry?.TtlNtries.NbOfNtries != null
-        ? Number(stmt.TxsSummry.TtlNtries.NbOfNtries)
-        : undefined;
-    const sumOfEntries = stmt.TxsSummry?.TtlNtries.Sum != null
-        ? Number(stmt.TxsSummry.TtlNtries.Sum)
-        : undefined;
+    const numOfEntries = stmt.TxsSummry?.TtlNtries.NbOfNtries == null
+        ? undefined
+        : Number(stmt.TxsSummry.TtlNtries.NbOfNtries);
+    const sumOfEntries = stmt.TxsSummry?.TtlNtries.Sum == null
+        ? undefined
+        : Number(stmt.TxsSummry.TtlNtries.Sum);
     const rawNetAmountOfEntries = stmt.TxsSummry?.TtlNtries.TtlNetNtryAmt;
     let netAmountOfEntries;
     // No currency information, default to USD
     if (rawNetAmountOfEntries) {
         netAmountOfEntries = parseAmountToMinorUnits(rawNetAmountOfEntries);
     }
-    const numOfCreditEntries = stmt.TxsSummry?.TtlCdtNtries.NbOfNtries != null
-        ? Number(stmt.TxsSummry.TtlCdtNtries.NbOfNtries)
-        : undefined;
-    const sumOfCreditEntries = stmt.TxsSummry?.TtlCdtNtries.Sum != null
-        ? Number(stmt.TxsSummry.TtlCdtNtries.Sum)
-        : undefined;
-    const numOfDebitEntries = stmt.TxsSummry?.TtlDbtNtries.NbOfNtries != null
-        ? Number(stmt.TxsSummry.TtlDbtNtries.NbOfNtries)
-        : undefined;
-    const sumOfDebitEntries = stmt.TxsSummry?.TtlDbtNtries.Sum != null
-        ? Number(stmt.TxsSummry.TtlDbtNtries.Sum)
-        : undefined;
+    const numOfCreditEntries = stmt.TxsSummry?.TtlCdtNtries.NbOfNtries == null
+        ? undefined
+        : Number(stmt.TxsSummry.TtlCdtNtries.NbOfNtries);
+    const sumOfCreditEntries = stmt.TxsSummry?.TtlCdtNtries.Sum == null
+        ? undefined
+        : Number(stmt.TxsSummry.TtlCdtNtries.Sum);
+    const numOfDebitEntries = stmt.TxsSummry?.TtlDbtNtries.NbOfNtries == null
+        ? undefined
+        : Number(stmt.TxsSummry.TtlDbtNtries.NbOfNtries);
+    const sumOfDebitEntries = stmt.TxsSummry?.TtlDbtNtries.Sum == null
+        ? undefined
+        : Number(stmt.TxsSummry.TtlDbtNtries.Sum);
     // Get account information
     // TODO: Save account types here
     const account = parseAccount(stmt.Acct);
@@ -7214,16 +5066,14 @@ const parseEntry = (entry) => {
     if (!Array.isArray(rawEntryDetails)) {
         rawEntryDetails = [rawEntryDetails];
     }
-    const transactions = rawEntryDetails
-        .map((rawDetail) => {
+    const transactions = rawEntryDetails.flatMap((rawDetail) => {
         // Get list of transaction details, even if it's singleton
         let transactionDetails = rawDetail.TxDtls || [];
         if (!Array.isArray(transactionDetails)) {
             transactionDetails = [transactionDetails];
         }
         return transactionDetails.map(parseTransactionDetail);
-    })
-        .flat();
+    });
     return {
         referenceId,
         creditDebitIndicator,
@@ -7430,6 +5280,2465 @@ const exportBusinessError = (bizErr) => {
     return obj;
 };
 
+/**
+ * Represents a Cash Management Account Report (CAMT.052.x).
+ * This class encapsulates the data and functionality related to processing
+ * and accessing information from a CAMT.052 XML file.
+ */
+class CashManagementAccountReport {
+    _messageId;
+    _creationDate;
+    _recipient;
+    _statements;
+    constructor(config) {
+        this._messageId = config.messageId;
+        this._creationDate = config.creationDate;
+        this._recipient = config.recipient;
+        this._statements = config.statements;
+    }
+    static supportedMessages() {
+        return [ISO20022Messages.CAMT_052];
+    }
+    get data() {
+        return {
+            messageId: this._messageId,
+            creationDate: this._creationDate,
+            recipient: this._recipient,
+            statements: this._statements,
+        };
+    }
+    static fromDocumentObject(obj) {
+        const bankToCustomerAcctRpt = obj.Document.BkToCstmrAcctRpt;
+        const rawCreationDate = bankToCustomerAcctRpt.GrpHdr.CreDtTm;
+        const creationDate = new Date(rawCreationDate);
+        let statements = [];
+        if (Array.isArray(bankToCustomerAcctRpt.Rpt)) {
+            statements = bankToCustomerAcctRpt.Rpt.map((stmt) => parseStatement(stmt));
+        }
+        else {
+            statements = [parseStatement(bankToCustomerAcctRpt.Rpt)];
+        }
+        const rawRecipient = bankToCustomerAcctRpt.GrpHdr.MsgRcpt;
+        return new CashManagementAccountReport({
+            messageId: bankToCustomerAcctRpt.GrpHdr.MsgId.toString(),
+            creationDate,
+            recipient: rawRecipient ? parseRecipient(rawRecipient) : undefined,
+            statements,
+        });
+    }
+    /**
+     * Creates a CashManagementAccountReport instance from a raw XML string.
+     *
+     * @param {string} rawXml - The raw XML string containing the CAMT.052 data.
+     * @returns {CashManagementAccountReport} A new instance of CashManagementAccountReport.
+     * @throws {Error} If the XML parsing fails or required data is missing.
+     */
+    static fromXML(rawXml) {
+        const parser = getXmlParser();
+        const xml = parser.parse(rawXml);
+        if (!xml.Document) {
+            throw new InvalidXmlError('Invalid XML format');
+        }
+        const namespace = (xml.Document['@_xmlns'] ||
+            xml.Document['@_Xmlns']);
+        if (!namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:camt.052.001.')) {
+            throw new InvalidXmlNamespaceError('Invalid CAMT.052 namespace');
+        }
+        return CashManagementAccountReport.fromDocumentObject(xml);
+    }
+    /**
+     *
+     * @param json - JSON string representing a CashManagementAccountReport
+     * @returns {CashManagementAccountReport} A new instance of CashManagementAccountReport
+     * @throws {Error} If the JSON parsing fails or required data is missing.
+     */
+    static fromJSON(json) {
+        const obj = JSON.parse(json);
+        if (!obj.Document) {
+            throw new InvalidXmlError('Invalid JSON format');
+        }
+        return CashManagementAccountReport.fromDocumentObject(obj);
+    }
+    toJSON() {
+        const Document = {
+            BkToCstmrAcctRpt: {
+                GrpHdr: {
+                    MsgId: this._messageId,
+                    CreDtTm: this._creationDate.toISOString(),
+                    MsgRcpt: this._recipient
+                        ? exportRecipient(this._recipient)
+                        : undefined,
+                },
+                Rpt: this._statements.map(stmt => exportStatement(stmt)),
+            },
+        };
+        return { Document };
+    }
+    serialize() {
+        const builder = getXmlBuilder();
+        const obj = this.toJSON();
+        obj.Document['@_xmlns'] = 'urn:iso:std:iso:20022:tech:xsd:camt.052.001.02';
+        obj.Document['@_xmlns:xsi'] = 'http://www.w3.org/2001/XMLSchema-instance';
+        return builder.build(obj);
+    }
+    /**
+     * Retrieves all balances from all statements in the report.
+     * @returns {Balance[]} An array of all balances across all statements.
+     */
+    get balances() {
+        return this._statements.flatMap(statement => statement.balances);
+    }
+    /**
+     * Retrieves all transactions from all statements in the report.
+     * @returns {Transaction[]} An array of all transactions across all statements.
+     */
+    get transactions() {
+        return this._statements
+            .flatMap(statement => statement.entries)
+            .flatMap(entry => entry.transactions);
+    }
+    /**
+     * Retrieves all entries from all statements in the report.
+     * @returns {Entry[]} An array of all entries across all statements.
+     */
+    get entries() {
+        return this._statements.flatMap(statement => statement.entries);
+    }
+    /**
+     * Gets the unique identifier for the message.
+     * @returns {string} The message ID.
+     */
+    get messageId() {
+        return this._messageId;
+    }
+    /**
+     * Gets the party receiving the report.
+     * @returns {Party | undefined} The recipient party information, or undefined if no recipient is set.
+     */
+    get recipient() {
+        return this._recipient;
+    }
+    /**
+     * Gets the date and time when the report was created.
+     * @returns {Date} The creation date of the report.
+     */
+    get creationDate() {
+        return this._creationDate;
+    }
+    /**
+     * Gets all statements included in the report.
+     * @returns {Statement[]} An array of all statements in the report.
+     */
+    get statements() {
+        return this._statements;
+    }
+}
+registerISO20022Implementation(CashManagementAccountReport);
+
+/**
+ * Represents a Cash Management End of Day Report (CAMT.053.x).
+ * This class encapsulates the data and functionality related to processing
+ * and accessing information from a CAMT.053 XML file.
+ */
+class CashManagementEndOfDayReport {
+    _messageId;
+    _creationDate;
+    _recipient;
+    _statements;
+    constructor(config) {
+        this._messageId = config.messageId;
+        this._creationDate = config.creationDate;
+        this._recipient = config.recipient;
+        this._statements = config.statements;
+    }
+    static supportedMessages() {
+        return [ISO20022Messages.CAMT_053];
+    }
+    get data() {
+        return {
+            messageId: this._messageId,
+            creationDate: this._creationDate,
+            recipient: this._recipient,
+            statements: this._statements,
+        };
+    }
+    static fromDocumentObject(obj) {
+        const bankToCustomerStatement = obj.Document.BkToCstmrStmt;
+        const rawCreationDate = bankToCustomerStatement.GrpHdr.CreDtTm;
+        const creationDate = new Date(rawCreationDate);
+        let statements = [];
+        if (Array.isArray(bankToCustomerStatement.Stmt)) {
+            statements = bankToCustomerStatement.Stmt.map((stmt) => parseStatement(stmt));
+        }
+        else {
+            statements = [parseStatement(bankToCustomerStatement.Stmt)];
+        }
+        const rawRecipient = bankToCustomerStatement.GrpHdr.MsgRcpt;
+        return new CashManagementEndOfDayReport({
+            messageId: bankToCustomerStatement.GrpHdr.MsgId.toString(),
+            creationDate,
+            recipient: rawRecipient ? parseRecipient(rawRecipient) : undefined,
+            statements,
+        });
+    }
+    /**
+     * Creates a CashManagementEndOfDayReport instance from a raw XML string.
+     *
+     * @param {string} rawXml - The raw XML string containing the CAMT.053 data.
+     * @returns {CashManagementEndOfDayReport} A new instance of CashManagementEndOfDayReport.
+     * @throws {Error} If the XML parsing fails or required data is missing.
+     */
+    static fromXML(rawXml) {
+        const parser = getXmlParser();
+        const xml = parser.parse(rawXml);
+        if (!xml.Document) {
+            throw new InvalidXmlError('Invalid XML format');
+        }
+        const namespace = (xml.Document['@_xmlns'] ||
+            xml.Document['@_Xmlns']);
+        if (!namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:camt.053.001.')) {
+            throw new InvalidXmlNamespaceError('Invalid CAMT.053 namespace');
+        }
+        return CashManagementEndOfDayReport.fromDocumentObject(xml);
+    }
+    /**
+     *
+     * @param json - JSON string representing a CashManagementEndOfDayReport
+     * @returns {CashManagementEndOfDayReport} A new instance of CashManagementEndOfDayReport
+     * @throws {Error} If the JSON parsing fails or required data is missing.
+     */
+    static fromJSON(json) {
+        const obj = JSON.parse(json);
+        if (!obj.Document) {
+            throw new InvalidXmlError('Invalid JSON format');
+        }
+        return CashManagementEndOfDayReport.fromDocumentObject(obj);
+    }
+    toJSON() {
+        const Document = {
+            BkToCstmrStmt: {
+                GrpHdr: {
+                    MsgId: this._messageId,
+                    CreDtTm: this._creationDate.toISOString(),
+                    MsgRcpt: this._recipient
+                        ? exportRecipient(this._recipient)
+                        : undefined,
+                },
+                Stmt: this._statements.map(stmt => exportStatement(stmt)),
+            },
+        };
+        return { Document };
+    }
+    serialize() {
+        const builder = getXmlBuilder();
+        const obj = this.toJSON();
+        obj.Document['@_xmlns'] = 'urn:iso:std:iso:20022:tech:xsd:camt.053.001.02';
+        obj.Document['@_xmlns:xsi'] = 'http://www.w3.org/2001/XMLSchema-instance';
+        return builder.build(obj);
+    }
+    /**
+     * Retrieves all balances from all statements in the report.
+     * @returns {Balance[]} An array of all balances across all statements.
+     */
+    get balances() {
+        return this._statements.flatMap(statement => statement.balances);
+    }
+    /**
+     * Retrieves all transactions from all statements in the report.
+     * @returns {Transaction[]} An array of all transactions across all statements.
+     */
+    get transactions() {
+        return this._statements
+            .flatMap(statement => statement.entries)
+            .flatMap(entry => entry.transactions);
+    }
+    /**
+     * Retrieves all entries from all statements in the report.
+     * @returns {Entry[]} An array of all entries across all statements.
+     */
+    get entries() {
+        return this._statements.flatMap(statement => statement.entries);
+    }
+    /**
+     * Gets the unique identifier for the message.
+     * @returns {string} The message ID.
+     */
+    get messageId() {
+        return this._messageId;
+    }
+    /**
+     * Gets the party receiving the report.
+     * @returns {Party | undefined} The recipient party information, or undefined if no recipient is set.
+     */
+    get recipient() {
+        return this._recipient;
+    }
+    /**
+     * Gets the date and time when the report was created.
+     * @returns {Date} The creation date of the report.
+     */
+    get creationDate() {
+        return this._creationDate;
+    }
+    /**
+     * Gets all statements included in the report.
+     * @returns {Statement[]} An array of all statements in the report.
+     */
+    get statements() {
+        return this._statements;
+    }
+}
+registerISO20022Implementation(CashManagementEndOfDayReport);
+
+// Types related to CAMT 053
+/**
+ * Balance types as defined in ISO 20022.
+ * @see {@link https://www.iso20022.org/sites/default/files/2022-03/externalcodesets_4q2021_v2_1.xlsx}
+ */
+const BalanceTypeCode = {
+    /** Closing balance of amount of money that is at the disposal of the account owner on the date specified. */
+    ClosingAvailable: 'CLAV',
+    /** Balance of the account at the end of the pre-agreed account reporting period. It is the sum of the opening booked balance at the beginning of the period and all entries booked to the account during the pre-agreed account reporting period. */
+    ClosingBooked: 'CLBD',
+    /** Forward available balance of money that is at the disposal of the account owner on the date specified. */
+    ForwardAvailable: 'FWAV',
+    /** Balance for informational purposes. */
+    Information: 'INFO',
+    /** Available balance calculated in the course of the account servicer's business day, at the time specified, and subject to further changes during the business day. The interim balance is calculated on the basis of booked credit and debit items during the calculation time/period specified. */
+    InterimAvailable: 'ITAV',
+    /** Balance calculated in the course of the account servicer's business day, at the time specified, and subject to further changes during the business day. The interim balance is calculated on the basis of booked credit and debit items during the calculation time/period specified. */
+    InterimBooked: 'ITBD',
+    /** Opening balance of amount of money that is at the disposal of the account owner on the date specified. */
+    OpeningAvailable: 'OPAV',
+    /** Book balance of the account at the beginning of the account reporting period. It always equals the closing book balance from the previous report. */
+    OpeningBooked: 'OPBD',
+    /** Balance of the account at the previously closed account reporting period. The opening booked balance for the new period has to be equal to this balance. Usage: the previously booked closing balance should equal (inclusive date) the booked closing balance of the date it references and equal the actual booked opening balance of the current date. */
+    PreviouslyClosedBooked: 'PRCD',
+    /** Balance, composed of booked entries and pending items known at the time of calculation, which projects the end of day balance if everything is booked on the account and no other entry is posted. */
+    Expected: 'XPCD',
+    /** The difference between the excess/(deficit) investable balance and the excess/(deficit) collected balance due to the reserve requirement. This balance is not used if the account's Earnings Credit Rate is net of reserves. This may be used when the earnings allowance rate is not adjusted for reserves. It may be that reserves have been subtracted from the collected balance to determine the investable balance. Therefore, they must be added back to the excess/(deficit) investable balance to determine the collected balance position. The presentation of this calculation is optional. AFP code=00 04 21 */
+    AdditionalBalReserveRequirement: 'ABRR',
+};
+/**
+ * Description mapping of BalanceTypeCode values to their names.
+ */
+const BalanceTypeCodeDescriptionMap = {
+    CLAV: 'Closing Available',
+    CLBD: 'Closing Booked',
+    FWAV: 'Forward Available',
+    INFO: 'Information',
+    ITAV: 'Interim Available',
+    ITBD: 'Interim Booked',
+    OPAV: 'Opening Available',
+    OPBD: 'Opening Booked',
+    PRCD: 'Previously Closed Booked',
+    XPCD: 'Expected',
+    ABRR: 'Additional Balance Reserve Requirement',
+};
+
+/*
+ * Represents a SEPA credit payment instruction, extending the base PaymentInstruction.
+ */
+/**
+ * Category purpose codes as defined in ISO 20022 ExternalCategoryPurpose1Code.
+ * @see {@link https://www.iso20022.org/catalogue-messages/additional-content-messages/external-code-sets}
+ */
+/**
+ * ACH Local Instrument Codes as defined in NACHA standards.
+ * These codes identify the specific type of ACH transaction.
+ */
+const ACHLocalInstrumentCode = {
+    /** Corporate Credit or Debit */
+    CorporateCreditDebit: 'CCD',
+    /** Prearranged Payment and Deposit */
+    PrearrangedPaymentDeposit: 'PPD',
+    /** Internet-Initiated Entry */
+    InternetInitiated: 'WEB',
+    /** Telephone-Initiated Entry */
+    TelephoneInitiated: 'TEL',
+    /** Point-of-Purchase Entry */
+    PointOfPurchase: 'POP',
+    /** Accounts Receivable Entry */
+    AccountsReceivable: 'ARC',
+    /** Back Office Conversion */
+    BackOfficeConversion: 'BOC',
+    /** Represented Check Entry */
+    RepresentedCheck: 'RCK',
+};
+const ACHLocalInstrumentCodeDescriptionMap = {
+    CCD: 'Corporate Credit or Debit',
+    PPD: 'Prearranged Payment and Deposit',
+    WEB: 'Internet-Initiated Entry',
+    TEL: 'Telephone-Initiated Entry',
+    POP: 'Point-of-Purchase Entry',
+    ARC: 'Accounts Receivable Entry',
+    BOC: 'Back Office Conversion',
+    RCK: 'Represented Check Entry',
+};
+const SEPAReversalReasonCode = {
+    Duplication: 'DUPL',
+    TechnicalProblem: 'TECH',
+    FraudulentOriginal: 'FRAD',
+    CutOffTime: 'CUTA',
+    AmountDiffers: 'AM05',
+    InvalidDebtorAccount: 'AC04',
+    NotSpecifiedCustomerGenerated: 'MS02',
+    NotSpecifiedAgentGenerated: 'MS03',
+};
+
+const sanitize = (value, length) => value.slice(0, length);
+const generateId = () => node_crypto.randomUUID().replace(/-/g, '');
+
+/**
+ * Abstract base class for ISO20022 payment initiation (PAIN) messages.
+ * @abstract
+ */
+class PaymentInitiation {
+    type;
+    constructor({ type }) {
+        this.type = type;
+    }
+    /**
+     * Returns the full XML namespace URI for this message type
+     * (e.g. 'urn:iso:std:iso:20022:tech:xsd:pain.007.001.02').
+     */
+    get namespace() {
+        return `${XMLNS_PREFIX}${this.schemaId}`;
+    }
+    /**
+     * Formats a party's information according to ISO20022 standards.
+     * @param {Party} party - The party's information.
+     * @returns {Object} Formatted XML party information.
+     */
+    party(party) {
+        const result = {
+            Nm: party.name,
+        };
+        // Only include address information if it exists
+        if (party.address) {
+            result.PstlAdr = {
+                StrtNm: party.address.streetName,
+                BldgNb: party.address.buildingNumber,
+                PstCd: party.address.postalCode,
+                TwnNm: party.address.townName,
+                CtrySubDvsn: party.address.countrySubDivision,
+                Ctry: party.address.country,
+            };
+        }
+        return result;
+    }
+    /**
+     * Formats an account according to ISO20022 standards.
+     * This method handles both IBAN and non-IBAN accounts.
+     *
+     * @param {Account} account - The account to be formatted. Can be either an IBANAccount or a BaseAccount.
+     * @returns {Object} An object representing the formatted account information.
+     *                   For IBAN accounts, it returns an object with an IBAN identifier.
+     *                   For non-IBAN accounts, it returns an object with an 'Other' identifier.
+     *
+     * @example
+     * // For an IBAN account
+     * account({ iban: 'DE89370400440532013000' })
+     * // Returns: { Id: { IBAN: 'DE89370400440532013000' } }
+     *
+     * @example
+     * // For a non-IBAN account
+     * account({ accountNumber: '1234567890' })
+     * // Returns: { Id: { Othr: { Id: '1234567890' } } }
+     */
+    account(account) {
+        if (account.iban) {
+            return this.internationalAccount(account);
+        }
+        return {
+            Id: {
+                Othr: {
+                    Id: account.accountNumber,
+                },
+            },
+        };
+    }
+    /**
+     * Formats an IBAN account according to ISO20022 standards.
+     * @param {IBANAccount} account - The IBAN account information.
+     * @returns {Object} Formatted XML IBAN account information.
+     */
+    internationalAccount(account) {
+        return {
+            Id: {
+                IBAN: account.iban,
+            },
+        };
+    }
+    /**
+     * Formats an agent according to ISO20022 standards.
+     * This method handles both BIC and ABA agents.
+     *
+     * @param {Agent} agent - The agent to be formatted. Can be either a BICAgent or an ABAAgent.
+     * @returns {Object} An object representing the formatted agent information.
+     *                   For BIC agents, it returns an object with a BIC identifier.
+     *                   For ABA agents, it returns an object with clearing system member identification.
+     *
+     * @example
+     * // For a BIC agent
+     * agent({ bic: 'BOFAUS3NXXX' })
+     * // Returns: { FinInstnId: { BIC: 'BOFAUS3NXXX' } }
+     *
+     * @example
+     * // For an ABA agent
+     * agent({ abaRoutingNumber: '026009593' })
+     * // Returns: { FinInstnId: { ClrSysMmbId: { MmbId: '026009593' } } }
+     */
+    agent(agent) {
+        if (agent.bic === undefined) {
+            return {
+                FinInstnId: {
+                    ClrSysMmbId: {
+                        ClrSysId: {
+                            Cd: 'USABA',
+                        },
+                        MmbId: agent.abaRoutingNumber,
+                    },
+                },
+            };
+        }
+        return {
+            FinInstnId: {
+                BIC: agent.bic,
+            },
+        };
+    }
+    buildMandateRelatedInfo(mandate) {
+        return {
+            MndtId: mandate.mandateId,
+            DtOfSgntr: mandate.dateOfSignature.toISOString().split('T')[0],
+            AmdmntInd: mandate.amendmentIndicator,
+            ...(mandate.amendmentIndicator &&
+                mandate.amendmentInformation && {
+                AmdmntInfDtls: {
+                    ...(mandate.amendmentInformation.originalMandateId && {
+                        OrgnlMndtId: mandate.amendmentInformation.originalMandateId,
+                    }),
+                    ...(mandate.amendmentInformation.originalCreditorSchemeId && {
+                        OrgnlCdtrSchmeId: {
+                            ...(mandate.amendmentInformation.originalCreditorSchemeId
+                                .name && {
+                                Nm: mandate.amendmentInformation.originalCreditorSchemeId
+                                    .name,
+                            }),
+                            ...(mandate.amendmentInformation.originalCreditorSchemeId
+                                .id && {
+                                Id: {
+                                    PrvtId: {
+                                        Othr: {
+                                            Id: mandate.amendmentInformation
+                                                .originalCreditorSchemeId.id,
+                                            SchmeNm: { Prtry: 'SEPA' },
+                                        },
+                                    },
+                                },
+                            }),
+                        },
+                    }),
+                },
+            }),
+        };
+    }
+    buildCreditorSchemeId(schemeId) {
+        return {
+            Id: {
+                PrvtId: {
+                    Othr: {
+                        Id: schemeId,
+                        SchmeNm: { Prtry: 'SEPA' },
+                    },
+                },
+            },
+        };
+    }
+    /**
+     * Returns the string representation of the payment initiation.
+     * @returns {string} The serialized payment initiation.
+     */
+    toString() {
+        return this.serialize();
+    }
+    static getBuilder() {
+        return new Builder({
+            ignoreAttributes: false,
+            attributeNamePrefix: '@',
+            textNodeName: '#',
+            format: true,
+        });
+    }
+}
+
+/**
+ * Represents an ACH Credit Payment Initiation.
+ * This class handles the creation and serialization of ACH credit transfer messages
+ * according to the ISO20022 standard.
+ * @class
+ * @extends PaymentInitiation
+ * @param {ACHCreditPaymentInitiationConfig} config - The configuration for the ACH Credit Payment Initiation message.
+ * @example
+ * ```typescript
+ * // Creating a payment message
+ * const payment = new ACHCreditPaymentInitiation({
+ *   initiatingParty: {
+ *     name: 'John Doe Corporation',
+ *     id: 'JOHNDOE99',
+ *     account: {
+ *       accountNumber: '0123456789'
+ *     },
+ *     agent: {
+ *       abaRoutingNumber: '123456789',
+ *     }
+ *   },
+ *   paymentInstructions: [{
+ *     type: 'ach',
+ *     direction: 'credit',
+ *     amount: 1000,
+ *     currency: 'USD',
+ *     creditor: {
+ *       name: 'John Doe Funding LLC',
+ *       account: {
+ *         accountNumber: '0123456789'
+ *       },
+ *       agent: {
+ *         abaRoutingNumber: '0123456789'
+ *       }
+ *     }
+ *   }]
+ * });
+ *
+ * // Serializing to XML
+ * const xml = payment.serialize();
+ *
+ * // Parsing from XML
+ * const parsedPayment = ACHCreditPaymentInitiation.fromXML(xml);
+ * ```
+ */
+class ACHCreditPaymentInitiation extends PaymentInitiation {
+    initiatingParty;
+    paymentInstructions;
+    messageId;
+    creationDate;
+    paymentInformationId;
+    localInstrument;
+    serviceLevel;
+    instructionPriority;
+    formattedPaymentSum;
+    get schemaId() {
+        return ISO20022SchemaId.PAIN_001_001_03;
+    }
+    constructor(config) {
+        super({ type: 'ach' });
+        this.initiatingParty = config.initiatingParty;
+        this.paymentInstructions = config.paymentInstructions;
+        this.messageId = config.messageId || generateId();
+        this.creationDate = config.creationDate || new Date();
+        this.paymentInformationId = generateId();
+        this.localInstrument =
+            config.localInstrument || ACHLocalInstrumentCode.CorporateCreditDebit;
+        this.serviceLevel = 'NURG'; // Normal Urgency
+        this.instructionPriority = 'NORM'; // Normal Priority
+        this.formattedPaymentSum = this.sumPaymentInstructions(this.paymentInstructions);
+        this.validate();
+    }
+    /**
+     * Calculates the sum of all payment instructions.
+     * @private
+     * @param {AtLeastOne<ACHCreditPaymentInstruction>} instructions - Array of payment instructions.
+     * @returns {string} The total sum formatted as a string with 2 decimal places.
+     * @throws {Error} If payment instructions have different currencies.
+     */
+    sumPaymentInstructions(instructions) {
+        const total = instructions.reduce((acc, i) => acc + i.amount, 0);
+        return formatMinorUnits(total, instructions[0].currency);
+    }
+    /**
+     * Validates the payment initiation data according to ACH requirements.
+     * @private
+     * @throws {Error} If messageId exceeds 35 characters.
+     * @throws {Error} If payment instructions have different currencies.
+     * @throws {Error} If any creditor has incomplete information.
+     */
+    validate() {
+        if (this.messageId.length > 35) {
+            throw new Error('messageId must not exceed 35 characters');
+        }
+        // Ensure all payment instructions have USD as currency
+        for (const instruction of this.paymentInstructions) {
+            if (instruction.currency !== 'USD') {
+                throw new Error('ACH payments must use USD as currency');
+            }
+        }
+    }
+    /**
+     * Generates payment information for a single ACH credit transfer instruction.
+     * @param {ACHCreditPaymentInstruction} instruction - The payment instruction.
+     * @returns {Object} The payment information object formatted according to ACH specifications.
+     */
+    creditTransfer(instruction) {
+        const paymentInstructionId = sanitize(instruction.id || generateId(), 35);
+        const endToEndId = sanitize(instruction.endToEndId || instruction.id || generateId(), 35);
+        return {
+            PmtId: {
+                InstrId: paymentInstructionId,
+                EndToEndId: endToEndId,
+            },
+            Amt: {
+                InstdAmt: {
+                    '#': formatMinorUnits(instruction.amount, instruction.currency),
+                    '@Ccy': instruction.currency,
+                },
+            },
+            CdtrAgt: this.agent(instruction.creditor.agent),
+            Cdtr: this.party(instruction.creditor),
+            CdtrAcct: {
+                Id: {
+                    Othr: {
+                        Id: instruction.creditor.account.accountNumber,
+                    },
+                },
+                Tp: {
+                    Cd: 'CACC',
+                },
+                Ccy: instruction.currency,
+            },
+            RmtInf: instruction.remittanceInformation
+                ? {
+                    Ustrd: instruction.remittanceInformation,
+                }
+                : undefined,
+        };
+    }
+    /**
+     * Serializes the ACH credit transfer initiation to an XML string.
+     * @returns {string} The XML representation of the ACH credit transfer initiation.
+     */
+    serialize() {
+        const builder = PaymentInitiation.getBuilder();
+        const xml = {
+            '?xml': {
+                '@version': '1.0',
+                '@encoding': 'UTF-8',
+            },
+            Document: {
+                '@xmlns': this.namespace,
+                '@xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+                CstmrCdtTrfInitn: {
+                    GrpHdr: {
+                        MsgId: this.messageId,
+                        CreDtTm: this.creationDate.toISOString(),
+                        NbOfTxs: this.paymentInstructions.length.toString(),
+                        CtrlSum: this.formattedPaymentSum,
+                        InitgPty: {
+                            Nm: this.initiatingParty.name,
+                            Id: {
+                                OrgId: {
+                                    BICOrBEI: this.initiatingParty.id,
+                                },
+                            },
+                        },
+                    },
+                    PmtInf: {
+                        PmtInfId: this.paymentInformationId,
+                        PmtMtd: 'TRF',
+                        BtchBookg: false,
+                        NbOfTxs: this.paymentInstructions.length.toString(),
+                        CtrlSum: this.formattedPaymentSum,
+                        PmtTpInf: {
+                            InstrPrty: this.instructionPriority,
+                            SvcLvl: { Cd: this.serviceLevel },
+                            LclInstrm: { Prtry: this.localInstrument },
+                        },
+                        ReqdExctnDt: this.creationDate.toISOString().split('T')[0],
+                        Dbtr: this.party(this.initiatingParty),
+                        DbtrAcct: this.account(this.initiatingParty.account),
+                        DbtrAgt: this.agent(this.initiatingParty.agent),
+                        ChrgBr: 'SHAR',
+                        // payments[]
+                        CdtTrfTxInf: this.paymentInstructions.map(p => this.creditTransfer(p)),
+                    },
+                },
+            },
+        };
+        return builder.build(xml);
+    }
+    /**
+     * Creates an ACHCreditPaymentInitiation instance from an XML string.
+     * @param {string} rawXml - The XML string to parse.
+     * @returns {ACHCreditPaymentInitiation} A new ACHCreditPaymentInitiation instance.
+     * @throws {InvalidXmlError} If the XML format is invalid.
+     * @throws {InvalidXmlNamespaceError} If the XML namespace is invalid.
+     * @throws {Error} If multiple payment information blocks are found.
+     */
+    static fromXML(rawXml) {
+        const parser = getXmlParser();
+        const xml = parser.parse(rawXml);
+        if (!xml.Document) {
+            throw new InvalidXmlError('Invalid XML format');
+        }
+        const namespace = (xml.Document['@_xmlns'] ||
+            xml.Document['@_Xmlns']);
+        if (!namespace.startsWith(`${XMLNS_PREFIX}${ISO20022SchemaId.PAIN_001_001_03}`)) {
+            throw new InvalidXmlNamespaceError('Invalid PAIN.001 namespace');
+        }
+        const messageId = xml.Document.CstmrCdtTrfInitn.GrpHdr.MsgId;
+        const creationDate = new Date(xml.Document.CstmrCdtTrfInitn.GrpHdr.CreDtTm);
+        if (Array.isArray(xml.Document.CstmrCdtTrfInitn.PmtInf)) {
+            throw new Error('Multiple PmtInf is not supported');
+        }
+        // Extract payment type information
+        xml.Document.CstmrCdtTrfInitn.PmtInf.PmtTpInf;
+        // Assuming we have one PmtInf / one Debtor, we can hack together this information from InitgPty / Dbtr
+        const initiatingParty = {
+            name: xml.Document.CstmrCdtTrfInitn.GrpHdr.InitgPty.Nm ||
+                xml.Document.CstmrCdtTrfInitn.PmtInf.Dbtr.Nm,
+            id: xml.Document.CstmrCdtTrfInitn.GrpHdr.InitgPty.Id.OrgId?.BICOrBEI ||
+                xml.Document.CstmrCdtTrfInitn.GrpHdr.InitgPty.Id.OrgId?.Othr?.Id,
+            agent: parseAgent(xml.Document.CstmrCdtTrfInitn.PmtInf.DbtrAgt),
+            account: parseAccount(xml.Document.CstmrCdtTrfInitn.PmtInf.DbtrAcct),
+        };
+        const rawInstructions = Array.isArray(xml.Document.CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf)
+            ? xml.Document.CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf
+            : [xml.Document.CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf];
+        const paymentInstructions = rawInstructions.map((inst) => {
+            const currency = inst.Amt.InstdAmt['@_Ccy'];
+            const amount = parseAmountToMinorUnits(Number(inst.Amt.InstdAmt['#text']), currency);
+            const rawPostalAddress = inst.Cdtr.PstlAdr;
+            return {
+                ...(inst.PmtId.InstrId && {
+                    id: inst.PmtId.InstrId.toString(),
+                }),
+                ...(inst.PmtId.EndToEndId && {
+                    endToEndId: inst.PmtId.EndToEndId.toString(),
+                }),
+                type: 'ach',
+                direction: 'credit',
+                amount,
+                currency,
+                creditor: {
+                    name: inst.Cdtr?.Nm,
+                    agent: parseAgent(inst.CdtrAgt),
+                    account: parseAccount(inst.CdtrAcct),
+                    ...(rawPostalAddress &&
+                        (rawPostalAddress.StrtNm ||
+                            rawPostalAddress.BldgNb ||
+                            rawPostalAddress.PstCd ||
+                            rawPostalAddress.TwnNm ||
+                            rawPostalAddress.Ctry)
+                        ? {
+                            address: {
+                                ...(rawPostalAddress.StrtNm && {
+                                    streetName: rawPostalAddress.StrtNm.toString(),
+                                }),
+                                ...(rawPostalAddress.BldgNb && {
+                                    buildingNumber: rawPostalAddress.BldgNb.toString(),
+                                }),
+                                ...(rawPostalAddress.TwnNm && {
+                                    townName: rawPostalAddress.TwnNm.toString(),
+                                }),
+                                ...(rawPostalAddress.CtrySubDvsn && {
+                                    countrySubDivision: rawPostalAddress.CtrySubDvsn.toString(),
+                                }),
+                                ...(rawPostalAddress.PstCd && {
+                                    postalCode: rawPostalAddress.PstCd.toString(),
+                                }),
+                                ...(rawPostalAddress.Ctry && {
+                                    country: rawPostalAddress.Ctry,
+                                }),
+                            },
+                        }
+                        : {}),
+                },
+                ...(inst.RmtInf?.Ustrd && {
+                    remittanceInformation: inst.RmtInf.Ustrd.toString(),
+                }),
+            };
+        });
+        return new ACHCreditPaymentInitiation({
+            messageId,
+            creationDate,
+            initiatingParty,
+            paymentInstructions,
+        });
+    }
+}
+
+/**
+ * Represents a RTP Credit Payment Initiation.
+ * This class handles the creation and serialization of RTP credit transfer messages
+ * according to the ISO20022 standard.
+ * @class
+ * @extends PaymentInitiation
+ * @param {RTPCreditPaymentInitiationConfig} config - The configuration for the RTP Credit Payment Initiation message.
+ * @example
+ * ```typescript
+ * // Creating a payment message
+ * const payment = new RTPCreditPaymentInitiation({
+ *   ...
+ * });
+ * // Uploading to fiatwebservices.com
+ * client.paymentTransfers.create(payment);
+ * // Parsing from XML
+ * const xml = '<xml>...</xml>';
+ * const parsedTransfer = RTPCreditPaymentInitiation.fromXML(xml);
+ * ```
+ * @see {@link https://docs.iso20022js.com/pain/rtpcredit} for more information.
+ */
+class RTPCreditPaymentInitiation extends PaymentInitiation {
+    initiatingParty;
+    paymentInstructions;
+    messageId;
+    creationDate;
+    paymentInformationId;
+    formattedPaymentSum;
+    get schemaId() {
+        return ISO20022SchemaId.PAIN_001_001_03;
+    }
+    constructor(config) {
+        super({ type: 'rtp' });
+        this.initiatingParty = config.initiatingParty;
+        this.paymentInstructions = config.paymentInstructions;
+        this.messageId = config.messageId || generateId();
+        this.creationDate = config.creationDate || new Date();
+        this.paymentInformationId = generateId();
+        this.formattedPaymentSum = this.sumPaymentInstructions(this.paymentInstructions);
+        this.validate();
+    }
+    /**
+     * Calculates the sum of all payment instructions.
+     * @private
+     * @param {AtLeastOne<RTPCreditPaymentInstruction>} instructions - Array of payment instructions.
+     * @returns {string} The total sum formatted as a string with 2 decimal places.
+     * @throws {Error} If payment instructions have different currencies.
+     */
+    sumPaymentInstructions(instructions) {
+        const total = instructions.reduce((acc, i) => acc + i.amount, 0);
+        return formatMinorUnits(total, instructions[0].currency);
+    }
+    /**
+     * Validates the payment initiation data according to SEPA requirements.
+     * @private
+     * @throws {Error} If messageId exceeds 35 characters.
+     * @throws {Error} If payment instructions have different currencies.
+     * @throws {Error} If any creditor has incomplete address information.
+     */
+    validate() {
+        if (this.messageId.length > 35) {
+            throw new Error('messageId must not exceed 35 characters');
+        }
+    }
+    /**
+     * Generates payment information for a single SEPA credit transfer instruction.
+     * @param {RTPCreditPaymentInstruction} instruction - The payment instruction.
+     * @returns {Object} The payment information object formatted according to SEPA specifications.
+     */
+    creditTransfer(instruction) {
+        const paymentInstructionId = sanitize(instruction.id || generateId(), 35);
+        const endToEndId = sanitize(instruction.endToEndId || instruction.id || generateId(), 35);
+        return {
+            PmtId: {
+                InstrId: paymentInstructionId,
+                EndToEndId: endToEndId,
+            },
+            Amt: {
+                InstdAmt: {
+                    '#': formatMinorUnits(instruction.amount, instruction.currency),
+                    '@Ccy': instruction.currency,
+                },
+            },
+            CdtrAgt: this.agent(instruction.creditor.agent),
+            Cdtr: this.party(instruction.creditor),
+            CdtrAcct: {
+                Id: {
+                    Othr: {
+                        Id: instruction.creditor.account.accountNumber,
+                    },
+                },
+            },
+            RmtInf: instruction.remittanceInformation
+                ? {
+                    Ustrd: instruction.remittanceInformation,
+                }
+                : undefined,
+        };
+    }
+    /**
+     * Serializes the RTP credit transfer initiation to an XML string.
+     * @returns {string} The XML representation of the RTP credit transfer initiation.
+     */
+    serialize() {
+        const builder = PaymentInitiation.getBuilder();
+        const xml = {
+            '?xml': {
+                '@version': '1.0',
+                '@encoding': 'UTF-8',
+            },
+            Document: {
+                '@xmlns': this.namespace,
+                '@xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+                CstmrCdtTrfInitn: {
+                    GrpHdr: {
+                        MsgId: this.messageId,
+                        CreDtTm: this.creationDate.toISOString(),
+                        NbOfTxs: this.paymentInstructions.length.toString(),
+                        CtrlSum: this.formattedPaymentSum,
+                        InitgPty: {
+                            Nm: this.initiatingParty.name,
+                            Id: {
+                                OrgId: {
+                                    Othr: {
+                                        Id: this.initiatingParty.id,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    PmtInf: {
+                        PmtInfId: this.paymentInformationId,
+                        PmtMtd: 'TRF',
+                        NbOfTxs: this.paymentInstructions.length.toString(),
+                        CtrlSum: this.formattedPaymentSum,
+                        PmtTpInf: {
+                            SvcLvl: { Cd: 'URNS' },
+                            LclInstrm: { Prtry: 'RTP' },
+                        },
+                        ReqdExctnDt: this.creationDate.toISOString().split('T').at(0),
+                        Dbtr: this.party(this.initiatingParty),
+                        DbtrAcct: this.account(this.initiatingParty.account),
+                        DbtrAgt: this.agent(this.initiatingParty.agent),
+                        ChrgBr: 'SLEV',
+                        // payments[]
+                        CdtTrfTxInf: this.paymentInstructions.map(p => this.creditTransfer(p)),
+                    },
+                },
+            },
+        };
+        return builder.build(xml);
+    }
+    static fromXML(rawXml) {
+        const parser = getXmlParser();
+        const xml = parser.parse(rawXml);
+        if (!xml.Document) {
+            throw new InvalidXmlError('Invalid XML format');
+        }
+        const namespace = (xml.Document['@_xmlns'] ||
+            xml.Document['@_Xmlns']);
+        if (!namespace.startsWith(`${XMLNS_PREFIX}${ISO20022SchemaId.PAIN_001_001_03}`)) {
+            throw new InvalidXmlNamespaceError('Invalid PAIN.001 namespace');
+        }
+        const messageId = xml.Document.CstmrCdtTrfInitn.GrpHdr.MsgId;
+        const creationDate = new Date(xml.Document.CstmrCdtTrfInitn.GrpHdr.CreDtTm);
+        if (Array.isArray(xml.Document.CstmrCdtTrfInitn.PmtInf)) {
+            throw new Error('Multiple PmtInf is not supported');
+        }
+        // Assuming we have one PmtInf / one Debtor, we can hack together this information from InitgPty / Dbtr
+        const initiatingParty = {
+            name: xml.Document.CstmrCdtTrfInitn.GrpHdr.InitgPty.Nm ||
+                xml.Document.CstmrCdtTrfInitn.PmtInf.Dbtr.Nm,
+            id: xml.Document.CstmrCdtTrfInitn.GrpHdr.InitgPty.Id.OrgId?.Othr?.Id ||
+                xml.Document.CstmrCdtTrfInitn.GrpHdr.InitgPty.Id.OrgId?.BICOrBEI,
+            agent: parseAgent(xml.Document.CstmrCdtTrfInitn.PmtInf.DbtrAgt),
+            account: parseAccount(xml.Document.CstmrCdtTrfInitn.PmtInf.DbtrAcct),
+        };
+        const rawInstructions = Array.isArray(xml.Document.CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf)
+            ? xml.Document.CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf
+            : [xml.Document.CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf];
+        const paymentInstructions = rawInstructions.map((inst) => {
+            const currency = inst.Amt.InstdAmt['@_Ccy'];
+            const amount = parseAmountToMinorUnits(Number(inst.Amt.InstdAmt['#text']), currency);
+            const rawPostalAddress = inst.Cdtr.PstlAdr;
+            return {
+                ...(inst.PmtId.InstrId && {
+                    id: inst.PmtId.InstrId.toString(),
+                }),
+                ...(inst.PmtId.EndToEndId && {
+                    endToEndId: inst.PmtId.EndToEndId.toString(),
+                }),
+                type: 'sepa',
+                direction: 'credit',
+                amount,
+                currency,
+                creditor: {
+                    name: inst.Cdtr?.Nm,
+                    agent: parseAgent(inst.CdtrAgt),
+                    account: parseAccount(inst.CdtrAcct),
+                    ...(rawPostalAddress &&
+                        (rawPostalAddress.StreetName ||
+                            rawPostalAddress.BldgNb ||
+                            rawPostalAddress.PstlCd ||
+                            rawPostalAddress.TwnNm ||
+                            rawPostalAddress.Ctry)
+                        ? {
+                            address: {
+                                ...(rawPostalAddress.StrtNm && {
+                                    streetName: rawPostalAddress.StrtNm.toString(),
+                                }),
+                                ...(rawPostalAddress.BldgNb && {
+                                    buildingNumber: rawPostalAddress.BldgNb.toString(),
+                                }),
+                                ...(rawPostalAddress.TwnNm && {
+                                    townName: rawPostalAddress.TwnNm.toString(),
+                                }),
+                                ...(rawPostalAddress.CtrySubDvsn && {
+                                    countrySubDivision: rawPostalAddress.CtrySubDvsn.toString(),
+                                }),
+                                ...(rawPostalAddress.PstCd && {
+                                    postalCode: rawPostalAddress.PstCd.toString(),
+                                }),
+                                ...(rawPostalAddress.Ctry && {
+                                    country: rawPostalAddress.Ctry,
+                                }),
+                            },
+                        }
+                        : {}),
+                },
+                ...(inst.RmtInf?.Ustrd && {
+                    remittanceInformation: inst.RmtInf.Ustrd.toString(),
+                }),
+            };
+        });
+        return new RTPCreditPaymentInitiation({
+            messageId,
+            creationDate,
+            initiatingParty,
+            paymentInstructions,
+        });
+    }
+}
+
+/**
+ * Represents a SEPA Credit Payment Initiation.
+ * This class handles the creation and serialization of SEPA credit transfer messages
+ * according to the ISO20022 standard.
+ * @class
+ * @extends PaymentInitiation
+ * @param {SEPACreditPaymentInitiationConfig} config - The configuration for the SEPA Credit Payment Initiation message.
+ * @example
+ * ```typescript
+ * // Creating a SEPA payment message
+ * const payment = new SEPACreditPaymentInitiation({
+ *   // configuration options
+ * });
+ * // Uploading the payment
+ * client.paymentTransfers.create(payment);
+ * // Parsing from XML
+ * const xml = '<xml>...</xml>';
+ * const parsedTransfer = SEPACreditPaymentInitiation.fromXML(xml);
+ * ```
+ * @see {@link https://docs.iso20022js.com/pain/sepacredit} for more information.
+ */
+class SEPACreditPaymentInitiation extends PaymentInitiation {
+    initiatingParty;
+    messageId;
+    creationDate;
+    paymentInstructions;
+    paymentInformationId;
+    categoryPurpose;
+    formattedPaymentSum;
+    get schemaId() {
+        return ISO20022SchemaId.PAIN_001_001_03;
+    }
+    /**
+     * Creates an instance of SEPACreditPaymentInitiation.
+     * @param {SEPACreditPaymentInitiationConfig} config - The configuration object for the SEPA credit transfer.
+     */
+    constructor(config) {
+        super({ type: 'sepa' });
+        this.initiatingParty = config.initiatingParty;
+        this.paymentInstructions = config.paymentInstructions;
+        this.messageId = config.messageId || generateId();
+        this.creationDate = config.creationDate || new Date();
+        this.formattedPaymentSum = this.sumPaymentInstructions(this.paymentInstructions);
+        this.paymentInformationId = generateId();
+        this.categoryPurpose = config.categoryPurpose;
+        this.validate();
+    }
+    // NOTE: Does not work with different currencies. In the meantime we will use a guard.
+    // TODO: Figure out what to do with different currencies
+    /**
+     * Calculates the sum of all payment instructions.
+     * @private
+     * @param {AtLeastOne<SEPACreditPaymentInstruction>} instructions - Array of payment instructions.
+     * @returns {string} The total sum formatted as a string with 2 decimal places.
+     * @throws {Error} If payment instructions have different currencies.
+     */
+    sumPaymentInstructions(instructions) {
+        this.validateAllInstructionsHaveSameCurrency();
+        const total = instructions.reduce((acc, i) => acc + i.amount, 0);
+        return formatMinorUnits(total, instructions[0].currency);
+    }
+    /**
+     * Validates the payment initiation data according to SEPA requirements.
+     * @private
+     * @throws {Error} If messageId exceeds 35 characters.
+     * @throws {Error} If payment instructions have different currencies.
+     * @throws {Error} If any creditor has incomplete address information.
+     */
+    validate() {
+        if (this.messageId.length > 35) {
+            throw new Error('messageId must not exceed 35 characters');
+        }
+        this.validateAllInstructionsHaveSameCurrency();
+    }
+    // Validates that all payment instructions have the same currency
+    // TODO: Remove this when we figure out how to run sumPaymentInstructions safely
+    validateAllInstructionsHaveSameCurrency() {
+        if (!this.paymentInstructions.every(i => i.currency === this.paymentInstructions[0].currency)) {
+            throw new Error('In order to calculate the payment instructions sum, all payment instruction currencies must be the same.');
+        }
+    }
+    /**
+     * Generates payment information for a single SEPA credit transfer instruction.
+     * @param {SEPACreditPaymentInstruction} instruction - The payment instruction.
+     * @returns {Object} The payment information object formatted according to SEPA specifications.
+     */
+    creditTransfer(instruction) {
+        const paymentInstructionId = sanitize(instruction.id || generateId(), 35);
+        const endToEndId = sanitize(instruction.endToEndId || instruction.id || generateId(), 35);
+        return {
+            PmtId: {
+                InstrId: paymentInstructionId,
+                EndToEndId: endToEndId,
+            },
+            Amt: {
+                InstdAmt: {
+                    '#': formatMinorUnits(instruction.amount, instruction.currency),
+                    '@Ccy': instruction.currency,
+                },
+            },
+            ...(instruction.creditor.agent && {
+                CdtrAgt: this.agent(instruction.creditor.agent),
+            }),
+            Cdtr: this.party(instruction.creditor),
+            CdtrAcct: {
+                Id: { IBAN: instruction.creditor.account.iban },
+                Ccy: instruction.currency,
+            },
+            RmtInf: instruction.remittanceInformation
+                ? {
+                    Ustrd: instruction.remittanceInformation,
+                }
+                : undefined,
+        };
+    }
+    /**
+     * Serializes the SEPA credit transfer initiation to an XML string.
+     * @returns {string} The XML representation of the SEPA credit transfer initiation.
+     */
+    serialize() {
+        const builder = PaymentInitiation.getBuilder();
+        const xml = {
+            '?xml': {
+                '@version': '1.0',
+                '@encoding': 'UTF-8',
+            },
+            Document: {
+                '@xmlns': this.namespace,
+                '@xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+                CstmrCdtTrfInitn: {
+                    GrpHdr: {
+                        MsgId: this.messageId,
+                        CreDtTm: this.creationDate.toISOString(),
+                        NbOfTxs: this.paymentInstructions.length.toString(),
+                        CtrlSum: this.formattedPaymentSum,
+                        InitgPty: {
+                            Nm: this.initiatingParty.name,
+                            ...(this.initiatingParty.id && {
+                                Id: {
+                                    OrgId: {
+                                        Othr: {
+                                            Id: this.initiatingParty.id,
+                                        },
+                                    },
+                                },
+                            }),
+                        },
+                    },
+                    PmtInf: {
+                        PmtInfId: this.paymentInformationId,
+                        PmtMtd: 'TRF',
+                        NbOfTxs: this.paymentInstructions.length.toString(),
+                        CtrlSum: this.formattedPaymentSum,
+                        PmtTpInf: {
+                            SvcLvl: { Cd: 'SEPA' },
+                            ...(this.categoryPurpose && {
+                                CtgyPurp: { Cd: this.categoryPurpose },
+                            }),
+                        },
+                        ReqdExctnDt: this.creationDate.toISOString().split('T').at(0),
+                        Dbtr: this.party(this.initiatingParty),
+                        DbtrAcct: this.account(this.initiatingParty.account),
+                        ...(this.initiatingParty.agent && {
+                            DbtrAgt: this.agent(this.initiatingParty.agent),
+                        }),
+                        ChrgBr: 'SLEV',
+                        // payments[]
+                        CdtTrfTxInf: this.paymentInstructions.map(p => this.creditTransfer(p)),
+                    },
+                },
+            },
+        };
+        return builder.build(xml);
+    }
+    static fromXML(rawXml) {
+        const parser = getXmlParser();
+        const xml = parser.parse(rawXml);
+        if (!xml.Document) {
+            throw new InvalidXmlError('Invalid XML format');
+        }
+        const namespace = (xml.Document['@_xmlns'] ||
+            xml.Document['@_Xmlns']);
+        if (!namespace.startsWith(`${XMLNS_PREFIX}${ISO20022SchemaId.PAIN_001_001_03}`)) {
+            throw new InvalidXmlNamespaceError('Invalid PAIN.001 namespace');
+        }
+        const messageId = xml.Document.CstmrCdtTrfInitn.GrpHdr.MsgId;
+        const creationDate = new Date(xml.Document.CstmrCdtTrfInitn.GrpHdr.CreDtTm);
+        if (Array.isArray(xml.Document.CstmrCdtTrfInitn.PmtInf)) {
+            throw new Error('Multiple PmtInf is not supported');
+        }
+        // Assuming we have one PmtInf / one Debtor, we can hack together this information from InitgPty / Dbtr
+        const initiatingParty = {
+            name: xml.Document.CstmrCdtTrfInitn.GrpHdr.InitgPty.Nm ||
+                xml.Document.CstmrCdtTrfInitn.PmtInf.Dbtr.Nm,
+            id: xml.Document.CstmrCdtTrfInitn.GrpHdr.InitgPty.Id.OrgId.Othr
+                .Id,
+            agent: parseAgent(xml.Document.CstmrCdtTrfInitn.PmtInf.DbtrAgt),
+            account: parseAccount(xml.Document.CstmrCdtTrfInitn.PmtInf.DbtrAcct),
+        };
+        const rawInstructions = Array.isArray(xml.Document.CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf)
+            ? xml.Document.CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf
+            : [xml.Document.CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf];
+        const paymentInstructions = rawInstructions.map((inst) => {
+            const currency = inst.Amt.InstdAmt['@_Ccy'];
+            const amount = parseAmountToMinorUnits(Number(inst.Amt.InstdAmt['#text']), currency);
+            const rawPostalAddress = inst.Cdtr.PstlAdr;
+            return {
+                ...(inst.PmtId.InstrId && {
+                    id: inst.PmtId.InstrId.toString(),
+                }),
+                ...(inst.PmtId.EndToEndId && {
+                    endToEndId: inst.PmtId.EndToEndId.toString(),
+                }),
+                type: 'sepa',
+                direction: 'credit',
+                amount,
+                currency,
+                creditor: {
+                    name: inst.Cdtr?.Nm,
+                    agent: parseAgent(inst.CdtrAgt),
+                    account: parseAccount(inst.CdtrAcct),
+                    ...(rawPostalAddress &&
+                        (rawPostalAddress.StreetName ||
+                            rawPostalAddress.BldgNb ||
+                            rawPostalAddress.PstlCd ||
+                            rawPostalAddress.TwnNm ||
+                            rawPostalAddress.Ctry)
+                        ? {
+                            address: {
+                                ...(rawPostalAddress.StrtNm && {
+                                    streetName: rawPostalAddress.StrtNm.toString(),
+                                }),
+                                ...(rawPostalAddress.BldgNb && {
+                                    buildingNumber: rawPostalAddress.BldgNb.toString(),
+                                }),
+                                ...(rawPostalAddress.TwnNm && {
+                                    townName: rawPostalAddress.TwnNm.toString(),
+                                }),
+                                ...(rawPostalAddress.CtrySubDvsn && {
+                                    countrySubDivision: rawPostalAddress.CtrySubDvsn.toString(),
+                                }),
+                                ...(rawPostalAddress.PstCd && {
+                                    postalCode: rawPostalAddress.PstCd.toString(),
+                                }),
+                                ...(rawPostalAddress.Ctry && {
+                                    country: rawPostalAddress.Ctry,
+                                }),
+                            },
+                        }
+                        : {}),
+                },
+                ...(inst.RmtInf?.Ustrd && {
+                    remittanceInformation: inst.RmtInf.Ustrd.toString(),
+                }),
+            };
+        });
+        return new SEPACreditPaymentInitiation({
+            messageId,
+            creationDate,
+            initiatingParty,
+            paymentInstructions,
+        });
+    }
+}
+
+/**
+ * Represents a SEPA Multi Credit Payment Initiation.
+ * This class handles the creation and serialization of SEPA credit transfer messages
+ * with multiple payment information blocks (multiple debtors) according to the ISO20022 standard.
+ * @class
+ * @extends PaymentInitiation
+ * @param {SEPAMultiCreditPaymentInitiationConfig} config - The configuration for the SEPA Multi Credit Payment Initiation message.
+ * @example
+ * ```typescript
+ * // Creating a SEPA multi-payment message
+ * const payment = new SEPAMultiCreditPaymentInitiation({
+ *   initiatingParty: { name: 'Company Ltd', id: '12345' },
+ *   paymentInstructions: [
+ *     {
+ *       initiatingParty: debtor1,
+ *       payments: [payment1, payment2]
+ *     },
+ *     {
+ *       initiatingParty: debtor2,
+ *       payments: [payment3]
+ *     }
+ *   ]
+ * });
+ * ```
+ */
+class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
+    initiatingParty;
+    messageId;
+    creationDate;
+    paymentInstructions;
+    formattedPaymentSum;
+    totalTransactionCount;
+    get schemaId() {
+        return ISO20022SchemaId.PAIN_001_001_03;
+    }
+    /**
+     * Creates an instance of SEPAMultiCreditPaymentInitiation.
+     * @param {SEPAMultiCreditPaymentInitiationConfig} config - The configuration object for the SEPA multi credit transfer.
+     */
+    constructor(config) {
+        super({ type: 'sepa' });
+        this.initiatingParty = config.initiatingParty;
+        this.paymentInstructions = config.paymentInstructions;
+        this.messageId = config.messageId || generateId();
+        this.creationDate = config.creationDate || new Date();
+        this.totalTransactionCount = this.countAllTransactions();
+        this.formattedPaymentSum = this.sumAllPayments();
+        this.validate();
+    }
+    /**
+     * Counts the total number of transactions across all payment instruction groups.
+     * @private
+     * @returns {number} The total count of all transactions.
+     */
+    countAllTransactions() {
+        return this.paymentInstructions.reduce((total, group) => total + group.payments.length, 0);
+    }
+    /**
+     * Calculates the sum of all payment instructions across all groups.
+     * @private
+     * @returns {string} The total sum formatted as a string with 2 decimal places.
+     */
+    sumAllPayments() {
+        let totalAmount = 0;
+        let currency = null;
+        for (const group of this.paymentInstructions) {
+            for (const payment of group.payments) {
+                if (currency === null) {
+                    currency = payment.currency;
+                }
+                totalAmount += payment.amount;
+            }
+        }
+        if (currency === null) {
+            throw new Error('No payments found');
+        }
+        return formatMinorUnits(totalAmount, currency);
+    }
+    /**
+     * Validates the payment initiation data according to SEPA requirements.
+     * @private
+     * @throws {Error} If messageId exceeds 35 characters.
+     * @throws {Error} If any group's payment instructions have different currencies.
+     */
+    validate() {
+        if (this.messageId.length > 35) {
+            throw new Error('messageId must not exceed 35 characters');
+        }
+        // Validate each group has same currency within its payments
+        for (const group of this.paymentInstructions) {
+            this.validateGroupInstructionsHaveSameCurrency(group.payments);
+        }
+    }
+    /**
+     * Validates that all payment instructions in a group have the same currency.
+     * @private
+     * @param {AtLeastOne<SEPACreditPaymentInstruction>} payments - Array of payment instructions.
+     * @throws {Error} If payment instructions have different currencies.
+     */
+    validateGroupInstructionsHaveSameCurrency(payments) {
+        if (!payments.every(i => i.currency === payments[0].currency)) {
+            throw new Error('In order to calculate the payment instructions sum, all payment instruction currencies within a group must be the same.');
+        }
+    }
+    /**
+     * Generates payment information for a single SEPA credit transfer instruction.
+     * @param {SEPACreditPaymentInstruction} instruction - The payment instruction.
+     * @returns {Object} The payment information object formatted according to SEPA specifications.
+     */
+    creditTransfer(instruction) {
+        const paymentInstructionId = sanitize(instruction.id || generateId(), 35);
+        const endToEndId = sanitize(instruction.endToEndId || instruction.id || generateId(), 35);
+        return {
+            PmtId: {
+                InstrId: paymentInstructionId,
+                EndToEndId: endToEndId,
+            },
+            Amt: {
+                InstdAmt: {
+                    '#': formatMinorUnits(instruction.amount, instruction.currency),
+                    '@Ccy': instruction.currency,
+                },
+            },
+            ...(instruction.creditor.agent && {
+                CdtrAgt: this.agent(instruction.creditor.agent),
+            }),
+            Cdtr: this.party(instruction.creditor),
+            CdtrAcct: {
+                Id: { IBAN: instruction.creditor.account.iban },
+                Ccy: instruction.currency,
+            },
+            RmtInf: instruction.remittanceInformation
+                ? {
+                    Ustrd: instruction.remittanceInformation,
+                }
+                : undefined,
+        };
+    }
+    /**
+     * Serializes the SEPA multi credit transfer initiation to an XML string.
+     * @returns {string} The XML representation of the SEPA multi credit transfer initiation.
+     */
+    serialize() {
+        const builder = PaymentInitiation.getBuilder();
+        // Generate one PmtInf entry per individual payment
+        const paymentInfoEntries = this.paymentInstructions.flatMap(group => group.payments.map(payment => {
+            const pmtInfId = generateId();
+            const requestedExecutionDate = payment.requestedPaymentExecutionDate || new Date();
+            const batchBooking = group.batchBooking === undefined ? false : group.batchBooking;
+            return {
+                PmtInfId: pmtInfId,
+                PmtMtd: 'TRF',
+                BtchBookg: batchBooking,
+                NbOfTxs: '1',
+                CtrlSum: formatMinorUnits(payment.amount, payment.currency),
+                PmtTpInf: {
+                    SvcLvl: { Cd: 'SEPA' },
+                    ...(group.categoryPurpose && {
+                        CtgyPurp: { Cd: group.categoryPurpose },
+                    }),
+                },
+                ReqdExctnDt: requestedExecutionDate.toISOString().split('T')[0],
+                Dbtr: this.party(group.initiatingParty),
+                DbtrAcct: this.account(group.initiatingParty.account),
+                DbtrAgt: this.agent(group.initiatingParty.agent),
+                ChrgBr: 'SLEV',
+                CdtTrfTxInf: this.creditTransfer(payment),
+            };
+        }));
+        const xml = {
+            '?xml': {
+                '@version': '1.0',
+                '@encoding': 'UTF-8',
+            },
+            Document: {
+                '@xmlns': this.namespace,
+                '@xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+                '@xsi:schemaLocation': `${this.namespace} ${this.schemaId}.xsd`,
+                CstmrCdtTrfInitn: {
+                    GrpHdr: {
+                        MsgId: this.messageId,
+                        CreDtTm: this.creationDate.toISOString(),
+                        NbOfTxs: this.totalTransactionCount.toString(),
+                        CtrlSum: this.formattedPaymentSum,
+                        InitgPty: {
+                            Nm: this.initiatingParty.name,
+                            ...(this.initiatingParty.id && {
+                                Id: {
+                                    OrgId: {
+                                        Othr: {
+                                            Id: this.initiatingParty.id,
+                                        },
+                                    },
+                                },
+                            }),
+                        },
+                    },
+                    PmtInf: paymentInfoEntries,
+                },
+            },
+        };
+        return builder.build(xml);
+    }
+    /**
+     * Parses an XML string and creates a SEPAMultiCreditPaymentInitiation instance.
+     * Supports multiple PmtInf blocks in the XML document.
+     * @param {string} rawXml - The XML string to parse.
+     * @returns {SEPAMultiCreditPaymentInitiation} A new instance created from the XML data.
+     * @throws {InvalidXmlError} If the XML format is invalid.
+     * @throws {InvalidXmlNamespaceError} If the namespace is not pain.001.001.03.
+     */
+    static fromXML(rawXml) {
+        const parser = getXmlParser();
+        const xml = parser.parse(rawXml);
+        // Validate XML structure
+        if (!xml.Document) {
+            throw new InvalidXmlError('Invalid XML format');
+        }
+        // Validate namespace
+        const namespace = (xml.Document['@_xmlns'] ||
+            xml.Document['@_Xmlns']);
+        if (!namespace.startsWith(`${XMLNS_PREFIX}${ISO20022SchemaId.PAIN_001_001_03}`)) {
+            throw new InvalidXmlNamespaceError('Invalid PAIN.001 namespace');
+        }
+        // Extract GrpHdr data
+        const messageId = xml.Document.CstmrCdtTrfInitn.GrpHdr.MsgId;
+        const creationDate = new Date(xml.Document.CstmrCdtTrfInitn.GrpHdr.CreDtTm);
+        // Extract top-level initiating party from GrpHdr
+        const topLevelInitiatingParty = {
+            name: xml.Document.CstmrCdtTrfInitn.GrpHdr.InitgPty.Nm,
+            id: xml.Document.CstmrCdtTrfInitn.GrpHdr.InitgPty.Id?.OrgId?.Othr
+                ?.Id,
+        };
+        // Normalize PmtInf to array (handle both single object and array cases)
+        const rawPmtInf = Array.isArray(xml.Document.CstmrCdtTrfInitn.PmtInf)
+            ? xml.Document.CstmrCdtTrfInitn.PmtInf
+            : [xml.Document.CstmrCdtTrfInitn.PmtInf];
+        // Map each PmtInf to SEPAMultiCreditPaymentInstructionGroup
+        const paymentInstructions = rawPmtInf.map((pmtInf) => {
+            // Extract debtor info as the group's initiating party
+            const groupInitiatingParty = {
+                name: pmtInf.Dbtr.Nm,
+                id: pmtInf.Dbtr.Id?.OrgId?.Othr?.Id,
+                agent: parseAgent(pmtInf.DbtrAgt),
+                account: parseAccount(pmtInf.DbtrAcct),
+            };
+            // Extract optional category purpose
+            const categoryPurpose = pmtInf.PmtTpInf?.CtgyPurp?.Cd;
+            // Extract requested execution date
+            const requestedExecutionDate = pmtInf.ReqdExctnDt
+                ? new Date(pmtInf.ReqdExctnDt)
+                : undefined;
+            // Normalize CdtTrfTxInf to array
+            const rawInstructions = Array.isArray(pmtInf.CdtTrfTxInf)
+                ? pmtInf.CdtTrfTxInf
+                : [pmtInf.CdtTrfTxInf];
+            // Parse each CdtTrfTxInf to SEPACreditPaymentInstruction
+            const payments = rawInstructions.map((inst) => {
+                const currency = inst.Amt.InstdAmt['@_Ccy'];
+                const amount = parseAmountToMinorUnits(Number(inst.Amt.InstdAmt['#text']), currency);
+                const rawPostalAddress = inst.Cdtr.PstlAdr;
+                return {
+                    ...(inst.PmtId.InstrId && {
+                        id: inst.PmtId.InstrId.toString(),
+                    }),
+                    ...(inst.PmtId.EndToEndId && {
+                        endToEndId: inst.PmtId.EndToEndId.toString(),
+                    }),
+                    type: 'sepa',
+                    direction: 'credit',
+                    amount,
+                    currency,
+                    ...(requestedExecutionDate && {
+                        requestedPaymentExecutionDate: requestedExecutionDate,
+                    }),
+                    creditor: {
+                        name: inst.Cdtr?.Nm,
+                        agent: parseAgent(inst.CdtrAgt),
+                        account: parseAccount(inst.CdtrAcct),
+                        ...(rawPostalAddress &&
+                            (rawPostalAddress.StrtNm ||
+                                rawPostalAddress.BldgNb ||
+                                rawPostalAddress.PstCd ||
+                                rawPostalAddress.TwnNm ||
+                                rawPostalAddress.Ctry)
+                            ? {
+                                address: {
+                                    ...(rawPostalAddress.StrtNm && {
+                                        streetName: rawPostalAddress.StrtNm.toString(),
+                                    }),
+                                    ...(rawPostalAddress.BldgNb && {
+                                        buildingNumber: rawPostalAddress.BldgNb.toString(),
+                                    }),
+                                    ...(rawPostalAddress.TwnNm && {
+                                        townName: rawPostalAddress.TwnNm.toString(),
+                                    }),
+                                    ...(rawPostalAddress.CtrySubDvsn && {
+                                        countrySubDivision: rawPostalAddress.CtrySubDvsn.toString(),
+                                    }),
+                                    ...(rawPostalAddress.PstCd && {
+                                        postalCode: rawPostalAddress.PstCd.toString(),
+                                    }),
+                                    ...(rawPostalAddress.Ctry && {
+                                        country: rawPostalAddress.Ctry,
+                                    }),
+                                },
+                            }
+                            : {}),
+                    },
+                    ...(inst.RmtInf?.Ustrd && {
+                        remittanceInformation: inst.RmtInf.Ustrd.toString(),
+                    }),
+                };
+            });
+            // Extract batch booking
+            const batchBooking = pmtInf.BtchBookg === 'true' || pmtInf.BtchBookg === true;
+            return {
+                initiatingParty: groupInitiatingParty,
+                payments,
+                ...(categoryPurpose && { categoryPurpose }),
+                batchBooking,
+            };
+        });
+        // Return new instance
+        return new SEPAMultiCreditPaymentInitiation({
+            messageId,
+            creationDate,
+            initiatingParty: topLevelInitiatingParty,
+            paymentInstructions,
+        });
+    }
+}
+
+/**
+ * Represents a SWIFT Credit Payment v3 Initiation message (pain.001.001.03).
+ * @class
+ * @extends PaymentInitiation
+ * @param {SWIFTCreditPaymentInitiationConfig} config - The configuration for the SWIFT Credit Payment Initiation message.
+ * @example
+ * ```typescript
+ * // Creating a payment message
+ * const payment = new SWIFTCreditPaymentInitiation({
+ *   ...
+ * });
+ * // Uploading to fiatwebservices.com
+ * client.paymentTransfers.create(payment);
+ * // Parsing from XML
+ * const xml = '<xml>...</xml>';
+ * const parsedTransfer = SWIFTCreditPaymentInitiation.fromXML(xml);
+ * ```
+ * @see {@link https://docs.iso20022js.com/pain/sepacredit} for more information.
+ */
+class SWIFTCreditPaymentInitiation extends PaymentInitiation {
+    initiatingParty;
+    messageId;
+    creationDate;
+    paymentInstructions;
+    paymentInformationId;
+    get schemaId() {
+        return ISO20022SchemaId.PAIN_001_001_03;
+    }
+    /**
+     * Creates an instance of SWIFTCreditPaymentInitiation.
+     * @param {SWIFTCreditPaymentInitiationConfig} config - The configuration object.
+     */
+    constructor(config) {
+        super({ type: 'swift' });
+        this.initiatingParty = config.initiatingParty;
+        this.paymentInstructions = config.paymentInstructions;
+        this.messageId = config.messageId || generateId();
+        this.creationDate = config.creationDate || new Date();
+        this.paymentInformationId = generateId();
+        this.validate();
+    }
+    /**
+     * Validates the payment initiation data has the information required to create a valid XML file.
+     * @private
+     * @throws {Error} If messageId exceeds 35 characters.
+     * @throws {Error} If any creditor has incomplete address information.
+     */
+    validate() {
+        if (this.messageId.length > 35) {
+            throw new Error('messageId must not exceed 35 characters');
+        }
+        // Validate that all creditors have complete addresses
+        // According to spec, the country is required for all addresses
+        const creditorWithIncompleteAddress = this.paymentInstructions.find(instruction => {
+            const address = instruction.creditor.address;
+            return !address?.country;
+        });
+        if (creditorWithIncompleteAddress) {
+            throw new Error('All creditors must have complete addresses (street name, building number, postal code, town name, and country)');
+        }
+        // Add more validation as needed
+    }
+    /**
+     * Generates payment information for a single payment instruction.
+     * @param {SWIFTCreditPaymentInstruction} paymentInstruction - The payment instruction.
+     * @returns {Object} The credit transfer object.
+     */
+    creditTransfer(paymentInstruction) {
+        const paymentInstructionId = sanitize(paymentInstruction.id || generateId(), 35);
+        const amount = minorUnitsToNumber(paymentInstruction.amount, paymentInstruction.currency);
+        return {
+            PmtId: {
+                InstrId: paymentInstructionId,
+                EndToEndId: paymentInstructionId,
+            },
+            Amt: {
+                InstdAmt: {
+                    '#': amount,
+                    '@Ccy': paymentInstruction.currency,
+                },
+            },
+            // TODO: Add support for intermediary bank information
+            // This is necessary when the SWIFT Payment needs to be routed through multiple banks in order to reach the recipient
+            // intermediaryBanks will probably need to be an array of BICAgents. There needs to be an easy way to get this information for users
+            CdtrAgt: this.agent(paymentInstruction.creditor.agent),
+            Cdtr: this.party(paymentInstruction.creditor),
+            CdtrAcct: this.internationalAccount(paymentInstruction.creditor.account),
+            RmtInf: paymentInstruction.remittanceInformation
+                ? {
+                    Ustrd: paymentInstruction.remittanceInformation,
+                }
+                : undefined,
+        };
+    }
+    /**
+     * Serializes the payment initiation to an XML string.
+     * @returns {string} The XML representation of the payment initiation.
+     */
+    static fromXML(rawXml) {
+        const parser = getXmlParser();
+        const xml = parser.parse(rawXml);
+        if (!xml.Document) {
+            throw new InvalidXmlError('Invalid XML format');
+        }
+        const namespace = (xml.Document['@_xmlns'] ||
+            xml.Document['@_Xmlns']);
+        if (!namespace.startsWith(`${XMLNS_PREFIX}pain.001.001`)) {
+            throw new InvalidXmlNamespaceError('Invalid PAIN.001 namespace');
+        }
+        const messageId = xml.Document.CstmrCdtTrfInitn.GrpHdr.MsgId;
+        const creationDate = new Date(xml.Document.CstmrCdtTrfInitn.GrpHdr.CreDtTm);
+        // Parse and validate accounts
+        // Create base initiating party
+        const baseInitiatingParty = {
+            name: xml.Document.CstmrCdtTrfInitn.GrpHdr.InitgPty.Nm,
+            id: xml.Document.CstmrCdtTrfInitn.GrpHdr.InitgPty.Id?.OrgId?.Othr?.Id,
+            account: parseAccount(xml.Document.CstmrCdtTrfInitn.PmtInf.DbtrAcct),
+            agent: {
+                bic: xml.Document.CstmrCdtTrfInitn.PmtInf.DbtrAgt?.FinInstnId?.BIC,
+            },
+        };
+        const rawInstructions = Array.isArray(xml.Document.CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf)
+            ? xml.Document.CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf
+            : [xml.Document.CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf];
+        const paymentInstructions = rawInstructions.map((inst) => {
+            const currency = inst.Amt.InstdAmt['@_Ccy'];
+            const amount = parseAmountToMinorUnits(Number(inst.Amt.InstdAmt['#text']), currency);
+            // Create base creditor party
+            const creditor = {
+                name: inst.Cdtr.Nm,
+                agent: {
+                    bic: inst.CdtrAgt?.FinInstnId?.BIC,
+                },
+                account: inst.CdtrAcct?.Id?.IBAN || inst.CdtrAcct?.Id?.Othr?.Id
+                    ? parseAccount(inst.CdtrAcct)
+                    : undefined,
+                address: {
+                    streetName: inst.Cdtr.PstlAdr.StrtNm,
+                    buildingNumber: inst.Cdtr.PstlAdr.BldgNb,
+                    postalCode: inst.Cdtr.PstlAdr.PstCd,
+                    townName: inst.Cdtr.PstlAdr.TwnNm,
+                    countrySubDivision: inst.Cdtr.PstlAdr.CtrySubDvsn,
+                    country: inst.Cdtr.PstlAdr.Ctry,
+                },
+            };
+            // Return instruction with validated data
+            return {
+                type: 'swift',
+                direction: 'credit',
+                ...(inst.PmtId.InstrId && { id: inst.PmtId.InstrId.toString() }),
+                ...(inst.PmtId.EndToEndId && {
+                    endToEndId: inst.PmtId.EndToEndId.toString(),
+                }),
+                amount,
+                currency,
+                creditor,
+            };
+        });
+        return new SWIFTCreditPaymentInitiation({
+            messageId,
+            creationDate,
+            initiatingParty: baseInitiatingParty,
+            paymentInstructions: paymentInstructions,
+        });
+    }
+    serialize() {
+        const builder = PaymentInitiation.getBuilder();
+        const xml = {
+            '?xml': {
+                '@version': '1.0',
+                '@encoding': 'UTF-8',
+            },
+            Document: {
+                '@xmlns': this.namespace,
+                CstmrCdtTrfInitn: {
+                    GrpHdr: {
+                        MsgId: this.messageId,
+                        CreDtTm: this.creationDate.toISOString(),
+                        NbOfTxs: this.paymentInstructions.length.toString(),
+                        InitgPty: {
+                            Nm: this.initiatingParty.name,
+                            Id: {
+                                OrgId: {
+                                    Othr: {
+                                        Id: this.initiatingParty.id,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    PmtInf: {
+                        PmtInfId: this.paymentInformationId,
+                        PmtMtd: 'TRF',
+                        BtchBookg: 'false',
+                        PmtTpInf: {
+                            InstrPrty: 'NORM',
+                            SvcLvl: {
+                                Cd: 'URGP',
+                            },
+                        },
+                        ReqdExctnDt: this.creationDate.toISOString().split('T')[0], // TODO: Check time zone eventually
+                        Dbtr: this.party(this.initiatingParty),
+                        DbtrAcct: this.account(this.initiatingParty.account),
+                        DbtrAgt: this.agent(this.initiatingParty.agent),
+                        ChrgBr: 'SHAR',
+                        CdtTrfTxInf: this.paymentInstructions.map(p => this.creditTransfer(p)),
+                    },
+                },
+            },
+        };
+        return builder.build(xml);
+    }
+}
+
+/**
+ * Represents a SEPA Direct Debit Payment Initiation.
+ * This class handles the creation and serialization of SEPA direct debit messages
+ * with multiple payment information blocks (multiple creditors) according to the ISO20022 pain.008 standard.
+ * @class
+ * @extends PaymentInitiation
+ * @param {SEPADirectDebitPaymentInitiationConfig} config - The configuration for the SEPA Direct Debit Payment Initiation message.
+ * @example
+ * ```typescript
+ * // Creating a SEPA direct debit message
+ * const payment = new SEPADirectDebitPaymentInitiation({
+ *   initiatingParty: { name: 'Company Ltd', id: '12345' },
+ *   paymentInstructions: [
+ *     {
+ *       creditor: creditor1,
+ *       creditorSchemeId: 'DE96ZZZ00000345986',
+ *       requestedCollectionDate: new Date('2025-11-22'),
+ *       sequenceType: 'RCUR',
+ *       payments: [debit1, debit2]
+ *     }
+ *   ]
+ * });
+ * ```
+ */
+class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
+    initiatingParty;
+    messageId;
+    creationDate;
+    paymentInstructions;
+    formattedPaymentSum;
+    totalTransactionCount;
+    get schemaId() {
+        return ISO20022SchemaId.PAIN_008_001_02;
+    }
+    /**
+     * Creates an instance of SEPADirectDebitPaymentInitiation.
+     * @param {SEPADirectDebitPaymentInitiationConfig} config - The configuration object for the SEPA direct debit.
+     */
+    constructor(config) {
+        super({ type: 'sepa' });
+        this.initiatingParty = config.initiatingParty;
+        this.paymentInstructions = config.paymentInstructions;
+        this.messageId = config.messageId || generateId();
+        this.creationDate = config.creationDate || new Date();
+        this.totalTransactionCount = this.countAllTransactions();
+        this.formattedPaymentSum = this.sumAllPayments();
+        this.validate();
+    }
+    /**
+     * Counts the total number of transactions across all payment instruction groups.
+     * @private
+     * @returns {number} The total count of all transactions.
+     */
+    countAllTransactions() {
+        return this.paymentInstructions.reduce((total, group) => total + group.payments.length, 0);
+    }
+    /**
+     * Calculates the sum of all payment instructions across all groups.
+     * @private
+     * @returns {string} The total sum formatted as a string with 2 decimal places.
+     */
+    sumAllPayments() {
+        let totalAmount = 0;
+        let currency = null;
+        for (const group of this.paymentInstructions) {
+            for (const payment of group.payments) {
+                if (currency === null) {
+                    currency = payment.currency;
+                }
+                totalAmount += payment.amount;
+            }
+        }
+        if (currency === null) {
+            throw new Error('No payments found');
+        }
+        return formatMinorUnits(totalAmount, currency);
+    }
+    /**
+     * Validates the payment initiation data according to SEPA requirements.
+     * @private
+     * @throws {Error} If messageId exceeds 35 characters.
+     * @throws {Error} If any group's payment instructions have different currencies.
+     */
+    validate() {
+        if (this.messageId.length > 35) {
+            throw new Error('messageId must not exceed 35 characters');
+        }
+        for (const group of this.paymentInstructions) {
+            if (group.paymentInformationId !== undefined) {
+                if (group.paymentInformationId.length === 0) {
+                    throw new Error('paymentInformationId must not be empty');
+                }
+                if (group.paymentInformationId.length > 35) {
+                    throw new Error('paymentInformationId must not exceed 35 characters');
+                }
+            }
+            for (const payment of group.payments) {
+                if (payment.instrId !== undefined) {
+                    if (payment.instrId.length === 0) {
+                        throw new Error('instrId must not be empty');
+                    }
+                    if (payment.instrId.length > 35) {
+                        throw new Error('instrId must not exceed 35 characters');
+                    }
+                }
+            }
+            this.validateGroupInstructionsHaveSameCurrency(group.payments);
+        }
+    }
+    /**
+     * Validates that all payment instructions in a group have the same currency (EUR).
+     * @private
+     * @param {AtLeastOne<SEPADirectDebitPaymentInstruction>} payments - Array of payment instructions.
+     * @throws {Error} If payment instructions have different currencies.
+     */
+    validateGroupInstructionsHaveSameCurrency(payments) {
+        if (!payments.every(i => i.currency === payments[0].currency)) {
+            throw new Error('In order to calculate the payment instructions sum, all payment instruction currencies within a group must be the same.');
+        }
+    }
+    /**
+     * Generates payment information for a single SEPA direct debit transfer instruction.
+     * @param {SEPADirectDebitPaymentInstruction} instruction - The payment instruction.
+     * @returns {Object} The payment information object formatted according to SEPA direct debit specifications.
+     */
+    directDebitTransfer(instruction) {
+        const endToEndId = sanitize(instruction.endToEndId || instruction.id || generateId(), 35);
+        return {
+            PmtId: {
+                ...(instruction.instrId && {
+                    InstrId: instruction.instrId,
+                }),
+                EndToEndId: endToEndId,
+            },
+            InstdAmt: {
+                '#': formatMinorUnits(instruction.amount, instruction.currency),
+                '@Ccy': instruction.currency,
+            },
+            DrctDbtTx: {
+                MndtRltdInf: this.buildMandateRelatedInfo(instruction.mandate),
+            },
+            ...(instruction.debtor.agent && {
+                DbtrAgt: this.agent(instruction.debtor.agent),
+            }),
+            Dbtr: this.party(instruction.debtor),
+            DbtrAcct: this.account(instruction.debtor.account),
+            ...(instruction.remittanceInformation && {
+                RmtInf: {
+                    Ustrd: instruction.remittanceInformation,
+                },
+            }),
+        };
+    }
+    /**
+     * Serializes the SEPA direct debit initiation to an XML string.
+     * @returns {string} The XML representation of the SEPA direct debit initiation.
+     */
+    serialize() {
+        const builder = PaymentInitiation.getBuilder();
+        // Generate one PmtInf entry per creditor group
+        const paymentInfoEntries = this.paymentInstructions.map(group => {
+            const pmtInfId = group.paymentInformationId ?? generateId();
+            const localInstrument = group.localInstrument || 'CORE';
+            const batchBooking = group.batchBooking === undefined ? false : group.batchBooking;
+            // Calculate sum for this group
+            let groupSum = 0;
+            for (const payment of group.payments) {
+                groupSum += payment.amount;
+            }
+            const groupCtrlSum = formatMinorUnits(groupSum, 'EUR');
+            return {
+                PmtInfId: pmtInfId,
+                PmtMtd: 'DD',
+                BtchBookg: batchBooking,
+                NbOfTxs: group.payments.length.toString(),
+                CtrlSum: groupCtrlSum,
+                PmtTpInf: {
+                    SvcLvl: { Cd: 'SEPA' },
+                    LclInstrm: { Cd: localInstrument },
+                    SeqTp: group.sequenceType,
+                    ...(group.categoryPurpose && {
+                        CtgyPurp: { Cd: group.categoryPurpose },
+                    }),
+                },
+                ReqdColltnDt: group.requestedCollectionDate.toISOString().split('T')[0],
+                Cdtr: this.party(group.creditor),
+                CdtrAcct: this.account(group.creditor.account),
+                ...(group.creditor.agent && {
+                    CdtrAgt: this.agent(group.creditor.agent),
+                }),
+                ChrgBr: 'SLEV',
+                CdtrSchmeId: this.buildCreditorSchemeId(group.creditorSchemeId),
+                DrctDbtTxInf: group.payments.map(payment => this.directDebitTransfer(payment)),
+            };
+        });
+        const xml = {
+            '?xml': {
+                '@version': '1.0',
+                '@encoding': 'UTF-8',
+            },
+            Document: {
+                '@xmlns': this.namespace,
+                '@xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+                '@xsi:schemaLocation': `${this.namespace} ${this.schemaId}.xsd`,
+                CstmrDrctDbtInitn: {
+                    GrpHdr: {
+                        MsgId: this.messageId,
+                        CreDtTm: this.creationDate.toISOString(),
+                        NbOfTxs: this.totalTransactionCount.toString(),
+                        CtrlSum: this.formattedPaymentSum,
+                        InitgPty: {
+                            Nm: this.initiatingParty.name,
+                            ...(this.initiatingParty.id && {
+                                Id: {
+                                    OrgId: {
+                                        Othr: {
+                                            Id: this.initiatingParty.id,
+                                        },
+                                    },
+                                },
+                            }),
+                        },
+                    },
+                    PmtInf: paymentInfoEntries,
+                },
+            },
+        };
+        return builder.build(xml);
+    }
+    /**
+     * Parses an XML string and creates a SEPADirectDebitPaymentInitiation instance.
+     * Supports multiple PmtInf blocks in the XML document.
+     * @param {string} rawXml - The XML string to parse.
+     * @returns {SEPADirectDebitPaymentInitiation} A new instance created from the XML data.
+     * @throws {InvalidXmlError} If the XML format is invalid.
+     * @throws {InvalidXmlNamespaceError} If the namespace is not pain.008.
+     */
+    static fromXML(rawXml) {
+        const parser = getXmlParser();
+        const xml = parser.parse(rawXml);
+        // Validate XML structure
+        if (!xml.Document) {
+            throw new InvalidXmlError('Invalid XML format');
+        }
+        // Validate namespace
+        const namespace = (xml.Document['@_xmlns'] ||
+            xml.Document['@_Xmlns']);
+        if (!namespace.startsWith(`${XMLNS_PREFIX}pain.008`)) {
+            throw new InvalidXmlNamespaceError('Invalid PAIN.008 namespace');
+        }
+        // Extract GrpHdr data
+        const messageId = xml.Document.CstmrDrctDbtInitn.GrpHdr.MsgId;
+        const creationDate = new Date(xml.Document.CstmrDrctDbtInitn.GrpHdr.CreDtTm);
+        // Extract top-level initiating party from GrpHdr
+        const topLevelInitiatingParty = {
+            name: xml.Document.CstmrDrctDbtInitn.GrpHdr.InitgPty.Nm,
+            id: xml.Document.CstmrDrctDbtInitn.GrpHdr.InitgPty.Id?.OrgId?.Othr
+                ?.Id,
+        };
+        // Normalize PmtInf to array (handle both single object and array cases)
+        const rawPmtInf = Array.isArray(xml.Document.CstmrDrctDbtInitn.PmtInf)
+            ? xml.Document.CstmrDrctDbtInitn.PmtInf
+            : [xml.Document.CstmrDrctDbtInitn.PmtInf];
+        // Map each PmtInf to SEPADirectDebitPaymentInstructionGroup
+        const paymentInstructions = rawPmtInf.map((pmtInf) => {
+            // Extract creditor info as the group's collecting party
+            const groupCreditor = {
+                name: pmtInf.Cdtr.Nm,
+                id: pmtInf.Cdtr.Id?.OrgId?.Othr?.Id,
+                agent: parseAgent(pmtInf.CdtrAgt),
+                account: parseAccount(pmtInf.CdtrAcct),
+            };
+            // Extract creditor scheme ID
+            const creditorSchemeId = pmtInf.CdtrSchmeId?.Id?.PrvtId?.Othr?.Id || '';
+            // Extract optional category purpose
+            const categoryPurpose = pmtInf.PmtTpInf?.CtgyPurp?.Cd;
+            // Extract local instrument (CORE or B2B)
+            const localInstrument = pmtInf.PmtTpInf?.LclInstrm?.Cd || 'CORE';
+            // Extract sequence type from PmtInf level
+            const sequenceType = pmtInf.PmtTpInf?.SeqTp || 'RCUR';
+            // Extract requested collection date
+            const requestedCollectionDate = new Date(pmtInf.ReqdColltnDt);
+            // Extract batch booking
+            const batchBooking = pmtInf.BtchBookg === 'true' || pmtInf.BtchBookg === true;
+            // Normalize DrctDbtTxInf to array
+            const rawInstructions = Array.isArray(pmtInf.DrctDbtTxInf)
+                ? pmtInf.DrctDbtTxInf
+                : [pmtInf.DrctDbtTxInf];
+            // Parse each DrctDbtTxInf to SEPADirectDebitPaymentInstruction
+            const payments = rawInstructions.map((inst) => {
+                const currency = inst.InstdAmt['@_Ccy'];
+                const amount = parseAmountToMinorUnits(Number(inst.InstdAmt['#text']), currency);
+                const mandate = parseMandate(inst.DrctDbtTx?.MndtRltdInf);
+                return {
+                    ...(inst.PmtId?.InstrId && {
+                        instrId: inst.PmtId.InstrId.toString(),
+                    }),
+                    ...(inst.PmtId.EndToEndId && {
+                        endToEndId: inst.PmtId.EndToEndId.toString(),
+                    }),
+                    type: 'sepa',
+                    direction: 'debit',
+                    amount,
+                    currency,
+                    debtor: {
+                        name: inst.Dbtr?.Nm,
+                        agent: parseAgent(inst.DbtrAgt),
+                        account: parseAccount(inst.DbtrAcct),
+                    },
+                    mandate,
+                    ...(inst.RmtInf?.Ustrd && {
+                        remittanceInformation: inst.RmtInf.Ustrd.toString(),
+                    }),
+                };
+            });
+            const paymentInformationId = pmtInf.PmtInfId?.toString();
+            return {
+                creditor: groupCreditor,
+                creditorSchemeId,
+                payments,
+                requestedCollectionDate,
+                sequenceType,
+                localInstrument,
+                ...(categoryPurpose && { categoryPurpose }),
+                batchBooking,
+                ...(paymentInformationId && { paymentInformationId }),
+            };
+        });
+        // Return new instance
+        return new SEPADirectDebitPaymentInitiation({
+            messageId,
+            creationDate,
+            initiatingParty: topLevelInitiatingParty,
+            paymentInstructions,
+        });
+    }
+}
+
+class CashManagementGetAccount {
+    _data;
+    constructor(data) {
+        this._data = data;
+    }
+    get data() {
+        return this._data;
+    }
+    static supportedMessages() {
+        return [ISO20022Messages.CAMT_003];
+    }
+    static fromDocumentObject(doc) {
+        const rawHeader = doc.Document?.GetAcct?.MsgHdr;
+        if (!rawHeader) {
+            throw new InvalidStructureError('Invalid CAMT.003 document: missing MsgHdr');
+        }
+        const header = parseMessageHeader(rawHeader);
+        const newCrit = doc.Document?.GetAcct?.AcctQryDef?.AcctCrit?.NewCrit;
+        if (!newCrit) {
+            throw new InvalidStructureError('Invalid CAMT.003 document: missing GetAcct.AcctQryDef.AcctCrit.NewCrit');
+        }
+        const name = newCrit.NewQryNm;
+        const searchCriteria = [];
+        let rawCriterias = newCrit.SchCrit;
+        if (!Array.isArray(rawCriterias)) {
+            rawCriterias = [rawCriterias];
+        }
+        rawCriterias = rawCriterias.filter((c) => !!c);
+        if (rawCriterias.length === 0) {
+            throw new InvalidStructureError('Invalid CAMT.003 document: missing search criteria');
+        }
+        for (const rawCriterium of rawCriterias) {
+            const crit = {};
+            // search on Ids, only one criterium supported for now
+            if (rawCriterium.AcctId) {
+                if (Array.isArray(rawCriterium.AcctId) &&
+                    rawCriterium.AcctId.length > 1) {
+                    throw new InvalidStructureError('Invalid CAMT.003 document: multiple AcctId criterium not supported');
+                }
+                const acctId = Array.isArray(rawCriterium.AcctId)
+                    ? rawCriterium.AcctId[0]
+                    : rawCriterium.AcctId;
+                if (acctId.CTTxt) {
+                    crit.accountRegExp = `.*${acctId.CTTxt}.*`; // contains
+                }
+                else if (acctId.NCTTxt) {
+                    crit.accountRegExp = `^((?!${acctId.NCTTxt}).)*$`; // does not contain
+                }
+                else if (acctId.EQ) {
+                    crit.accountEqualTo = parseAccountIdentification(acctId.EQ);
+                }
+            }
+            // search on currency
+            if (rawCriterium.Ccy) {
+                if (Array.isArray(rawCriterium.Ccy) && rawCriterium.Ccy.length > 1) {
+                    throw new InvalidStructureError('Invalid CAMT.003 document: multiple Ccy criterium not supported');
+                }
+                const ccy = Array.isArray(rawCriterium.Ccy)
+                    ? rawCriterium.Ccy[0]
+                    : rawCriterium.Ccy;
+                crit.currencyEqualTo = ccy;
+            }
+            // search on balance as of date
+            if (rawCriterium.Bal) {
+                if (Array.isArray(rawCriterium.Bal) && rawCriterium.Bal.length > 1) {
+                    throw new InvalidStructureError('Invalid CAMT.003 document: multiple Bal criterium not supported');
+                }
+                const bal = Array.isArray(rawCriterium.Bal)
+                    ? rawCriterium.Bal[0]
+                    : rawCriterium.Bal;
+                if (bal?.ValDt && Array.isArray(bal.ValDt) && bal.ValDt.length > 1) {
+                    throw new InvalidStructureError('Invalid CAMT.003 document: multiple ValDt criterium not supported');
+                }
+                const valDt = Array.isArray(bal?.ValDt) ? bal.ValDt[0] : bal?.ValDt;
+                if (valDt?.Dt?.EQDt) {
+                    crit.balanceAsOfDateEqualTo = parseDate(valDt.Dt.EQDt);
+                }
+            }
+            searchCriteria.push(crit);
+        }
+        return new CashManagementGetAccount({
+            header,
+            newCriteria: {
+                name,
+                searchCriteria,
+            },
+        });
+    }
+    static fromXML(xml) {
+        const parser = getXmlParser();
+        const doc = parser.parse(xml);
+        if (!doc.Document) {
+            throw new Error('Invalid XML format');
+        }
+        const namespace = (doc.Document['@_xmlns'] ||
+            doc.Document['@_Xmlns']);
+        if (!namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:camt.003.001.')) {
+            throw new InvalidXmlNamespaceError('Invalid CAMT.003 namespace');
+        }
+        return CashManagementGetAccount.fromDocumentObject(doc);
+    }
+    static fromJSON(json) {
+        const obj = JSON.parse(json);
+        if (!obj.Document) {
+            throw new Error('Invalid JSON format');
+        }
+        return CashManagementGetAccount.fromDocumentObject(obj);
+    }
+    serialize() {
+        const builder = getXmlBuilder();
+        const obj = this.toJSON();
+        obj.Document['@_xmlns'] = 'urn:iso:std:iso:20022:tech:xsd:camt.003.001.02';
+        obj.Document['@_xmlns:xsi'] = 'http://www.w3.org/2001/XMLSchema-instance';
+        return builder.build(obj);
+    }
+    toJSON() {
+        // we should not have to serialize but we do it for consistency
+        const Document = {
+            GetAcct: {
+                MsgHdr: exportMessageHeader(this._data.header),
+                AcctQryDef: {
+                    AcctCrit: {
+                        NewCrit: {
+                            NewQryNm: this._data.newCriteria?.name,
+                            SchCrit: this._data.newCriteria?.searchCriteria.map(c => {
+                                const obj = {};
+                                if (c.accountRegExp) {
+                                    if (c.accountRegExp.startsWith('.*') &&
+                                        c.accountRegExp.endsWith('.*')) {
+                                        obj.AcctId = {
+                                            CTTxt: c.accountRegExp
+                                                .replace(/^\.\*/, '')
+                                                .replace(/\.\*$/, ''),
+                                        }; // contains
+                                    }
+                                    else if (c.accountRegExp.startsWith('^((?!') &&
+                                        c.accountRegExp.endsWith(').)*$')) {
+                                        obj.AcctId = {
+                                            NCTTxt: c.accountRegExp
+                                                .replace(/^\^\(\(\?!/, '')
+                                                .replace(/\)\.\)\*\$$/, ''),
+                                        }; // does not contain
+                                    }
+                                }
+                                else if (c.accountEqualTo) {
+                                    obj.AcctId = {
+                                        EQ: exportAccountIdentification(c.accountEqualTo),
+                                    };
+                                }
+                                if (c.currencyEqualTo) {
+                                    obj.Ccy = [c.currencyEqualTo];
+                                }
+                                if (c.balanceAsOfDateEqualTo) {
+                                    obj.Bal = [
+                                        {
+                                            ValDt: [
+                                                {
+                                                    Dt: {
+                                                        EQDt: c.balanceAsOfDateEqualTo
+                                                            .toISOString()
+                                                            .slice(0, 10),
+                                                    },
+                                                },
+                                            ],
+                                        },
+                                    ];
+                                }
+                                return obj;
+                            }),
+                        },
+                    },
+                },
+            },
+        };
+        return { Document };
+    }
+}
+registerISO20022Implementation(CashManagementGetAccount);
+
 class CashManagementReturnAccount {
     _data;
     constructor(data) {
@@ -7441,7 +7750,7 @@ class CashManagementReturnAccount {
     static supportedMessages() {
         return [ISO20022Messages.CAMT_004];
     }
-    static fromDocumentOject(doc) {
+    static fromDocumentObject(doc) {
         const rawHeader = doc.Document?.RtrAcct?.MsgHdr;
         if (!rawHeader) {
             throw new InvalidStructureError('Invalid CAMT.004 document: missing MsgHdr');
@@ -7449,21 +7758,23 @@ class CashManagementReturnAccount {
         const header = parseMessageHeader(rawHeader);
         // interpret the report
         let rawReports = doc.Document?.RtrAcct?.RptOrErr?.AcctRpt;
-        if (!Array.isArray(rawReports))
+        if (!Array.isArray(rawReports)) {
             rawReports = [rawReports];
+        }
         rawReports = rawReports.filter((r) => !!r); // remove null/undefined
         const reports = rawReports.map((r) => {
             const accountId = parseAccountIdentification(r.AcctId);
-            let report = undefined;
-            let error = undefined;
+            let report;
+            let error;
             if (r.AcctOrErr?.Acct) {
                 // report
                 if (!r.AcctOrErr.Acct.Ccy) {
                     throw new InvalidStructureError('Invalid CAMT.004 document: missing Ccy in Acct');
                 }
                 let rawMulBal = r.AcctOrErr.Acct.MulBal;
-                if (!Array.isArray(rawMulBal))
+                if (!Array.isArray(rawMulBal)) {
                     rawMulBal = [rawMulBal];
+                }
                 rawMulBal = rawMulBal.filter((b) => !!b);
                 report = {
                     currency: r.AcctOrErr.Acct.Ccy,
@@ -7490,7 +7801,7 @@ class CashManagementReturnAccount {
         });
     }
     static fromXML(xml) {
-        const parser = XML.getParser();
+        const parser = getXmlParser();
         const doc = parser.parse(xml);
         if (!doc.Document) {
             throw new Error('Invalid XML format');
@@ -7500,17 +7811,17 @@ class CashManagementReturnAccount {
         if (!namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:camt.004.001.')) {
             throw new InvalidXmlNamespaceError('Invalid CAMT.004 namespace');
         }
-        return CashManagementReturnAccount.fromDocumentOject(doc);
+        return CashManagementReturnAccount.fromDocumentObject(doc);
     }
     static fromJSON(json) {
         const obj = JSON.parse(json);
         if (!obj.Document) {
             throw new Error('Invalid JSON format');
         }
-        return CashManagementReturnAccount.fromDocumentOject(obj);
+        return CashManagementReturnAccount.fromDocumentObject(obj);
     }
     serialize() {
-        const builder = XML.getBuilder();
+        const builder = getXmlBuilder();
         const obj = this.toJSON();
         obj.Document['@_xmlns'] = 'urn:iso:std:iso:20022:tech:xsd:camt.004.001.02';
         obj.Document['@_xmlns:xsi'] = 'http://www.w3.org/2001/XMLSchema-instance';
@@ -7559,7 +7870,7 @@ class CashManagementGetTransaction {
     static supportedMessages() {
         return [ISO20022Messages.CAMT_005];
     }
-    static fromDocumentOject(doc) {
+    static fromDocumentObject(doc) {
         const rawHeader = doc.Document?.GetTx?.MsgHdr;
         if (!rawHeader) {
             throw new InvalidStructureError('Invalid CAMT.005 document: missing MsgHdr');
@@ -7570,7 +7881,7 @@ class CashManagementGetTransaction {
             throw new InvalidStructureError('Invalid CAMT.005 document: missing GetTx.TxQryDef.TxCrit.NewCrit');
         }
         const name = newCrit.NewQryNm;
-        let searchCriteria = [];
+        const searchCriteria = [];
         let rawCriterias = newCrit.SchCrit;
         if (!Array.isArray(rawCriterias)) {
             rawCriterias = [rawCriterias];
@@ -7625,7 +7936,7 @@ class CashManagementGetTransaction {
         });
     }
     static fromXML(xml) {
-        const parser = XML.getParser();
+        const parser = getXmlParser();
         const doc = parser.parse(xml);
         if (!doc.Document) {
             throw new Error('Invalid XML format');
@@ -7635,17 +7946,17 @@ class CashManagementGetTransaction {
         if (!namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:camt.005.001.')) {
             throw new InvalidXmlNamespaceError('Invalid CAMT.005 namespace');
         }
-        return CashManagementGetTransaction.fromDocumentOject(doc);
+        return CashManagementGetTransaction.fromDocumentObject(doc);
     }
     static fromJSON(json) {
         const obj = JSON.parse(json);
         if (!obj.Document) {
             throw new Error('Invalid JSON format');
         }
-        return CashManagementGetTransaction.fromDocumentOject(obj);
+        return CashManagementGetTransaction.fromDocumentObject(obj);
     }
     serialize() {
-        const builder = XML.getBuilder();
+        const builder = getXmlBuilder();
         const obj = this.toJSON();
         obj.Document['@_xmlns'] = 'urn:iso:std:iso:20022:tech:xsd:camt.005.001.02';
         obj.Document['@_xmlns:xsi'] = 'http://www.w3.org/2001/XMLSchema-instance';
@@ -7709,7 +8020,7 @@ class CashManagementReturnTransaction {
     static supportedMessages() {
         return [ISO20022Messages.CAMT_006];
     }
-    static fromDocumentOject(doc) {
+    static fromDocumentObject(doc) {
         const rawHeader = doc.Document?.RtrTx?.MsgHdr;
         if (!rawHeader) {
             throw new InvalidStructureError('Invalid CAMT.006 document: missing MsgHdr');
@@ -7717,8 +8028,9 @@ class CashManagementReturnTransaction {
         const header = parseMessageHeader(rawHeader);
         // interpret the report
         let rawReports = doc.Document?.RtrTx?.RptOrErr?.BizRpt?.TxRpt;
-        if (!Array.isArray(rawReports))
+        if (!Array.isArray(rawReports)) {
             rawReports = [rawReports];
+        }
         rawReports = rawReports.filter((r) => !!r); // remove null/undefined
         const reports = rawReports.map((r) => {
             const rawAmount = r.PmtId?.LngBizId?.IntrBkSttlmAmt?.Amt ||
@@ -7742,8 +8054,8 @@ class CashManagementReturnTransaction {
             if (!paymentId.endToEndId) {
                 throw new InvalidStructureError('Invalid CAMT.006 document: missing EndToEndId in PmtId.LngBizId');
             }
-            let report = undefined;
-            let error = undefined;
+            let report;
+            let error;
             if (r.TxOrErr?.Tx) {
                 // report
                 const msgId = r.TxOrErr.Tx.Pmt?.MsgId;
@@ -7751,34 +8063,41 @@ class CashManagementReturnTransaction {
                     ? parseDate(r.TxOrErr.Tx.Pmt.ReqdExctnDt)
                     : undefined;
                 const status = ((sts) => {
-                    if (!sts)
-                        return undefined;
-                    if (Array.isArray(sts) && sts.length === 0)
-                        return undefined;
-                    if (Array.isArray(sts))
+                    if (!sts) {
+                        return;
+                    }
+                    if (Array.isArray(sts) && sts.length === 0) {
+                        return;
+                    }
+                    if (Array.isArray(sts)) {
                         sts = sts[0]; // take the first one only
+                    }
                     let code = sts.Cd?.Pdg ||
                         sts.Cd?.Fnl ||
                         sts.Cd?.RTGS ||
                         sts.Cd?.Sttlm ||
-                        sts.Cd?.Prtly;
-                    if (code)
-                        code = Object.keys(sts.Cd)[0] + ':' + code; // prefix with the type of code
-                    else
-                        return undefined;
+                        sts.Cd?.Prtry;
+                    if (code) {
+                        code = `${Object.keys(sts.Cd)[0]}:${code}`; // prefix with the type of code
+                    }
+                    else {
+                        return;
+                    }
                     const reason = sts.Rsn?.Prtry;
                     return { code, reason };
                 })(r.TxOrErr.Tx.Pmt?.Sts);
                 // to parse debtor and creditor with their agents
                 function parseParty$1(party) {
                     const p = parseParty(party?.Pty || {}); // force a valid object
-                    if (party?.Agt)
+                    if (party?.Agt) {
                         p.agent = { bic: party.Agt.FinInstnId?.BICFI };
+                    }
                     return p;
                 }
                 function parseAgent(agent) {
-                    if (!agent)
+                    if (!agent) {
                         return { bic: '' };
+                    }
                     return { bic: agent?.FinInstnId?.BICFI };
                 }
                 report = {
@@ -7813,29 +8132,29 @@ class CashManagementReturnTransaction {
         });
     }
     static fromXML(xml) {
-        const parser = XML.getParser();
+        const parser = getXmlParser();
         const doc = parser.parse(xml);
         if (!doc.Document) {
             throw new Error('Invalid XML format');
         }
         const namespace = (doc.Document['@_xmlns'] ||
             doc.Document['@_Xmlns']);
-        if (!namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:camt.004.001.')) {
-            throw new InvalidXmlNamespaceError('Invalid CAMT.004 namespace');
+        if (!namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:camt.006.001.')) {
+            throw new InvalidXmlNamespaceError('Invalid CAMT.006 namespace');
         }
-        return CashManagementReturnTransaction.fromDocumentOject(doc);
+        return CashManagementReturnTransaction.fromDocumentObject(doc);
     }
     static fromJSON(json) {
         const obj = JSON.parse(json);
         if (!obj.Document) {
             throw new Error('Invalid JSON format');
         }
-        return CashManagementReturnTransaction.fromDocumentOject(obj);
+        return CashManagementReturnTransaction.fromDocumentObject(obj);
     }
     serialize() {
-        const builder = XML.getBuilder();
+        const builder = getXmlBuilder();
         const obj = this.toJSON();
-        obj.Document['@_xmlns'] = 'urn:iso:std:iso:20022:tech:xsd:camt.004.001.02';
+        obj.Document['@_xmlns'] = 'urn:iso:std:iso:20022:tech:xsd:camt.006.001.02';
         obj.Document['@_xmlns:xsi'] = 'http://www.w3.org/2001/XMLSchema-instance';
         return builder.build(obj);
     }
@@ -7864,8 +8183,9 @@ class CashManagementReturnTransaction {
                             };
                             if (report.report) {
                                 function exportParty(p) {
-                                    if (!p)
-                                        return undefined;
+                                    if (!p) {
+                                        return;
+                                    }
                                     return {
                                         Pty: {
                                             Nm: p.name,
@@ -7875,13 +8195,16 @@ class CashManagementReturnTransaction {
                                     };
                                 }
                                 function exportAgent(a) {
-                                    if (!a)
-                                        return undefined;
-                                    if ('bic' in a && a.bic)
+                                    if (!a) {
+                                        return;
+                                    }
+                                    if ('bic' in a && a.bic) {
                                         return { FinInstnId: { BICFI: a.bic } };
-                                    if ('abaRoutingNumber' in a && a.abaRoutingNumber)
+                                    }
+                                    if ('abaRoutingNumber' in a && a.abaRoutingNumber) {
                                         return { FinInstId: { Othr: { Id: a.abaRoutingNumber } } };
-                                    return undefined;
+                                    }
+                                    return;
                                 }
                                 const [codeType, code] = report.report.status
                                     ? report.report.status.code.split(':')
@@ -7922,207 +8245,6 @@ class CashManagementReturnTransaction {
     }
 }
 registerISO20022Implementation(CashManagementReturnTransaction);
-
-/**
- * Represents a Cash Management Account Report (CAMT.052.x).
- * This class encapsulates the data and functionality related to processing
- * and accessing information from a CAMT.052 XML file.
- */
-class CashManagementAccountReport {
-    _messageId;
-    _creationDate;
-    _recipient;
-    _statements;
-    constructor(config) {
-        this._messageId = config.messageId;
-        this._creationDate = config.creationDate;
-        this._recipient = config.recipient;
-        this._statements = config.statements;
-    }
-    static supportedMessages() {
-        return [ISO20022Messages.CAMT_052];
-    }
-    get data() {
-        return {
-            messageId: this._messageId,
-            creationDate: this._creationDate,
-            recipient: this._recipient,
-            statements: this._statements,
-        };
-    }
-    static fromDocumentObject(obj) {
-        const bankToCustomerAcctRpt = obj.Document.BkToCstmrAcctRpt;
-        const rawCreationDate = bankToCustomerAcctRpt.GrpHdr.CreDtTm;
-        const creationDate = new Date(rawCreationDate);
-        let statements = [];
-        if (Array.isArray(bankToCustomerAcctRpt.Rpt)) {
-            statements = bankToCustomerAcctRpt.Rpt.map((stmt) => parseStatement(stmt));
-        }
-        else {
-            statements = [parseStatement(bankToCustomerAcctRpt.Rpt)];
-        }
-        const rawRecipient = bankToCustomerAcctRpt.GrpHdr.MsgRcpt;
-        return new CashManagementAccountReport({
-            messageId: bankToCustomerAcctRpt.GrpHdr.MsgId.toString(),
-            creationDate,
-            recipient: rawRecipient ? parseRecipient(rawRecipient) : undefined,
-            statements: statements,
-        });
-    }
-    /**
-     * Creates a CashManagementAccountReport instance from a raw XML string.
-     *
-     * @param {string} rawXml - The raw XML string containing the CAMT.052 data.
-     * @returns {CashManagementAccountReport} A new instance of CashManagementAccountReport.
-     * @throws {Error} If the XML parsing fails or required data is missing.
-     */
-    static fromXML(rawXml) {
-        const parser = XML.getParser();
-        const xml = parser.parse(rawXml);
-        if (!xml.Document) {
-            throw new InvalidXmlError('Invalid XML format');
-        }
-        const namespace = (xml.Document['@_xmlns'] ||
-            xml.Document['@_Xmlns']);
-        if (!namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:camt.052.001.')) {
-            throw new InvalidXmlNamespaceError('Invalid CAMT.052 namespace');
-        }
-        return CashManagementAccountReport.fromDocumentObject(xml);
-    }
-    /**
-     *
-     * @param json - JSON string representing a CashManagementAccountReport
-     * @returns {CashManagementAccountReport} A new instance of CashManagementAccountReport
-     * @throws {Error} If the JSON parsing fails or required data is missing.
-     */
-    static fromJSON(json) {
-        const obj = JSON.parse(json);
-        if (!obj.Document) {
-            throw new InvalidXmlError('Invalid JSON format');
-        }
-        return CashManagementAccountReport.fromDocumentObject(obj);
-    }
-    toJSON() {
-        const Document = {
-            BkToCstmrAcctRpt: {
-                GrpHdr: {
-                    MsgId: this._messageId,
-                    CreDtTm: this._creationDate.toISOString(),
-                    MsgRcpt: this._recipient
-                        ? exportRecipient(this._recipient)
-                        : undefined,
-                },
-                Rpt: this._statements.map(stmt => exportStatement(stmt)),
-            },
-        };
-        return { Document };
-    }
-    serialize() {
-        const builder = XML.getBuilder();
-        const obj = this.toJSON();
-        obj.Document['@_xmlns'] = 'urn:iso:std:iso:20022:tech:xsd:camt.052.001.02';
-        obj.Document['@_xmlns:xsi'] = 'http://www.w3.org/2001/XMLSchema-instance';
-        return builder.build(obj);
-    }
-    /**
-     * Retrieves all balances from all statements in the report.
-     * @returns {Balance[]} An array of all balances across all statements.
-     */
-    get balances() {
-        return this._statements.flatMap(statement => statement.balances);
-    }
-    /**
-     * Retrieves all transactions from all statements in the report.
-     * @returns {Transaction[]} An array of all transactions across all statements.
-     */
-    get transactions() {
-        return this._statements
-            .flatMap(statement => statement.entries)
-            .flatMap(entry => entry.transactions);
-    }
-    /**
-     * Retrieves all entries from all statements in the report.
-     * @returns {Entry[]} An array of all entries across all statements.
-     */
-    get entries() {
-        return this._statements.flatMap(statement => statement.entries);
-    }
-    /**
-     * Gets the unique identifier for the message.
-     * @returns {string} The message ID.
-     */
-    get messageId() {
-        return this._messageId;
-    }
-    /**
-     * Gets the party receiving the report.
-     * @returns {Party | undefined} The recipient party information, or undefined if no recipient is set.
-     */
-    get recipient() {
-        return this._recipient;
-    }
-    /**
-     * Gets the date and time when the report was created.
-     * @returns {Date} The creation date of the report.
-     */
-    get creationDate() {
-        return this._creationDate;
-    }
-    /**
-     * Gets all statements included in the report.
-     * @returns {Statement[]} An array of all statements in the report.
-     */
-    get statements() {
-        return this._statements;
-    }
-}
-registerISO20022Implementation(CashManagementAccountReport);
-
-// Types related to CAMT 053
-/**
- * Balance types as defined in ISO 20022.
- * @see {@link https://www.iso20022.org/sites/default/files/2022-03/externalcodesets_4q2021_v2_1.xlsx}
- */
-const BalanceTypeCode = {
-    /** Closing balance of amount of money that is at the disposal of the account owner on the date specified. */
-    ClosingAvailable: 'CLAV',
-    /** Balance of the account at the end of the pre-agreed account reporting period. It is the sum of the opening booked balance at the beginning of the period and all entries booked to the account during the pre-agreed account reporting period. */
-    ClosingBooked: 'CLBD',
-    /** Forward available balance of money that is at the disposal of the account owner on the date specified. */
-    ForwardAvailable: 'FWAV',
-    /** Balance for informational purposes. */
-    Information: 'INFO',
-    /** Available balance calculated in the course of the account servicer's business day, at the time specified, and subject to further changes during the business day. The interim balance is calculated on the basis of booked credit and debit items during the calculation time/period specified. */
-    InterimAvailable: 'ITAV',
-    /** Balance calculated in the course of the account servicer's business day, at the time specified, and subject to further changes during the business day. The interim balance is calculated on the basis of booked credit and debit items during the calculation time/period specified. */
-    InterimBooked: 'ITBD',
-    /** Opening balance of amount of money that is at the disposal of the account owner on the date specified. */
-    OpeningAvailable: 'OPAV',
-    /** Book balance of the account at the beginning of the account reporting period. It always equals the closing book balance from the previous report. */
-    OpeningBooked: 'OPBD',
-    /** Balance of the account at the previously closed account reporting period. The opening booked balance for the new period has to be equal to this balance. Usage: the previously booked closing balance should equal (inclusive date) the booked closing balance of the date it references and equal the actual booked opening balance of the current date. */
-    PreviouslyClosedBooked: 'PRCD',
-    /** Balance, composed of booked entries and pending items known at the time of calculation, which projects the end of day balance if everything is booked on the account and no other entry is posted. */
-    Expected: 'XPCD',
-    /** The difference between the excess/(deficit) investable balance and the excess/(deficit) collected balance due to the reserve requirement. This balance is not used if the account's Earnings Credit Rate is net of reserves. This may be used when the earnings allowance rate is not adjusted for reserves. It may be that reserves have been subtracted from the collected balance to determine the investable balance. Therefore, they must be added back to the excess/(deficit) investable balance to determine the collected balance position. The presentation of this calculation is optional. AFP code=00 04 21 */
-    AdditionalBalReserveRequirement: 'ABRR',
-};
-/**
- * Description mapping of BalanceTypeCode values to their names.
- */
-const BalanceTypeCodeDescriptionMap = {
-    CLAV: 'Closing Available',
-    CLBD: 'Closing Booked',
-    FWAV: 'Forward Available',
-    INFO: 'Information',
-    ITAV: 'Interim Available',
-    ITBD: 'Interim Booked',
-    OPAV: 'Opening Available',
-    OPBD: 'Opening Booked',
-    PRCD: 'Previously Closed Booked',
-    XPCD: 'Expected',
-    ABRR: 'Additional Balance Reserve Requirement',
-};
 
 /**
  * Represents an ISO20022 core message creator.
@@ -8451,7 +8573,7 @@ const parseStatus = (status) => {
     }
 };
 const parseGroupStatusInformation = (originalGroupInfAndStatus) => {
-    if (!originalGroupInfAndStatus.hasOwnProperty('GrpSts')) {
+    if (!Object.hasOwn(originalGroupInfAndStatus, 'GrpSts')) {
         return null;
     }
     return {
@@ -8464,36 +8586,32 @@ const parseGroupStatusInformation = (originalGroupInfAndStatus) => {
         },
     };
 };
-const parsePaymentStatusInformations = (originalPaymentInfAndStatuses) => {
-    return originalPaymentInfAndStatuses
-        .map((payment) => {
-        if (!payment.hasOwnProperty('PmtInfSts')) {
-            return null;
-        }
-        return {
-            type: 'payment',
-            originalPaymentId: payment.OrgnlPmtInfId,
-            status: parseStatus(payment.PmtInfSts),
-            reason: {
-                code: payment.StsRsnInf?.Rsn?.Cd,
-                additionalInformation: parseAdditionalInformation(payment.StsRsnInf?.AddtlInf),
-            },
-        };
-    })
-        .filter((status) => status !== null);
-};
+const parsePaymentStatusInformations = (originalPaymentInfAndStatuses) => originalPaymentInfAndStatuses
+    .map((payment) => {
+    if (!Object.hasOwn(payment, 'PmtInfSts')) {
+        return null;
+    }
+    return {
+        type: 'payment',
+        originalPaymentId: payment.OrgnlPmtInfId,
+        status: parseStatus(payment.PmtInfSts),
+        reason: {
+            code: payment.StsRsnInf?.Rsn?.Cd,
+            additionalInformation: parseAdditionalInformation(payment.StsRsnInf?.AddtlInf),
+        },
+    };
+})
+    .filter((status) => status !== null);
 const parseTransactionStatusInformations = (allTxnsInfoAndStatuses) => {
-    const transactionStatuses = allTxnsInfoAndStatuses.map((transaction) => {
-        return {
-            type: 'transaction',
-            originalEndToEndId: transaction.OrgnlEndToEndId,
-            status: parseStatus(transaction.TxSts),
-            reason: {
-                code: transaction.StsRsnInf?.Rsn?.Cd,
-                additionalInformation: parseAdditionalInformation(transaction.StsRsnInf?.Rsn?.AddtlInf),
-            },
-        };
-    });
+    const transactionStatuses = allTxnsInfoAndStatuses.map((transaction) => ({
+        type: 'transaction',
+        originalEndToEndId: transaction.OrgnlEndToEndId,
+        status: parseStatus(transaction.TxSts),
+        reason: {
+            code: transaction.StsRsnInf?.Rsn?.Cd,
+            additionalInformation: parseAdditionalInformation(transaction.StsRsnInf?.Rsn?.AddtlInf),
+        },
+    }));
     return transactionStatuses;
 };
 
@@ -8523,7 +8641,7 @@ class PaymentStatusReport {
      * @returns {PaymentStatusReport} A new PaymentStatusReport instance.
      */
     static fromXML(rawXml) {
-        const parser = XML.getParser();
+        const parser = getXmlParser();
         const xml = parser.parse(rawXml);
         const customerPaymentStatusReport = xml.Document.CstmrPmtStsRpt;
         const rawCreationDate = customerPaymentStatusReport.GrpHdr.CreDtTm;
@@ -8539,18 +8657,16 @@ class PaymentStatusReport {
             ? rawPmtInfAndSts
             : [rawPmtInfAndSts].filter(Boolean);
         // Find all TxnInfoAndSts
-        const txnInfoAndSts = pmtInfAndSts
-            .map(pmtInfAndSt => {
+        const txnInfoAndSts = pmtInfAndSts.flatMap(pmtInfAndSt => {
             // If there is no TxInfAndSts, return an empty array
-            if (!pmtInfAndSt.hasOwnProperty('TxInfAndSts')) {
+            if (!Object.hasOwn(pmtInfAndSt, 'TxInfAndSts')) {
                 return [];
             }
             // Otherwise, return the TxInfAndSts
             return Array.isArray(pmtInfAndSt.TxInfAndSts)
                 ? pmtInfAndSt.TxInfAndSts
                 : [pmtInfAndSt.TxInfAndSts];
-        })
-            .flat();
+        });
         const statusInformations = [
             parseGroupStatusInformation(customerPaymentStatusReport.OrgnlGrpInfAndSts),
             parsePaymentStatusInformations(pmtInfAndSts),
@@ -8563,7 +8679,7 @@ class PaymentStatusReport {
             creationDate,
             initatingParty,
             originalGroupInformation,
-            statusInformations: statusInformations,
+            statusInformations,
         });
     }
     /**
@@ -8606,7 +8722,11 @@ class PaymentStatusReport {
      * @returns {StatusInformation} The first StatusInformation object in the statuses array.
      */
     get firstStatusInformation() {
-        return this._statusInformations[0];
+        const first = this._statusInformations[0];
+        if (!first) {
+            throw new Error('PaymentStatusReport has no status information entries');
+        }
+        return first;
     }
     /**
      * Gets the original ID based on the type of the first status information.
@@ -8622,6 +8742,8 @@ class PaymentStatusReport {
                 return firstStatusInformation.originalPaymentId;
             case 'transaction':
                 return firstStatusInformation.originalEndToEndId;
+            default:
+                throw new Error(`Unsupported status information type: ${firstStatusInformation.type}`);
         }
     }
     /**
@@ -8662,9 +8784,7 @@ class SEPADirectDebitPaymentReversal extends PaymentInitiation {
         this.validate();
     }
     countAllReversals() {
-        return this.reversalInstructions.reduce((total, group) => {
-            return total + group.reversals.length;
-        }, 0);
+        return this.reversalInstructions.reduce((total, group) => total + group.reversals.length, 0);
     }
     sumAllReversedAmounts() {
         let totalAmount = 0;
@@ -8796,9 +8916,13 @@ class SEPADirectDebitPaymentReversal extends PaymentInitiation {
         const builder = PaymentInitiation.getBuilder();
         const orgnlPmtInfAndRvslEntries = this.reversalInstructions.map(group => {
             const orgnlPmtInfId = group.reversals[0].originalReference.pmtInfId;
+            const groupTxCount = group.reversals.length;
+            const groupCtrlSum = formatMinorUnits(group.reversals.reduce((sum, r) => sum + r.reversedAmount, 0), 'EUR');
             return {
-                RvslPmtInfId: group.paymentInformationId,
                 OrgnlPmtInfId: orgnlPmtInfId,
+                OrgnlNbOfTxs: groupTxCount.toString(),
+                OrgnlCtrlSum: groupCtrlSum,
+                PmtInfRvsl: 'false',
                 TxInf: group.reversals.map(reversal => this.buildTxInf(reversal, group)),
             };
         });
@@ -8817,6 +8941,7 @@ class SEPADirectDebitPaymentReversal extends PaymentInitiation {
                         CreDtTm: this.creationDate.toISOString(),
                         NbOfTxs: this.totalTransactionCount.toString(),
                         CtrlSum: this.formattedReversedSum,
+                        GrpRvsl: 'false',
                         InitgPty: {
                             Nm: this.initiatingParty.name,
                             ...(this.initiatingParty.id && {
@@ -8842,7 +8967,7 @@ class SEPADirectDebitPaymentReversal extends PaymentInitiation {
         return builder.build(xml);
     }
     static fromXML(rawXml) {
-        const parser = XML.getParser();
+        const parser = getXmlParser();
         const xml = parser.parse(rawXml);
         if (!xml.Document) {
             throw new InvalidXmlError('Invalid XML format');
@@ -9011,161 +9136,6 @@ class SEPADirectDebitPaymentReversal extends PaymentInitiation {
         });
     }
 }
-
-/**
- * Represents a Cash Management End of Day Report (CAMT.053.x).
- * This class encapsulates the data and functionality related to processing
- * and accessing information from a CAMT.053 XML file.
- */
-class CashManagementEndOfDayReport {
-    _messageId;
-    _creationDate;
-    _recipient;
-    _statements;
-    constructor(config) {
-        this._messageId = config.messageId;
-        this._creationDate = config.creationDate;
-        this._recipient = config.recipient;
-        this._statements = config.statements;
-    }
-    static supportedMessages() {
-        return [ISO20022Messages.CAMT_053];
-    }
-    get data() {
-        return {
-            messageId: this._messageId,
-            creationDate: this._creationDate,
-            recipient: this._recipient,
-            statements: this._statements,
-        };
-    }
-    static fromDocumentObject(obj) {
-        const bankToCustomerStatement = obj.Document.BkToCstmrStmt;
-        const rawCreationDate = bankToCustomerStatement.GrpHdr.CreDtTm;
-        const creationDate = new Date(rawCreationDate);
-        let statements = [];
-        if (Array.isArray(bankToCustomerStatement.Stmt)) {
-            statements = bankToCustomerStatement.Stmt.map((stmt) => parseStatement(stmt));
-        }
-        else {
-            statements = [parseStatement(bankToCustomerStatement.Stmt)];
-        }
-        const rawRecipient = bankToCustomerStatement.GrpHdr.MsgRcpt;
-        return new CashManagementEndOfDayReport({
-            messageId: bankToCustomerStatement.GrpHdr.MsgId.toString(),
-            creationDate,
-            recipient: rawRecipient ? parseRecipient(rawRecipient) : undefined,
-            statements: statements,
-        });
-    }
-    /**
-     * Creates a CashManagementEndOfDayReport instance from a raw XML string.
-     *
-     * @param {string} rawXml - The raw XML string containing the CAMT.053 data.
-     * @returns {CashManagementEndOfDayReport} A new instance of CashManagementEndOfDayReport.
-     * @throws {Error} If the XML parsing fails or required data is missing.
-     */
-    static fromXML(rawXml) {
-        const parser = XML.getParser();
-        const xml = parser.parse(rawXml);
-        if (!xml.Document) {
-            throw new InvalidXmlError('Invalid XML format');
-        }
-        const namespace = (xml.Document['@_xmlns'] ||
-            xml.Document['@_Xmlns']);
-        if (!namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:camt.053.001.')) {
-            throw new InvalidXmlNamespaceError('Invalid CAMT.053 namespace');
-        }
-        return CashManagementEndOfDayReport.fromDocumentObject(xml);
-    }
-    /**
-     *
-     * @param json - JSON string representing a CashManagementEndOfDayReport
-     * @returns {CashManagementEndOfDayReport} A new instance of CashManagementEndOfDayReport
-     * @throws {Error} If the JSON parsing fails or required data is missing.
-     */
-    static fromJSON(json) {
-        const obj = JSON.parse(json);
-        if (!obj.Document) {
-            throw new InvalidXmlError('Invalid JSON format');
-        }
-        return CashManagementEndOfDayReport.fromDocumentObject(obj);
-    }
-    toJSON() {
-        const Document = {
-            BkToCstmrStmt: {
-                GrpHdr: {
-                    MsgId: this._messageId,
-                    CreDtTm: this._creationDate.toISOString(),
-                    MsgRcpt: this._recipient
-                        ? exportRecipient(this._recipient)
-                        : undefined,
-                },
-                Stmt: this._statements.map(stmt => exportStatement(stmt)),
-            },
-        };
-        return { Document };
-    }
-    serialize() {
-        const builder = XML.getBuilder();
-        const obj = this.toJSON();
-        obj.Document['@_xmlns'] = 'urn:iso:std:iso:20022:tech:xsd:camt.053.001.02';
-        obj.Document['@_xmlns:xsi'] = 'http://www.w3.org/2001/XMLSchema-instance';
-        return builder.build(obj);
-    }
-    /**
-     * Retrieves all balances from all statements in the report.
-     * @returns {Balance[]} An array of all balances across all statements.
-     */
-    get balances() {
-        return this._statements.flatMap(statement => statement.balances);
-    }
-    /**
-     * Retrieves all transactions from all statements in the report.
-     * @returns {Transaction[]} An array of all transactions across all statements.
-     */
-    get transactions() {
-        return this._statements
-            .flatMap(statement => statement.entries)
-            .flatMap(entry => entry.transactions);
-    }
-    /**
-     * Retrieves all entries from all statements in the report.
-     * @returns {Entry[]} An array of all entries across all statements.
-     */
-    get entries() {
-        return this._statements.flatMap(statement => statement.entries);
-    }
-    /**
-     * Gets the unique identifier for the message.
-     * @returns {string} The message ID.
-     */
-    get messageId() {
-        return this._messageId;
-    }
-    /**
-     * Gets the party receiving the report.
-     * @returns {Party | undefined} The recipient party information, or undefined if no recipient is set.
-     */
-    get recipient() {
-        return this._recipient;
-    }
-    /**
-     * Gets the date and time when the report was created.
-     * @returns {Date} The creation date of the report.
-     */
-    get creationDate() {
-        return this._creationDate;
-    }
-    /**
-     * Gets all statements included in the report.
-     * @returns {Statement[]} An array of all statements in the report.
-     */
-    get statements() {
-        return this._statements;
-    }
-}
-registerISO20022Implementation(CashManagementEndOfDayReport);
 
 exports.ACHCreditPaymentInitiation = ACHCreditPaymentInitiation;
 exports.ACHLocalInstrumentCode = ACHLocalInstrumentCode;

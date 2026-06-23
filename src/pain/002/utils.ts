@@ -1,11 +1,11 @@
-import {
-  PaymentStatus,
-  GroupStatusInformation,
-  PaymentStatusInformation,
-  TransactionStatusInformation,
-  PaymentStatusCode,
-} from './types';
 import { parseAdditionalInformation } from '../../parseUtils';
+import {
+  type GroupStatusInformation,
+  type PaymentStatus,
+  PaymentStatusCode,
+  type PaymentStatusInformation,
+  type TransactionStatusInformation,
+} from './types';
 
 // NOTE: Consider not even using this switch statement.
 const parseStatus = (status: string): PaymentStatus => {
@@ -34,7 +34,7 @@ const parseStatus = (status: string): PaymentStatus => {
 export const parseGroupStatusInformation = (
   originalGroupInfAndStatus: any,
 ): GroupStatusInformation | null => {
-  if (!originalGroupInfAndStatus.hasOwnProperty('GrpSts')) {
+  if (!Object.hasOwn(originalGroupInfAndStatus, 'GrpSts')) {
     return null;
   }
   return {
@@ -52,10 +52,10 @@ export const parseGroupStatusInformation = (
 
 export const parsePaymentStatusInformations = (
   originalPaymentInfAndStatuses: any,
-): PaymentStatusInformation[] => {
-  return originalPaymentInfAndStatuses
+): PaymentStatusInformation[] =>
+  originalPaymentInfAndStatuses
     .map((payment: any) => {
-      if (!payment.hasOwnProperty('PmtInfSts')) {
+      if (!Object.hasOwn(payment, 'PmtInfSts')) {
         return null;
       }
       return {
@@ -71,13 +71,12 @@ export const parsePaymentStatusInformations = (
       };
     })
     .filter((status: any) => status !== null);
-};
 
 export const parseTransactionStatusInformations = (
   allTxnsInfoAndStatuses: any[],
 ): TransactionStatusInformation[] => {
-  const transactionStatuses = allTxnsInfoAndStatuses.map((transaction: any) => {
-    return {
+  const transactionStatuses = allTxnsInfoAndStatuses.map(
+    (transaction: any) => ({
       type: 'transaction' as const,
       originalEndToEndId: transaction.OrgnlEndToEndId,
       status: parseStatus(transaction.TxSts),
@@ -87,8 +86,8 @@ export const parseTransactionStatusInformations = (
           transaction.StsRsnInf?.Rsn?.AddtlInf,
         ),
       },
-    };
-  });
+    }),
+  );
 
   return transactionStatuses;
 };

@@ -1,7 +1,7 @@
-import { BalanceInReport, BusinessError } from '../types';
-import { GenericISO20022Message, ISO20022MessageTypeName } from '../../lib/interfaces';
-import { AccountIdentification, CashAccountType, MessageHeader } from '../../lib/types';
-import { Currency } from '../../lib/currencies';
+import type { Currency } from '../../lib/currencies';
+import { type GenericISO20022Message, type ISO20022MessageTypeName } from '../../lib/interfaces';
+import type { AccountIdentification, CashAccountType, MessageHeader } from '../../lib/types';
+import type { BalanceInReport, BusinessError } from '../types';
 export interface AccountReport {
     currency: Currency;
     name?: string;
@@ -22,7 +22,7 @@ export declare class CashManagementReturnAccount implements GenericISO20022Messa
     constructor(data: CashManagementReturnAccountData);
     get data(): CashManagementReturnAccountData;
     static supportedMessages(): ISO20022MessageTypeName[];
-    static fromDocumentOject(doc: any): CashManagementReturnAccount;
+    static fromDocumentObject(doc: any): CashManagementReturnAccount;
     static fromXML(xml: string): CashManagementReturnAccount;
     static fromJSON(json: string): CashManagementReturnAccount;
     serialize(): string;

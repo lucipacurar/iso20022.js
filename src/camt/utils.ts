@@ -1,4 +1,16 @@
+import type { Currency } from '../lib/currencies';
+import type { Party } from '../lib/types';
 import {
+  exportAccount,
+  exportAgent,
+  exportAmountToString,
+  parseAccount,
+  parseAdditionalInformation,
+  parseAgent,
+  parseAmountToMinorUnits,
+  parseDate,
+} from '../parseUtils';
+import type {
   Balance,
   BalanceInReport,
   BankTransactionCode,
@@ -6,21 +18,7 @@ import {
   Entry,
   Statement,
   Transaction,
-} from 'camt/types';
-import { Party } from '../lib/types';
-import {
-  exportAccount,
-  exportAgent,
-  exportAmountToString,
-  parseAdditionalInformation,
-  parseDate,
-} from '../parseUtils';
-import {
-  parseAccount,
-  parseAgent,
-  parseAmountToMinorUnits,
-} from '../parseUtils';
-import { Currency } from '../lib/currencies';
+} from './types';
 
 export const parseStatement = (stmt: any): Statement => {
   const id = stmt.Id.toString();
@@ -39,13 +37,13 @@ export const parseStatement = (stmt: any): Statement => {
 
   // Txn Summaries
   const numOfEntries =
-    stmt.TxsSummry?.TtlNtries.NbOfNtries != null
-      ? Number(stmt.TxsSummry.TtlNtries.NbOfNtries)
-      : undefined;
+    stmt.TxsSummry?.TtlNtries.NbOfNtries == null
+      ? undefined
+      : Number(stmt.TxsSummry.TtlNtries.NbOfNtries);
   const sumOfEntries =
-    stmt.TxsSummry?.TtlNtries.Sum != null
-      ? Number(stmt.TxsSummry.TtlNtries.Sum)
-      : undefined;
+    stmt.TxsSummry?.TtlNtries.Sum == null
+      ? undefined
+      : Number(stmt.TxsSummry.TtlNtries.Sum);
   const rawNetAmountOfEntries = stmt.TxsSummry?.TtlNtries.TtlNetNtryAmt;
   let netAmountOfEntries;
   // No currency information, default to USD
@@ -54,22 +52,22 @@ export const parseStatement = (stmt: any): Statement => {
   }
 
   const numOfCreditEntries =
-    stmt.TxsSummry?.TtlCdtNtries.NbOfNtries != null
-      ? Number(stmt.TxsSummry.TtlCdtNtries.NbOfNtries)
-      : undefined;
+    stmt.TxsSummry?.TtlCdtNtries.NbOfNtries == null
+      ? undefined
+      : Number(stmt.TxsSummry.TtlCdtNtries.NbOfNtries);
   const sumOfCreditEntries =
-    stmt.TxsSummry?.TtlCdtNtries.Sum != null
-      ? Number(stmt.TxsSummry.TtlCdtNtries.Sum)
-      : undefined;
+    stmt.TxsSummry?.TtlCdtNtries.Sum == null
+      ? undefined
+      : Number(stmt.TxsSummry.TtlCdtNtries.Sum);
 
   const numOfDebitEntries =
-    stmt.TxsSummry?.TtlDbtNtries.NbOfNtries != null
-      ? Number(stmt.TxsSummry.TtlDbtNtries.NbOfNtries)
-      : undefined;
+    stmt.TxsSummry?.TtlDbtNtries.NbOfNtries == null
+      ? undefined
+      : Number(stmt.TxsSummry.TtlDbtNtries.NbOfNtries);
   const sumOfDebitEntries =
-    stmt.TxsSummry?.TtlDbtNtries.Sum != null
-      ? Number(stmt.TxsSummry.TtlDbtNtries.Sum)
-      : undefined;
+    stmt.TxsSummry?.TtlDbtNtries.Sum == null
+      ? undefined
+      : Number(stmt.TxsSummry.TtlDbtNtries.Sum);
 
   // Get account information
   // TODO: Save account types here
@@ -252,16 +250,14 @@ export const parseEntry = (entry: any): Entry => {
     rawEntryDetails = [rawEntryDetails];
   }
 
-  const transactions = rawEntryDetails
-    .map((rawDetail: any) => {
-      // Get list of transaction details, even if it's singleton
-      let transactionDetails = rawDetail.TxDtls || [];
-      if (!Array.isArray(transactionDetails)) {
-        transactionDetails = [transactionDetails];
-      }
-      return transactionDetails.map(parseTransactionDetail);
-    })
-    .flat();
+  const transactions = rawEntryDetails.flatMap((rawDetail: any) => {
+    // Get list of transaction details, even if it's singleton
+    let transactionDetails = rawDetail.TxDtls || [];
+    if (!Array.isArray(transactionDetails)) {
+      transactionDetails = [transactionDetails];
+    }
+    return transactionDetails.map(parseTransactionDetail);
+  });
 
   return {
     referenceId,

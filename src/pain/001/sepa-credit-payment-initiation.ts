@@ -1,4 +1,12 @@
+import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
+import type { Alpha2Country } from '../../lib/countries';
+import { type Currency, formatMinorUnits } from '../../lib/currencies';
 import {
+  getXmlParser,
+  ISO20022SchemaId,
+  XMLNS_PREFIX,
+} from '../../lib/interfaces';
+import type {
   Account,
   Agent,
   BICAgent,
@@ -7,17 +15,13 @@ import {
   Party,
   SEPACreditPaymentInstruction,
 } from '../../lib/types';
-import { PaymentInitiation } from './payment-initiation';
-import { sanitize, generateId } from '../../utils/format';
-import { Currency, formatMinorUnits } from '../../lib/currencies';
-import { XML, XMLNS_PREFIX, ISO20022SchemaId } from '../../lib/interfaces';
-import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
 import {
   parseAccount,
   parseAgent,
   parseAmountToMinorUnits,
 } from '../../parseUtils';
-import { Alpha2Country } from 'lib/countries';
+import { generateId, sanitize } from '../../utils/format';
+import { PaymentInitiation } from './payment-initiation';
 
 type AtLeastOne<T> = [T, ...T[]];
 
@@ -65,12 +69,12 @@ export interface SEPACreditPaymentInitiationConfig {
  * @see {@link https://docs.iso20022js.com/pain/sepacredit} for more information.
  */
 export class SEPACreditPaymentInitiation extends PaymentInitiation {
-  public initiatingParty: Party;
-  public messageId: string;
-  public creationDate: Date;
-  public paymentInstructions: AtLeastOne<SEPACreditPaymentInstruction>;
-  public paymentInformationId: string;
-  public categoryPurpose?: ExternalCategoryPurpose;
+  initiatingParty: Party;
+  messageId: string;
+  creationDate: Date;
+  paymentInstructions: AtLeastOne<SEPACreditPaymentInstruction>;
+  paymentInformationId: string;
+  categoryPurpose?: ExternalCategoryPurpose;
   private formattedPaymentSum: string;
 
   get schemaId(): string {
@@ -132,9 +136,9 @@ export class SEPACreditPaymentInitiation extends PaymentInitiation {
   // TODO: Remove this when we figure out how to run sumPaymentInstructions safely
   private validateAllInstructionsHaveSameCurrency() {
     if (
-      !this.paymentInstructions.every(i => {
-        return i.currency === this.paymentInstructions[0].currency;
-      })
+      !this.paymentInstructions.every(
+        i => i.currency === this.paymentInstructions[0].currency,
+      )
     ) {
       throw new Error(
         'In order to calculate the payment instructions sum, all payment instruction currencies must be the same.',
@@ -184,7 +188,7 @@ export class SEPACreditPaymentInitiation extends PaymentInitiation {
    * Serializes the SEPA credit transfer initiation to an XML string.
    * @returns {string} The XML representation of the SEPA credit transfer initiation.
    */
-  public serialize(): string {
+  serialize(): string {
     const builder = PaymentInitiation.getBuilder();
     const xml = {
       '?xml': {
@@ -243,8 +247,8 @@ export class SEPACreditPaymentInitiation extends PaymentInitiation {
     return builder.build(xml);
   }
 
-  public static fromXML(rawXml: string): SEPACreditPaymentInitiation {
-    const parser = XML.getParser();
+  static fromXML(rawXml: string): SEPACreditPaymentInitiation {
+    const parser = getXmlParser();
     const xml = parser.parse(rawXml);
 
     if (!xml.Document) {
@@ -303,8 +307,8 @@ export class SEPACreditPaymentInitiation extends PaymentInitiation {
         }),
         type: 'sepa',
         direction: 'credit',
-        amount: amount,
-        currency: currency,
+        amount,
+        currency,
         creditor: {
           name: inst.Cdtr?.Nm as string,
           agent: parseAgent(inst.CdtrAgt),
@@ -348,10 +352,10 @@ export class SEPACreditPaymentInitiation extends PaymentInitiation {
     }) as AtLeastOne<SEPACreditPaymentInstruction>;
 
     return new SEPACreditPaymentInitiation({
-      messageId: messageId,
-      creationDate: creationDate,
-      initiatingParty: initiatingParty,
-      paymentInstructions: paymentInstructions,
+      messageId,
+      creationDate,
+      initiatingParty,
+      paymentInstructions,
     });
   }
 }

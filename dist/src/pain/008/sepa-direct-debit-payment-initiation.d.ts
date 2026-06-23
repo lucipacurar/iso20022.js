@@ -139,11 +139,6 @@ export declare class SEPADirectDebitPaymentInitiation extends PaymentInitiation 
         };
         DbtrAgt?: {
             FinInstnId: {
-                BIC: string;
-                ClrSysMmbId?: undefined;
-            };
-        } | {
-            FinInstnId: {
                 ClrSysMmbId: {
                     ClrSysId: {
                         Cd: string;
@@ -151,6 +146,11 @@ export declare class SEPADirectDebitPaymentInitiation extends PaymentInitiation 
                     MmbId: string;
                 };
                 BIC?: undefined;
+            };
+        } | {
+            FinInstnId: {
+                BIC: string;
+                ClrSysMmbId?: undefined;
             };
         } | undefined;
         PmtId: {

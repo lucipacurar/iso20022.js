@@ -1,15 +1,16 @@
-import { Balance, Entry, Statement, Transaction } from '../types';
-import { Party, StructuredAddress } from '../../lib/types';
-import { exportStatement, parseStatement } from '../utils';
-import { exportRecipient, parseRecipient } from '../../parseUtils';
 import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
 import {
-  GenericISO20022Message,
+  type GenericISO20022Message,
+  getXmlBuilder,
+  getXmlParser,
   ISO20022Messages,
-  ISO20022MessageTypeName,
+  type ISO20022MessageTypeName,
   registerISO20022Implementation,
-  XML,
 } from '../../lib/interfaces';
+import type { Party, StructuredAddress } from '../../lib/types';
+import { exportRecipient, parseRecipient } from '../../parseUtils';
+import type { Balance, Entry, Statement, Transaction } from '../types';
+import { exportStatement, parseStatement } from '../utils';
 
 /**
  * Configuration interface for creating a CashManagementEndOfDayReport instance.
@@ -84,7 +85,7 @@ export class CashManagementEndOfDayReport implements GenericISO20022Message {
       messageId: bankToCustomerStatement.GrpHdr.MsgId.toString(),
       creationDate,
       recipient: rawRecipient ? parseRecipient(rawRecipient) : undefined,
-      statements: statements,
+      statements,
     });
   }
 
@@ -96,7 +97,7 @@ export class CashManagementEndOfDayReport implements GenericISO20022Message {
    * @throws {Error} If the XML parsing fails or required data is missing.
    */
   static fromXML(rawXml: string): CashManagementEndOfDayReport {
-    const parser = XML.getParser();
+    const parser = getXmlParser();
     const xml = parser.parse(rawXml);
 
     if (!xml.Document) {
@@ -119,7 +120,7 @@ export class CashManagementEndOfDayReport implements GenericISO20022Message {
    * @throws {Error} If the JSON parsing fails or required data is missing.
    */
   static fromJSON(json: string): CashManagementEndOfDayReport {
-    const obj = JSON.parse(json);
+    const obj = JSON.parse(json) as { Document: any };
 
     if (!obj.Document) {
       throw new InvalidXmlError('Invalid JSON format');
@@ -145,7 +146,7 @@ export class CashManagementEndOfDayReport implements GenericISO20022Message {
   }
 
   serialize(): string {
-    const builder = XML.getBuilder();
+    const builder = getXmlBuilder();
     const obj = this.toJSON();
     obj.Document['@_xmlns'] = 'urn:iso:std:iso:20022:tech:xsd:camt.053.001.02';
     obj.Document['@_xmlns:xsi'] = 'http://www.w3.org/2001/XMLSchema-instance';

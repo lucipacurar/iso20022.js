@@ -16,7 +16,7 @@
                 "LngBizId": {
                   "IntrBkSttlmAmt": {
                     "Ccy": "EUR",
-                    "Amount": 90.00
+                    "Amount": 90.0
                   },
                   "EndToEndId": "E2E1242435245345"
                 }
@@ -78,7 +78,7 @@
                 "LngBizId": {
                   "IntrBkSttlmAmt": {
                     "Ccy": "EUR",
-                    "Amount": 180.00
+                    "Amount": 180.0
                   },
                   "EndToEndId": "E2E1242435245366"
                 }

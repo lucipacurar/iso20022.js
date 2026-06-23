@@ -1,7 +1,14 @@
 import { XMLBuilder, XMLParser } from 'fast-xml-parser';
 export type ISO20022MessageTypeName = `${string}.${string}`;
 export declare const ISO20022Messages: {
-    [msg: string]: ISO20022MessageTypeName;
+    readonly CAMT_003: "CAMT.003";
+    readonly CAMT_004: "CAMT.004";
+    readonly CAMT_005: "CAMT.005";
+    readonly CAMT_006: "CAMT.006";
+    readonly CAMT_052: "CAMT.052";
+    readonly CAMT_053: "CAMT.053";
+    readonly PAIN_001: "PAIN.001";
+    readonly PAIN_002: "PAIN.002";
 };
 export declare const XMLNS_PREFIX = "urn:iso:std:iso:20022:tech:xsd:";
 export declare const ISO20022SchemaId: {
@@ -25,12 +32,10 @@ export interface GenericISO20022MessageFactory<T extends GenericISO20022Message>
 }
 export declare function registerISO20022Implementation(cl: GenericISO20022MessageFactory<GenericISO20022Message>): void;
 export declare function getISO20022Implementation(type: ISO20022MessageTypeName): GenericISO20022MessageFactory<GenericISO20022Message> | undefined;
-export declare class XML {
-    /**
-     * Creates and configures the XML Parser
-     *
-     * @returns {XMLParser} A configured instance of XMLParser
-     */
-    static getParser(): XMLParser;
-    static getBuilder(): XMLBuilder;
-}
+/**
+ * Creates and configures the XML Parser
+ *
+ * @returns {XMLParser} A configured instance of XMLParser
+ */
+export declare function getXmlParser(): XMLParser;
+export declare function getXmlBuilder(): XMLBuilder;

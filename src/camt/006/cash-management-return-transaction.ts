@@ -1,13 +1,14 @@
-import { BusinessError } from '../types';
 import { InvalidStructureError, InvalidXmlNamespaceError } from '../../errors';
+import type { Currency } from '../../lib/currencies';
 import {
-  GenericISO20022Message,
+  type GenericISO20022Message,
+  getXmlBuilder,
+  getXmlParser,
   ISO20022Messages,
-  ISO20022MessageTypeName,
+  type ISO20022MessageTypeName,
   registerISO20022Implementation,
-  XML,
 } from '../../lib/interfaces';
-import { Agent, MessageHeader, Party } from '../../lib/types';
+import type { Agent, MessageHeader, Party } from '../../lib/types';
 import {
   exportAmountToString,
   exportMessageHeader,
@@ -16,8 +17,8 @@ import {
   parseMessageHeader,
   parseParty as parsePartyExt,
 } from '../../parseUtils';
+import type { BusinessError } from '../types';
 import { exportBusinessError, parseBusinessError } from '../utils';
-import { Currency } from '../../lib/currencies';
 
 export interface TransactionReport {
   msgId?: string;
@@ -71,7 +72,7 @@ export class CashManagementReturnTransaction implements GenericISO20022Message {
     return [ISO20022Messages.CAMT_006];
   }
 
-  static fromDocumentOject(doc: any): CashManagementReturnTransaction {
+  static fromDocumentObject(doc: any): CashManagementReturnTransaction {
     const rawHeader = doc.Document?.RtrTx?.MsgHdr;
     if (!rawHeader) {
       throw new InvalidStructureError(
@@ -82,7 +83,9 @@ export class CashManagementReturnTransaction implements GenericISO20022Message {
 
     // interpret the report
     let rawReports = doc.Document?.RtrTx?.RptOrErr?.BizRpt?.TxRpt;
-    if (!Array.isArray(rawReports)) rawReports = [rawReports];
+    if (!Array.isArray(rawReports)) {
+      rawReports = [rawReports];
+    }
     rawReports = rawReports.filter((r: any) => !!r); // remove null/undefined
 
     const reports: TransactionReportOrError[] = rawReports.map((r: any) => {
@@ -120,8 +123,8 @@ export class CashManagementReturnTransaction implements GenericISO20022Message {
         );
       }
 
-      let report: TransactionReport | undefined = undefined;
-      let error: BusinessError | undefined = undefined;
+      let report: TransactionReport | undefined;
+      let error: BusinessError | undefined;
 
       if (r.TxOrErr?.Tx) {
         // report
@@ -130,18 +133,26 @@ export class CashManagementReturnTransaction implements GenericISO20022Message {
           ? parseDate(r.TxOrErr.Tx.Pmt.ReqdExctnDt)
           : undefined;
         const status = ((sts: any) => {
-          if (!sts) return undefined;
-          if (Array.isArray(sts) && sts.length === 0) return undefined;
-          if (Array.isArray(sts)) sts = sts[0]; // take the first one only
+          if (!sts) {
+            return;
+          }
+          if (Array.isArray(sts) && sts.length === 0) {
+            return;
+          }
+          if (Array.isArray(sts)) {
+            sts = sts[0]; // take the first one only
+          }
           let code =
             sts.Cd?.Pdg ||
             sts.Cd?.Fnl ||
             sts.Cd?.RTGS ||
             sts.Cd?.Sttlm ||
-            sts.Cd?.Prtly;
-          if (code)
-            code = Object.keys(sts.Cd)[0] + ':' + code; // prefix with the type of code
-          else return undefined;
+            sts.Cd?.Prtry;
+          if (code) {
+            code = `${Object.keys(sts.Cd)[0]}:${code}`; // prefix with the type of code
+          } else {
+            return;
+          }
           const reason = sts.Rsn?.Prtry;
           return { code, reason };
         })(r.TxOrErr.Tx.Pmt?.Sts);
@@ -149,11 +160,15 @@ export class CashManagementReturnTransaction implements GenericISO20022Message {
         // to parse debtor and creditor with their agents
         function parseParty(party: any): Party {
           const p: Party = parsePartyExt(party?.Pty || {}); // force a valid object
-          if (party?.Agt) p.agent = { bic: party.Agt.FinInstnId?.BICFI };
+          if (party?.Agt) {
+            p.agent = { bic: party.Agt.FinInstnId?.BICFI };
+          }
           return p;
         }
         function parseAgent(agent: any): Agent {
-          if (!agent) return { bic: '' };
+          if (!agent) {
+            return { bic: '' };
+          }
           return { bic: agent?.FinInstnId?.BICFI };
         }
 
@@ -195,7 +210,7 @@ export class CashManagementReturnTransaction implements GenericISO20022Message {
   }
 
   static fromXML(xml: string): CashManagementReturnTransaction {
-    const parser = XML.getParser();
+    const parser = getXmlParser();
     const doc = parser.parse(xml);
 
     if (!doc.Document) {
@@ -204,26 +219,26 @@ export class CashManagementReturnTransaction implements GenericISO20022Message {
 
     const namespace = (doc.Document['@_xmlns'] ||
       doc.Document['@_Xmlns']) as string;
-    if (!namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:camt.004.001.')) {
-      throw new InvalidXmlNamespaceError('Invalid CAMT.004 namespace');
+    if (!namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:camt.006.001.')) {
+      throw new InvalidXmlNamespaceError('Invalid CAMT.006 namespace');
     }
-    return CashManagementReturnTransaction.fromDocumentOject(doc);
+    return CashManagementReturnTransaction.fromDocumentObject(doc);
   }
 
   static fromJSON(json: string): CashManagementReturnTransaction {
-    const obj = JSON.parse(json);
+    const obj = JSON.parse(json) as { Document: any };
 
     if (!obj.Document) {
       throw new Error('Invalid JSON format');
     }
 
-    return CashManagementReturnTransaction.fromDocumentOject(obj);
+    return CashManagementReturnTransaction.fromDocumentObject(obj);
   }
 
   serialize(): string {
-    const builder = XML.getBuilder();
+    const builder = getXmlBuilder();
     const obj = this.toJSON();
-    obj.Document['@_xmlns'] = 'urn:iso:std:iso:20022:tech:xsd:camt.004.001.02';
+    obj.Document['@_xmlns'] = 'urn:iso:std:iso:20022:tech:xsd:camt.006.001.02';
     obj.Document['@_xmlns:xsi'] = 'http://www.w3.org/2001/XMLSchema-instance';
 
     return builder.build(obj);
@@ -260,7 +275,9 @@ export class CashManagementReturnTransaction implements GenericISO20022Message {
 
               if (report.report) {
                 function exportParty(p?: Party): any {
-                  if (!p) return undefined;
+                  if (!p) {
+                    return;
+                  }
                   return {
                     Pty: {
                       Nm: p.name,
@@ -270,12 +287,16 @@ export class CashManagementReturnTransaction implements GenericISO20022Message {
                   };
                 }
                 function exportAgent(a?: Agent): any {
-                  if (!a) return undefined;
-                  if ('bic' in a && a.bic)
+                  if (!a) {
+                    return;
+                  }
+                  if ('bic' in a && a.bic) {
                     return { FinInstnId: { BICFI: a.bic } };
-                  if ('abaRoutingNumber' in a && a.abaRoutingNumber)
+                  }
+                  if ('abaRoutingNumber' in a && a.abaRoutingNumber) {
                     return { FinInstId: { Othr: { Id: a.abaRoutingNumber } } };
-                  return undefined;
+                  }
+                  return;
                 }
                 const [codeType, code] = report.report.status
                   ? report.report.status.code.split(':')

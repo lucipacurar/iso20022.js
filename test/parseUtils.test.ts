@@ -5,13 +5,13 @@ describe('parseAmountToMinorUnits', () => {
   test('converts USD amount to minor units', () => {
     expect(parseAmountToMinorUnits(10.5, 'USD')).toBe(1050);
     expect(parseAmountToMinorUnits(0.01, 'USD')).toBe(1);
-    expect(parseAmountToMinorUnits(100, 'USD')).toBe(10000);
+    expect(parseAmountToMinorUnits(100, 'USD')).toBe(10_000);
   });
 
   // Figure out why JPY has a precision of 2, instead of 0
-  // Fix the precision by currency with the lib/currencies.ts 
+  // Fix the precision by currency with the lib/currencies.ts
   test('converts JPY amount to minor units', () => {
-    expect(parseAmountToMinorUnits(100000, 'JPY')).toBe(100000);
+    expect(parseAmountToMinorUnits(100_000, 'JPY')).toBe(100_000);
   });
 
   test('handles string input for amount', () => {

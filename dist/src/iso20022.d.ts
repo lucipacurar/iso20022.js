@@ -1,11 +1,11 @@
-import { Party, SWIFTCreditPaymentInstruction, SEPACreditPaymentInstruction, RTPCreditPaymentInstruction, ACHCreditPaymentInstruction } from './lib/types.js';
-import { SWIFTCreditPaymentInitiation } from './pain/001/swift-credit-payment-initiation';
-import { SEPACreditPaymentInitiation } from './pain/001/sepa-credit-payment-initiation';
-import { SEPAMultiCreditPaymentInitiation, SEPAMultiCreditPaymentInstructionGroup } from './pain/001/sepa-multi-credit-payment-initiation';
-import { RTPCreditPaymentInitiation } from './pain/001/rtp-credit-payment-initiation';
+import { type GenericISO20022Message, type ISO20022MessageTypeName } from './lib/interfaces';
+import type { ACHCreditPaymentInstruction, Party, RTPCreditPaymentInstruction, SEPACreditPaymentInstruction, SWIFTCreditPaymentInstruction } from './lib/types.js';
 import { ACHCreditPaymentInitiation } from './pain/001/ach-credit-payment-initiation';
-import { SEPADirectDebitPaymentInitiation, SEPADirectDebitPaymentInstructionGroup } from './pain/008/sepa-direct-debit-payment-initiation';
-import { GenericISO20022Message, ISO20022MessageTypeName } from './lib/interfaces';
+import { RTPCreditPaymentInitiation } from './pain/001/rtp-credit-payment-initiation';
+import { SEPACreditPaymentInitiation } from './pain/001/sepa-credit-payment-initiation';
+import { SEPAMultiCreditPaymentInitiation, type SEPAMultiCreditPaymentInstructionGroup } from './pain/001/sepa-multi-credit-payment-initiation';
+import { SWIFTCreditPaymentInitiation } from './pain/001/swift-credit-payment-initiation';
+import { SEPADirectDebitPaymentInitiation, type SEPADirectDebitPaymentInstructionGroup } from './pain/008/sepa-direct-debit-payment-initiation';
 export * from './camt';
 export * from './lib';
 type AtLeastOne<T> = [T, ...T[]];

@@ -1,5 +1,5 @@
 import { CashManagementEndOfDayReport } from '../../../src/camt/053/cash-management-end-of-day-report';
-import fs from 'fs';
+import fs from 'node:fs';
 
 describe('CashManagementEndOfDayReport', () => {
   describe('from XML and JSON', () => {
@@ -23,7 +23,7 @@ describe('CashManagementEndOfDayReport', () => {
         expect(report.balances.length).toBe(4);
 
         // Statement is correct
-        const statement = report.statements[0];
+        const statement = report.statements[0]!;
         expect(statement.id).toBe('258158850');
         expect(statement.creationDate).toBeInstanceOf(Date);
         expect(statement.electronicSequenceNumber).toBe(1);
@@ -32,7 +32,7 @@ describe('CashManagementEndOfDayReport', () => {
         expect(statement.toDate).toBeInstanceOf(Date);
         expect(statement.numOfEntries).toBe(14);
         expect(statement.sumOfEntries).toBe(140);
-        expect(statement.netAmountOfEntries).toBe(40_00);
+        expect(statement.netAmountOfEntries).toBe(4000);
         expect(statement.account).toEqual({
           accountNumber: 'DD01100056869',
           currency: 'USD',
@@ -44,8 +44,8 @@ describe('CashManagementEndOfDayReport', () => {
 
         // Balances
         expect(statement.balances.length).toBe(4);
-        const firstBalance = statement.balances[0];
-        expect(firstBalance.amount).toBe(843686_20);
+        const firstBalance = statement.balances[0]!;
+        expect(firstBalance.amount).toBe(84_368_620);
         expect(firstBalance.currency).toBe('USD');
         expect(firstBalance.creditDebitIndicator).toBe('debit');
         expect(firstBalance.type).toBe('OPBD');
@@ -60,8 +60,8 @@ describe('CashManagementEndOfDayReport', () => {
         expect(reversedEntries.length).toBe(3);
 
         expect(statement.entries.length).toBe(15);
-        const firstEntry = statement.entries[0];
-        expect(firstEntry.amount).toBe(10_00);
+        const firstEntry = statement.entries[0]!;
+        expect(firstEntry.amount).toBe(1000);
         expect(firstEntry.currency).toBe('USD');
         expect(firstEntry.creditDebitIndicator).toBe('credit');
         expect(firstEntry.proprietaryCode).toBe('ACH Credit Reject');
@@ -72,7 +72,7 @@ describe('CashManagementEndOfDayReport', () => {
 
         // Currently, we flatten entry details into a list of transactions
         expect(firstEntry.transactions.length).toBe(1);
-        const firstTransaction = firstEntry.transactions[0];
+        const firstTransaction = firstEntry.transactions[0]!;
         expect(firstTransaction.messageId).toBe('GSNULXSKMMJ479NMKS');
         expect(firstTransaction.accountServicerReferenceId).toBe(
           'B20092800002225',
@@ -130,12 +130,15 @@ describe('CashManagementEndOfDayReport', () => {
 
         // Generate a json object for the JSON parsing test
         const json = report.toJSON();
-        fs.writeFileSync(filePath.replace('.xml', '.json'), JSON.stringify(json, null, 2), "utf8");
-        
+        fs.writeFileSync(
+          filePath.replace('.xml', '.json'),
+          `${JSON.stringify(json, null, 2)}\n`,
+          'utf8',
+        );
+
         // Generate XML from object for testing the serialize method
         const xml = report.serialize();
-        fs.writeFileSync(filePath.replace('.xml', '.out.xml'), xml, "utf8");
-
+        fs.writeFileSync(filePath.replace('.xml', '.out.xml'), xml, 'utf8');
       });
       it('should create an instance with valid config from JSON', () => {
         filePath = `${process.cwd()}/test/assets/goldman_sachs/camt_053_us_v2_sample.json`;
@@ -143,8 +146,6 @@ describe('CashManagementEndOfDayReport', () => {
         report = CashManagementEndOfDayReport.fromJSON(camt053V2Sample);
 
         checkStatementReport();
-
-
       });
     });
 
@@ -183,7 +184,7 @@ describe('CashManagementEndOfDayReport', () => {
         expect(report.messageId).toBe('XML12345678901234567890123456789012');
 
         // First balance parses file (Dt)
-        const firstBalance = report.statements[0].balances[0];
+        const firstBalance = report.statements[0]!.balances[0]!;
         expect(firstBalance.date).toEqual(new Date('2019-05-08'));
       });
     });
@@ -197,10 +198,10 @@ describe('CashManagementEndOfDayReport', () => {
         expect(report.entries.length).toBe(13);
 
         // First balance parses file (Dt)
-        const firstBalance = report.statements[0].balances[0];
+        const firstBalance = report.statements[0]!.balances[0]!;
         expect(firstBalance.date).toEqual(new Date('2013-03-28'));
 
-        const [firstEntry] = report.entries;
+        const firstEntry = report.entries[0]!;
 
         expect(firstEntry.referenceId).toBeUndefined();
         expect(firstEntry.creditDebitIndicator).toBe('credit');
@@ -235,16 +236,16 @@ describe('CashManagementEndOfDayReport', () => {
         expect(report.entries.length).toBe(9);
 
         // First balance parses file (Dt)
-        const firstBalance = report.statements[0].balances[0];
+        const firstBalance = report.statements[0]!.balances[0]!;
         expect(firstBalance.date).toEqual(new Date('2014-01-02'));
 
-        const [firstEntry] = report.entries;
+        const firstEntry = report.entries[0]!;
 
         expect(firstEntry.referenceId).toBe('011111333306999888000000008');
         expect(firstEntry.creditDebitIndicator).toBe('credit');
         expect(firstEntry.reversal).toBe(false);
         expect(firstEntry.bookingDate).toEqual(new Date('2014-01-03'));
-        expect(firstEntry.amount).toBe(35000);
+        expect(firstEntry.amount).toBe(35_000);
         expect(firstEntry.currency).toBe('EUR');
         expect(firstEntry.proprietaryCode).toBe('00100');
         expect(firstEntry.transactions.length).toBe(1);
@@ -268,7 +269,6 @@ describe('CashManagementEndOfDayReport', () => {
       });
     });
   });
-
 
   describe('with a non-CAMT 053 XML file', () => {
     it('should throw an error', () => {

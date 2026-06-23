@@ -1,22 +1,23 @@
 import { XMLBuilder } from 'fast-xml-parser';
-import {
-  Party,
-  IBANAccount,
-  BICAgent,
-  Account,
-  BaseAccount,
-  Agent,
-  ABAAgent,
-  MandateInformation,
-} from '../../lib/types';
+
 import { XMLNS_PREFIX } from '../../lib/interfaces';
+import type {
+  ABAAgent,
+  Account,
+  Agent,
+  BaseAccount,
+  BICAgent,
+  IBANAccount,
+  MandateInformation,
+  Party,
+} from '../../lib/types';
 
 /**
  * Abstract base class for ISO20022 payment initiation (PAIN) messages.
  * @abstract
  */
 export abstract class PaymentInitiation {
-  public type: 'swift' | 'rtp' | 'sepa' | 'ach';
+  type: 'swift' | 'rtp' | 'sepa' | 'ach';
 
   constructor({ type }: { type: 'swift' | 'rtp' | 'sepa' | 'ach' }) {
     this.type = type;
@@ -132,13 +133,7 @@ export abstract class PaymentInitiation {
    * // Returns: { FinInstnId: { ClrSysMmbId: { MmbId: '026009593' } } }
    */
   agent(agent: Agent) {
-    if ((agent as BICAgent).bic !== undefined) {
-      return {
-        FinInstnId: {
-          BIC: (agent as BICAgent).bic,
-        },
-      };
-    } else {
+    if ((agent as BICAgent).bic === undefined) {
       return {
         FinInstnId: {
           ClrSysMmbId: {
@@ -150,6 +145,11 @@ export abstract class PaymentInitiation {
         },
       };
     }
+    return {
+      FinInstnId: {
+        BIC: (agent as BICAgent).bic,
+      },
+    };
   }
 
   buildMandateRelatedInfo(mandate: MandateInformation) {

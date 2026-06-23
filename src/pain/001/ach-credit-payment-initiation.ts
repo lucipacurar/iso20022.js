@@ -1,24 +1,28 @@
-import {
-  ABAAgent,
-  ACHCreditPaymentInstruction,
-  ACHLocalInstrument,
-  ACHLocalInstrumentCode,
-  Account,
-  Agent,
-  BaseAccount,
-  Party,
-} from '../../lib/types';
-import { Currency, formatMinorUnits } from '../../lib/currencies';
-import { sanitize, generateId } from '../../utils/format';
-import { PaymentInitiation } from './payment-initiation';
-import { XML, XMLNS_PREFIX, ISO20022SchemaId } from '../../lib/interfaces';
 import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
+import type { Alpha2Country } from '../../lib/countries';
+import { type Currency, formatMinorUnits } from '../../lib/currencies';
+import {
+  getXmlParser,
+  ISO20022SchemaId,
+  XMLNS_PREFIX,
+} from '../../lib/interfaces';
+import {
+  type ABAAgent,
+  type ACHCreditPaymentInstruction,
+  type ACHLocalInstrument,
+  ACHLocalInstrumentCode,
+  type Account,
+  type Agent,
+  type BaseAccount,
+  type Party,
+} from '../../lib/types';
 import {
   parseAccount,
   parseAgent,
   parseAmountToMinorUnits,
 } from '../../parseUtils';
-import { Alpha2Country } from '../../lib/countries';
+import { generateId, sanitize } from '../../utils/format';
+import { PaymentInitiation } from './payment-initiation';
 
 type AtLeastOne<T> = [T, ...T[]];
 
@@ -89,14 +93,14 @@ export interface ACHCreditPaymentInitiationConfig {
  * ```
  */
 export class ACHCreditPaymentInitiation extends PaymentInitiation {
-  public initiatingParty: Party;
-  public paymentInstructions: AtLeastOne<ACHCreditPaymentInstruction>;
-  public messageId: string;
-  public creationDate: Date;
-  public paymentInformationId: string;
-  public localInstrument: string;
-  public serviceLevel: string;
-  public instructionPriority: string;
+  initiatingParty: Party;
+  paymentInstructions: AtLeastOne<ACHCreditPaymentInstruction>;
+  messageId: string;
+  creationDate: Date;
+  paymentInformationId: string;
+  localInstrument: string;
+  serviceLevel: string;
+  instructionPriority: string;
   private formattedPaymentSum: string;
 
   get schemaId(): string {
@@ -201,7 +205,7 @@ export class ACHCreditPaymentInitiation extends PaymentInitiation {
    * Serializes the ACH credit transfer initiation to an XML string.
    * @returns {string} The XML representation of the ACH credit transfer initiation.
    */
-  public serialize(): string {
+  serialize(): string {
     const builder = PaymentInitiation.getBuilder();
     const xml = {
       '?xml': {
@@ -262,8 +266,8 @@ export class ACHCreditPaymentInitiation extends PaymentInitiation {
    * @throws {InvalidXmlNamespaceError} If the XML namespace is invalid.
    * @throws {Error} If multiple payment information blocks are found.
    */
-  public static fromXML(rawXml: string): ACHCreditPaymentInitiation {
-    const parser = XML.getParser();
+  static fromXML(rawXml: string): ACHCreditPaymentInitiation {
+    const parser = getXmlParser();
     const xml = parser.parse(rawXml);
 
     if (!xml.Document) {
@@ -290,7 +294,7 @@ export class ACHCreditPaymentInitiation extends PaymentInitiation {
     }
 
     // Extract payment type information
-    const pmtTpInf = xml.Document.CstmrCdtTrfInitn.PmtInf.PmtTpInf;
+    const _pmtTpInf = xml.Document.CstmrCdtTrfInitn.PmtInf.PmtTpInf;
 
     // Assuming we have one PmtInf / one Debtor, we can hack together this information from InitgPty / Dbtr
     const initiatingParty = {
@@ -326,8 +330,8 @@ export class ACHCreditPaymentInitiation extends PaymentInitiation {
         }),
         type: 'ach',
         direction: 'credit',
-        amount: amount,
-        currency: currency,
+        amount,
+        currency,
         creditor: {
           name: inst.Cdtr?.Nm as string,
           agent: parseAgent(inst.CdtrAgt),
@@ -371,10 +375,10 @@ export class ACHCreditPaymentInitiation extends PaymentInitiation {
     }) as AtLeastOne<ACHCreditPaymentInstruction>;
 
     return new ACHCreditPaymentInitiation({
-      messageId: messageId,
-      creationDate: creationDate,
-      initiatingParty: initiatingParty,
-      paymentInstructions: paymentInstructions,
+      messageId,
+      creationDate,
+      initiatingParty,
+      paymentInstructions,
     });
   }
 }

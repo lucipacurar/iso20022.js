@@ -1,4 +1,12 @@
+import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
+import type { Alpha2Country } from '../../lib/countries';
+import { type Currency, formatMinorUnits } from '../../lib/currencies';
 import {
+  getXmlParser,
+  ISO20022SchemaId,
+  XMLNS_PREFIX,
+} from '../../lib/interfaces';
+import type {
   ABAAgent,
   Account,
   Agent,
@@ -6,17 +14,13 @@ import {
   Party,
   RTPCreditPaymentInstruction,
 } from '../../lib/types';
-import { Currency, formatMinorUnits } from '../../lib/currencies';
-import { sanitize, generateId } from '../../utils/format';
-import { PaymentInitiation } from './payment-initiation';
-import { XML, XMLNS_PREFIX, ISO20022SchemaId } from '../../lib/interfaces';
-import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
 import {
   parseAccount,
   parseAgent,
   parseAmountToMinorUnits,
 } from '../../parseUtils';
-import { Alpha2Country } from 'lib/countries';
+import { generateId, sanitize } from '../../utils/format';
+import { PaymentInitiation } from './payment-initiation';
 
 type AtLeastOne<T> = [T, ...T[]];
 
@@ -61,11 +65,11 @@ export interface RTPCreditPaymentInitiationConfig {
  * @see {@link https://docs.iso20022js.com/pain/rtpcredit} for more information.
  */
 export class RTPCreditPaymentInitiation extends PaymentInitiation {
-  public initiatingParty: Party;
-  public paymentInstructions: AtLeastOne<RTPCreditPaymentInstruction>;
-  public messageId: string;
-  public creationDate: Date;
-  public paymentInformationId: string;
+  initiatingParty: Party;
+  paymentInstructions: AtLeastOne<RTPCreditPaymentInstruction>;
+  messageId: string;
+  creationDate: Date;
+  paymentInformationId: string;
   private formattedPaymentSum: string;
 
   get schemaId(): string {
@@ -154,7 +158,7 @@ export class RTPCreditPaymentInitiation extends PaymentInitiation {
    * Serializes the RTP credit transfer initiation to an XML string.
    * @returns {string} The XML representation of the RTP credit transfer initiation.
    */
-  public serialize(): string {
+  serialize(): string {
     const builder = PaymentInitiation.getBuilder();
     const xml = {
       '?xml': {
@@ -207,8 +211,8 @@ export class RTPCreditPaymentInitiation extends PaymentInitiation {
     return builder.build(xml);
   }
 
-  public static fromXML(rawXml: string): RTPCreditPaymentInitiation {
-    const parser = XML.getParser();
+  static fromXML(rawXml: string): RTPCreditPaymentInitiation {
+    const parser = getXmlParser();
     const xml = parser.parse(rawXml);
 
     if (!xml.Document) {
@@ -268,8 +272,8 @@ export class RTPCreditPaymentInitiation extends PaymentInitiation {
         }),
         type: 'sepa',
         direction: 'credit',
-        amount: amount,
-        currency: currency,
+        amount,
+        currency,
         creditor: {
           name: inst.Cdtr?.Nm as string,
           agent: parseAgent(inst.CdtrAgt),
@@ -313,10 +317,10 @@ export class RTPCreditPaymentInitiation extends PaymentInitiation {
     }) as AtLeastOne<RTPCreditPaymentInstruction>;
 
     return new RTPCreditPaymentInitiation({
-      messageId: messageId,
-      creationDate: creationDate,
-      initiatingParty: initiatingParty,
-      paymentInstructions: paymentInstructions,
+      messageId,
+      creationDate,
+      initiatingParty,
+      paymentInstructions,
     });
   }
 }

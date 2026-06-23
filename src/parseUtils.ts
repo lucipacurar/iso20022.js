@@ -1,4 +1,11 @@
+import { Decimal } from 'decimal.js';
+
 import {
+  type Currency,
+  formatMinorUnits,
+  getCurrencyPrecision,
+} from './lib/currencies';
+import type {
   Account,
   AccountIdentification,
   AccountIdentificationIBAN,
@@ -10,13 +17,7 @@ import {
   MessageHeader,
   Party,
   StructuredAddress,
-} from 'lib/types';
-import {
-  Currency,
-  formatMinorUnits,
-  getCurrencyPrecision,
-} from './lib/currencies';
-import { Decimal } from 'decimal.js';
+} from './lib/types';
 
 export const parseAccount = (account: any): Account => {
   // Return just IBAN if it exists, else detailed local account details
@@ -57,13 +58,12 @@ export const parseAccountIdentification = (
     return {
       iban: accountId.IBAN,
     } as AccountIdentificationIBAN;
-  } else {
-    return {
-      id: accountId.Othr?.Id,
-      schemeName: accountId.Othr?.SchmeNm?.Cd || accountId.Othr?.SchmeNm?.Prtry,
-      issuer: accountId.Othr?.Issr,
-    } as AccountIdentificationOther;
   }
+  return {
+    id: accountId.Othr?.Id,
+    schemeName: accountId.Othr?.SchmeNm?.Cd || accountId.Othr?.SchmeNm?.Prtry,
+    issuer: accountId.Othr?.Issr,
+  } as AccountIdentificationOther;
 };
 
 export const exportAccountIdentification = (
@@ -71,22 +71,21 @@ export const exportAccountIdentification = (
 ): any => {
   if ((accountId as any).iban) {
     return { IBAN: (accountId as AccountIdentificationIBAN).iban };
-  } else {
-    const obj: any = {
-      Othr: {
-        Id: (accountId as AccountIdentificationOther).id,
-      },
-    };
-    if ((accountId as AccountIdentificationOther).schemeName) {
-      obj.Othr.SchmeNm = {
-        Cd: (accountId as AccountIdentificationOther).schemeName,
-      }; // TODO: Add support for Prtry scheme name
-    }
-    if ((accountId as AccountIdentificationOther).issuer) {
-      obj.Othr.Issr = (accountId as AccountIdentificationOther).issuer;
-    }
-    return obj;
   }
+  const obj: any = {
+    Othr: {
+      Id: (accountId as AccountIdentificationOther).id,
+    },
+  };
+  if ((accountId as AccountIdentificationOther).schemeName) {
+    obj.Othr.SchmeNm = {
+      Cd: (accountId as AccountIdentificationOther).schemeName,
+    }; // TODO: Add support for Prtry scheme name
+  }
+  if ((accountId as AccountIdentificationOther).issuer) {
+    obj.Othr.Issr = (accountId as AccountIdentificationOther).issuer;
+  }
+  return obj;
 };
 
 // TODO: Add both BIC and ABA routing numbers at the same time
@@ -106,34 +105,32 @@ export const parseAgent = (agent: any): Agent => {
   );
 };
 
-export const parseMandate = (mandateInfo: any): MandateInformation => {
-  return {
-    mandateId: mandateInfo?.MndtId as string,
-    dateOfSignature: new Date(mandateInfo?.DtOfSgntr as string),
-    amendmentIndicator:
-      mandateInfo?.AmdmntInd === 'true' || mandateInfo?.AmdmntInd === true,
-    ...(mandateInfo?.AmdmntInd &&
-      mandateInfo?.AmdmntInfDtls && {
-        amendmentInformation: {
-          ...(mandateInfo.AmdmntInfDtls.OrgnlMndtId && {
-            originalMandateId: mandateInfo.AmdmntInfDtls.OrgnlMndtId as string,
-          }),
-          ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId && {
-            originalCreditorSchemeId: {
-              ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Nm && {
-                name: mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Nm as string,
-              }),
-              ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Id?.PrvtId?.Othr
-                ?.Id && {
-                id: mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Id.PrvtId.Othr
-                  .Id as string,
-              }),
-            },
-          }),
-        },
-      }),
-  };
-};
+export const parseMandate = (mandateInfo: any): MandateInformation => ({
+  mandateId: mandateInfo?.MndtId as string,
+  dateOfSignature: new Date(mandateInfo?.DtOfSgntr as string),
+  amendmentIndicator:
+    mandateInfo?.AmdmntInd === 'true' || mandateInfo?.AmdmntInd === true,
+  ...(mandateInfo?.AmdmntInd &&
+    mandateInfo?.AmdmntInfDtls && {
+      amendmentInformation: {
+        ...(mandateInfo.AmdmntInfDtls.OrgnlMndtId && {
+          originalMandateId: mandateInfo.AmdmntInfDtls.OrgnlMndtId as string,
+        }),
+        ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId && {
+          originalCreditorSchemeId: {
+            ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Nm && {
+              name: mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Nm as string,
+            }),
+            ...(mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Id?.PrvtId?.Othr
+              ?.Id && {
+              id: mandateInfo.AmdmntInfDtls.OrgnlCdtrSchmeId.Id.PrvtId.Othr
+                .Id as string,
+            }),
+          },
+        }),
+      },
+    }),
+});
 
 export const exportAgent = (agent: Agent): any => {
   const obj: any = {
@@ -160,9 +157,7 @@ export const parseAmountToMinorUnits = (
 export const exportAmountToString = (
   amount: number,
   currency: Currency = 'USD',
-): string => {
-  return formatMinorUnits(amount, currency);
-};
+): string => formatMinorUnits(amount, currency);
 
 export const parseDate = (dateElement: any): Date => {
   // Find the date element, which can be DtTm or Dt
@@ -170,12 +165,11 @@ export const parseDate = (dateElement: any): Date => {
   return new Date(date);
 };
 
-export const parseParty = (party: any): Party => {
-  return {
+export const parseParty = (party: any): Party =>
+  ({
     id: party.Id?.OrgId?.Othr?.Id,
     name: party.Nm,
-  } as Party;
-};
+  }) as Party;
 
 export const parseRecipient = (
   recipient: any,
@@ -183,53 +177,46 @@ export const parseRecipient = (
   id?: string;
   name?: string;
   address?: StructuredAddress;
-} => {
-  return {
-    id: recipient.Id?.OrgId?.Othr?.Id,
-    name: recipient.Nm,
-  };
-};
+} => ({
+  id: recipient.Id?.OrgId?.Othr?.Id,
+  name: recipient.Nm,
+});
 
 export const exportRecipient = (
   recipient: ReturnType<typeof parseRecipient>,
-): any => {
-  return {
-    Id: recipient.id ? { OrgId: { Othr: { Id: recipient.id } } } : undefined,
-    Nm: recipient.name,
-  };
-};
+): any => ({
+  Id: recipient.id ? { OrgId: { Othr: { Id: recipient.id } } } : undefined,
+  Nm: recipient.name,
+});
 
 // Standardize into a single string
 export const parseAdditionalInformation = (
   additionalInformation: any,
 ): string | undefined => {
   if (!additionalInformation) {
-    return undefined;
+    return;
   }
 
   if (Array.isArray(additionalInformation)) {
     return additionalInformation.join('\n');
-  } else {
-    return additionalInformation;
   }
+  return additionalInformation;
 };
 
-export const parseMessageHeader = (rawHeader: any): MessageHeader => {
-  return {
-    id: rawHeader.MsgId,
-    creationDateTime: rawHeader.CreDtTm
-      ? parseDate(rawHeader.CreDtTm)
-      : undefined,
-    queryName: rawHeader.QueryNm,
-    requestType:
-      rawHeader.ReqTp?.PmtCtrl ||
-      rawHeader.ReqTp?.Enqry ||
-      rawHeader.ReqTp?.Prtry,
-    originalMessageHeader: rawHeader.OrgnlBizQry
-      ? parseMessageHeader(rawHeader.OrgnlBizQry)
-      : undefined,
-  };
-};
+export const parseMessageHeader = (rawHeader: any): MessageHeader => ({
+  id: rawHeader.MsgId,
+  creationDateTime: rawHeader.CreDtTm
+    ? parseDate(rawHeader.CreDtTm)
+    : undefined,
+  queryName: rawHeader.QueryNm,
+  requestType:
+    rawHeader.ReqTp?.PmtCtrl ||
+    rawHeader.ReqTp?.Enqry ||
+    rawHeader.ReqTp?.Prtry,
+  originalMessageHeader: rawHeader.OrgnlBizQry
+    ? parseMessageHeader(rawHeader.OrgnlBizQry)
+    : undefined,
+});
 
 export const exportMessageHeader = (header: MessageHeader): any => {
   const obj: any = {

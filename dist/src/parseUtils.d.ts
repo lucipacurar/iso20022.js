@@ -1,5 +1,5 @@
-import { Account, AccountIdentification, Agent, MandateInformation, MessageHeader, Party, StructuredAddress } from 'lib/types';
-import { Currency } from './lib/currencies';
+import { type Currency } from './lib/currencies';
+import type { Account, AccountIdentification, Agent, MandateInformation, MessageHeader, Party, StructuredAddress } from './lib/types';
 export declare const parseAccount: (account: any) => Account;
 export declare const exportAccount: (account: Account) => any;
 export declare const parseAccountIdentification: (accountId: any) => AccountIdentification;

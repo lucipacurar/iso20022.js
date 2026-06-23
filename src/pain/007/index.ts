@@ -1,8 +1,8 @@
-export { SEPADirectDebitPaymentReversal } from './sepa-direct-debit-payment-reversal';
 export type {
+  OriginalMessageReference,
+  OriginalTransactionReference,
   SEPADirectDebitPaymentReversalConfig,
   SEPADirectDebitReversalInstructionGroup,
   SEPADirectDebitReversalTransaction,
-  OriginalMessageReference,
-  OriginalTransactionReference,
 } from './sepa-direct-debit-payment-reversal';
+export { SEPADirectDebitPaymentReversal } from './sepa-direct-debit-payment-reversal';

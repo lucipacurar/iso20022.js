@@ -1,3 +1,11 @@
+import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
+import type { Alpha2Country } from '../../lib/countries';
+import { type Currency, formatMinorUnits } from '../../lib/currencies';
+import {
+  getXmlParser,
+  ISO20022SchemaId,
+  XMLNS_PREFIX,
+} from '../../lib/interfaces';
 import type {
   Account,
   Agent,
@@ -7,17 +15,13 @@ import type {
   Party,
   SEPACreditPaymentInstruction,
 } from '../../lib/types';
-import { PaymentInitiation } from './payment-initiation';
-import { sanitize, generateId } from '../../utils/format';
-import { type Currency, formatMinorUnits } from '../../lib/currencies';
-import { XML, XMLNS_PREFIX, ISO20022SchemaId } from '../../lib/interfaces';
-import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
 import {
   parseAccount,
   parseAgent,
   parseAmountToMinorUnits,
 } from '../../parseUtils';
-import type { Alpha2Country } from '../../lib/countries';
+import { generateId, sanitize } from '../../utils/format';
+import { PaymentInitiation } from './payment-initiation';
 
 type AtLeastOne<T> = [T, ...T[]];
 
@@ -84,10 +88,10 @@ export interface SEPAMultiCreditPaymentInitiationConfig {
  * ```
  */
 export class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
-  public initiatingParty: Party;
-  public messageId: string;
-  public creationDate: Date;
-  public paymentInstructions: AtLeastOne<SEPAMultiCreditPaymentInstructionGroup>;
+  initiatingParty: Party;
+  messageId: string;
+  creationDate: Date;
+  paymentInstructions: AtLeastOne<SEPAMultiCreditPaymentInstructionGroup>;
   private formattedPaymentSum: string;
   private totalTransactionCount: number;
 
@@ -116,9 +120,10 @@ export class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
    * @returns {number} The total count of all transactions.
    */
   private countAllTransactions(): number {
-    return this.paymentInstructions.reduce((total, group) => {
-      return total + group.payments.length;
-    }, 0);
+    return this.paymentInstructions.reduce(
+      (total, group) => total + group.payments.length,
+      0,
+    );
   }
 
   /**
@@ -172,11 +177,7 @@ export class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
   private validateGroupInstructionsHaveSameCurrency(
     payments: AtLeastOne<SEPACreditPaymentInstruction>,
   ) {
-    if (
-      !payments.every(i => {
-        return i.currency === payments[0].currency;
-      })
-    ) {
+    if (!payments.every(i => i.currency === payments[0].currency)) {
       throw new Error(
         'In order to calculate the payment instructions sum, all payment instruction currencies within a group must be the same.',
       );
@@ -225,18 +226,18 @@ export class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
    * Serializes the SEPA multi credit transfer initiation to an XML string.
    * @returns {string} The XML representation of the SEPA multi credit transfer initiation.
    */
-  public serialize(): string {
+  serialize(): string {
     const builder = PaymentInitiation.getBuilder();
 
     // Generate one PmtInf entry per individual payment
-    const paymentInfoEntries = this.paymentInstructions.flatMap(group => {
-      return group.payments.map(payment => {
+    const paymentInfoEntries = this.paymentInstructions.flatMap(group =>
+      group.payments.map(payment => {
         const pmtInfId = generateId();
         const requestedExecutionDate =
           payment.requestedPaymentExecutionDate || new Date();
 
         const batchBooking =
-          group.batchBooking !== undefined ? group.batchBooking : false;
+          group.batchBooking === undefined ? false : group.batchBooking;
 
         return {
           PmtInfId: pmtInfId,
@@ -257,8 +258,8 @@ export class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
           ChrgBr: 'SLEV',
           CdtTrfTxInf: this.creditTransfer(payment),
         };
-      });
-    });
+      }),
+    );
 
     const xml = {
       '?xml': {
@@ -304,8 +305,8 @@ export class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
    * @throws {InvalidXmlError} If the XML format is invalid.
    * @throws {InvalidXmlNamespaceError} If the namespace is not pain.001.001.03.
    */
-  public static fromXML(rawXml: string): SEPAMultiCreditPaymentInitiation {
-    const parser = XML.getParser();
+  static fromXML(rawXml: string): SEPAMultiCreditPaymentInitiation {
+    const parser = getXmlParser();
     const xml = parser.parse(rawXml);
 
     // Validate XML structure
@@ -385,8 +386,8 @@ export class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
           }),
           type: 'sepa' as const,
           direction: 'credit' as const,
-          amount: amount,
-          currency: currency,
+          amount,
+          currency,
           ...(requestedExecutionDate && {
             requestedPaymentExecutionDate: requestedExecutionDate,
           }),
@@ -438,18 +439,18 @@ export class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
 
       return {
         initiatingParty: groupInitiatingParty,
-        payments: payments,
+        payments,
         ...(categoryPurpose && { categoryPurpose }),
-        batchBooking: batchBooking,
+        batchBooking,
       };
     }) as AtLeastOne<SEPAMultiCreditPaymentInstructionGroup>;
 
     // Return new instance
     return new SEPAMultiCreditPaymentInitiation({
-      messageId: messageId,
-      creationDate: creationDate,
+      messageId,
+      creationDate,
       initiatingParty: topLevelInitiatingParty,
-      paymentInstructions: paymentInstructions,
+      paymentInstructions,
     });
   }
 }

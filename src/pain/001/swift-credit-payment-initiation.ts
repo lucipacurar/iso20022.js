@@ -1,9 +1,12 @@
-import { Currency, minorUnitsToNumber } from '../../lib/currencies';
-import { XMLBuilder } from 'fast-xml-parser';
-import { XML, XMLNS_PREFIX, ISO20022SchemaId } from '../../lib/interfaces';
 import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
-import { Alpha2Country } from '../../lib/countries';
+import type { Alpha2Country } from '../../lib/countries';
+import { type Currency, minorUnitsToNumber } from '../../lib/currencies';
 import {
+  getXmlParser,
+  ISO20022SchemaId,
+  XMLNS_PREFIX,
+} from '../../lib/interfaces';
+import type {
   Account,
   BICAgent,
   IBANAccount,
@@ -11,7 +14,7 @@ import {
   SWIFTCreditPaymentInstruction,
 } from '../../lib/types.js';
 import { parseAccount, parseAmountToMinorUnits } from '../../parseUtils';
-import { sanitize, generateId } from '../../utils/format';
+import { generateId, sanitize } from '../../utils/format';
 import { PaymentInitiation } from './payment-initiation';
 
 type AtLeastOne<T> = [T, ...T[]];
@@ -55,11 +58,11 @@ export interface SWIFTCreditPaymentInitiationConfig {
  * @see {@link https://docs.iso20022js.com/pain/sepacredit} for more information.
  */
 export class SWIFTCreditPaymentInitiation extends PaymentInitiation {
-  public initiatingParty: Party;
-  public messageId: string;
-  public creationDate: Date;
-  public paymentInstructions: SWIFTCreditPaymentInstruction[];
-  public paymentInformationId: string;
+  initiatingParty: Party;
+  messageId: string;
+  creationDate: Date;
+  paymentInstructions: SWIFTCreditPaymentInstruction[];
+  paymentInformationId: string;
 
   get schemaId(): string {
     return ISO20022SchemaId.PAIN_001_001_03;
@@ -95,7 +98,7 @@ export class SWIFTCreditPaymentInitiation extends PaymentInitiation {
     const creditorWithIncompleteAddress = this.paymentInstructions.find(
       instruction => {
         const address = instruction.creditor.address;
-        return !address || !address.country;
+        return !address?.country;
       },
     );
 
@@ -156,8 +159,8 @@ export class SWIFTCreditPaymentInitiation extends PaymentInitiation {
    * Serializes the payment initiation to an XML string.
    * @returns {string} The XML representation of the payment initiation.
    */
-  public static fromXML(rawXml: string): SWIFTCreditPaymentInitiation {
-    const parser = XML.getParser();
+  static fromXML(rawXml: string): SWIFTCreditPaymentInitiation {
+    const parser = getXmlParser();
     const xml = parser.parse(rawXml);
 
     if (!xml.Document) {
@@ -242,7 +245,7 @@ export class SWIFTCreditPaymentInitiation extends PaymentInitiation {
     });
   }
 
-  public serialize(): string {
+  serialize(): string {
     const builder = PaymentInitiation.getBuilder();
     const xml = {
       '?xml': {

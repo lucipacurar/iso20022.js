@@ -1,16 +1,16 @@
-import { XML } from '../../lib/interfaces';
-import { Party } from '../../lib/types';
+import { getXmlParser } from '../../lib/interfaces';
+import type { Party } from '../../lib/types';
 import { parseParty } from '../../parseUtils';
+import type {
+  OriginalGroupInformation,
+  PaymentStatus,
+  StatusInformation,
+} from './types';
 import {
   parseGroupStatusInformation,
   parsePaymentStatusInformations,
   parseTransactionStatusInformations,
 } from './utils';
-import {
-  StatusInformation,
-  PaymentStatus,
-  OriginalGroupInformation,
-} from './types';
 
 /**
  * Configuration interface for creating a PaymentStatusReport instance.
@@ -52,7 +52,7 @@ export class PaymentStatusReport {
    * @returns {PaymentStatusReport} A new PaymentStatusReport instance.
    */
   static fromXML(rawXml: string): PaymentStatusReport {
-    const parser = XML.getParser();
+    const parser = getXmlParser();
     const xml = parser.parse(rawXml);
     const customerPaymentStatusReport = xml.Document.CstmrPmtStsRpt;
     const rawCreationDate = customerPaymentStatusReport.GrpHdr.CreDtTm;
@@ -73,18 +73,16 @@ export class PaymentStatusReport {
       ? rawPmtInfAndSts
       : [rawPmtInfAndSts].filter(Boolean);
     // Find all TxnInfoAndSts
-    const txnInfoAndSts = pmtInfAndSts
-      .map(pmtInfAndSt => {
-        // If there is no TxInfAndSts, return an empty array
-        if (!pmtInfAndSt.hasOwnProperty('TxInfAndSts')) {
-          return [];
-        }
-        // Otherwise, return the TxInfAndSts
-        return Array.isArray(pmtInfAndSt.TxInfAndSts)
-          ? pmtInfAndSt.TxInfAndSts
-          : [pmtInfAndSt.TxInfAndSts];
-      })
-      .flat();
+    const txnInfoAndSts = pmtInfAndSts.flatMap(pmtInfAndSt => {
+      // If there is no TxInfAndSts, return an empty array
+      if (!Object.hasOwn(pmtInfAndSt, 'TxInfAndSts')) {
+        return [];
+      }
+      // Otherwise, return the TxInfAndSts
+      return Array.isArray(pmtInfAndSt.TxInfAndSts)
+        ? pmtInfAndSt.TxInfAndSts
+        : [pmtInfAndSt.TxInfAndSts];
+    });
 
     const statusInformations = [
       parseGroupStatusInformation(
@@ -101,7 +99,7 @@ export class PaymentStatusReport {
       creationDate,
       initatingParty,
       originalGroupInformation,
-      statusInformations: statusInformations,
+      statusInformations,
     });
   }
 
@@ -150,7 +148,11 @@ export class PaymentStatusReport {
    * @returns {StatusInformation} The first StatusInformation object in the statuses array.
    */
   get firstStatusInformation(): StatusInformation {
-    return this._statusInformations[0];
+    const first = this._statusInformations[0];
+    if (!first) {
+      throw new Error('PaymentStatusReport has no status information entries');
+    }
+    return first;
   }
 
   /**
@@ -167,6 +169,10 @@ export class PaymentStatusReport {
         return firstStatusInformation.originalPaymentId;
       case 'transaction':
         return firstStatusInformation.originalEndToEndId;
+      default:
+        throw new Error(
+          `Unsupported status information type: ${(firstStatusInformation as StatusInformation).type}`,
+        );
     }
   }
 

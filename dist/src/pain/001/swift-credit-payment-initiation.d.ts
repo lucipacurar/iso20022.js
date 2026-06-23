@@ -1,4 +1,4 @@
-import { Party, SWIFTCreditPaymentInstruction } from '../../lib/types.js';
+import type { Party, SWIFTCreditPaymentInstruction } from '../../lib/types.js';
 import { PaymentInitiation } from './payment-initiation';
 type AtLeastOne<T> = [T, ...T[]];
 /**

@@ -1,9 +1,9 @@
 import { PaymentStatusReport } from '../../../src/pain/002/payment-status-report';
 import {
-  PaymentStatusInformation,
   PaymentStatusCode,
+  type PaymentStatusInformation,
 } from '../../../src/pain/002/types';
-import fs from 'fs';
+import fs from 'node:fs';
 
 describe('PaymentStatusReport', () => {
   describe('fromXML', () => {
@@ -33,12 +33,12 @@ describe('PaymentStatusReport', () => {
         const pain002Sample = fs.readFileSync(xmlFilePath, 'utf8');
         report = PaymentStatusReport.fromXML(pain002Sample);
         expect(report.statusInformations).toHaveLength(1);
-        expect(report.statusInformations[0].type).toEqual('group');
-        expect(report.statusInformations[0].status).toEqual(
+        expect(report.statusInformations[0]!.type).toEqual('group');
+        expect(report.statusInformations[0]!.status).toEqual(
           PaymentStatusCode.AcceptedTechnicalValidation,
         );
         expect(
-          report.statusInformations[0].reason?.additionalInformation,
+          report.statusInformations[0]!.reason?.additionalInformation,
         ).toEqual(
           'File accepted post technical and profile validations\nOriginal File Name: 26951.json',
         );
@@ -51,7 +51,7 @@ describe('PaymentStatusReport', () => {
         const pain002Sample = fs.readFileSync(xmlFilePath, 'utf8');
         report = PaymentStatusReport.fromXML(pain002Sample);
         expect(report.statusInformations).toHaveLength(1);
-        expect(report.statusInformations[0].type).toEqual('payment');
+        expect(report.statusInformations[0]!.type).toEqual('payment');
         expect(report.status).toEqual(PaymentStatusCode.Accepted);
       });
     });
@@ -62,13 +62,13 @@ describe('PaymentStatusReport', () => {
         const pain002Sample = fs.readFileSync(xmlFilePath, 'utf8');
         report = PaymentStatusReport.fromXML(pain002Sample);
         expect(report.statusInformations).toHaveLength(1);
-        expect(report.statusInformations[0].type).toEqual('group');
-        expect(report.statusInformations[0].status).toEqual(
+        expect(report.statusInformations[0]!.type).toEqual('group');
+        expect(report.statusInformations[0]!.status).toEqual(
           PaymentStatusCode.Rejected,
         );
-        expect(report.statusInformations[0].reason?.code).toEqual('DU01');
+        expect(report.statusInformations[0]!.reason?.code).toEqual('DU01');
         expect(
-          report.statusInformations[0].reason?.additionalInformation,
+          report.statusInformations[0]!.reason?.additionalInformation,
         ).toEqual('ISO Duplicate Message ID');
       });
     });
@@ -79,11 +79,11 @@ describe('PaymentStatusReport', () => {
         const pain002Sample = fs.readFileSync(xmlFilePath, 'utf8');
         report = PaymentStatusReport.fromXML(pain002Sample);
         expect(report.statusInformations).toHaveLength(1);
-        expect(report.statusInformations[0].type).toEqual('payment');
+        expect(report.statusInformations[0]!.type).toEqual('payment');
         expect(report.status).toEqual(PaymentStatusCode.Rejected);
-        expect(report.statusInformations[0].reason?.code).toEqual('NARR');
+        expect(report.statusInformations[0]!.reason?.code).toEqual('NARR');
         expect(
-          report.statusInformations[0].reason?.additionalInformation,
+          report.statusInformations[0]!.reason?.additionalInformation,
         ).toEqual(
           'CAP Invalid code or combinations in CategoryPurpose or ServiceLevel',
         );
@@ -97,19 +97,19 @@ describe('PaymentStatusReport', () => {
         report = PaymentStatusReport.fromXML(pain002Sample);
         expect(report.statusInformations).toHaveLength(3);
         expect(
-          (report.statusInformations[0] as PaymentStatusInformation)
+          (report.statusInformations[0]! as PaymentStatusInformation)
             .originalPaymentId,
         ).toEqual('PMTINFID-950-TEST2-2807-01');
-        expect(report.statusInformations[0].type).toEqual('payment');
-        expect(report.statusInformations[0].status).toEqual(
+        expect(report.statusInformations[0]!.type).toEqual('payment');
+        expect(report.statusInformations[0]!.status).toEqual(
           PaymentStatusCode.Rejected,
         );
-        expect(report.statusInformations[1].type).toEqual('transaction');
-        expect(report.statusInformations[1].status).toEqual(
+        expect(report.statusInformations[1]!.type).toEqual('transaction');
+        expect(report.statusInformations[1]!.status).toEqual(
           PaymentStatusCode.Rejected,
         );
-        expect(report.statusInformations[2].type).toEqual('transaction');
-        expect(report.statusInformations[2].status).toEqual(
+        expect(report.statusInformations[2]!.type).toEqual('transaction');
+        expect(report.statusInformations[2]!.status).toEqual(
           PaymentStatusCode.Rejected,
         );
       });
@@ -121,11 +121,11 @@ describe('PaymentStatusReport', () => {
         const pain002Sample = fs.readFileSync(xmlFilePath, 'utf8');
         report = PaymentStatusReport.fromXML(pain002Sample);
         expect(report.statusInformations).toHaveLength(3);
-        expect(report.statusInformations[0].type).toEqual('group');
-        expect(report.statusInformations[0].status).toEqual(
+        expect(report.statusInformations[0]!.type).toEqual('group');
+        expect(report.statusInformations[0]!.status).toEqual(
           PaymentStatusCode.AcceptedTechnicalValidation,
         );
-        expect(report.statusInformations[2].status).toEqual(
+        expect(report.statusInformations[2]!.status).toEqual(
           PaymentStatusCode.AcceptedSettlementInProgress,
         );
       });
@@ -137,11 +137,11 @@ describe('PaymentStatusReport', () => {
         const pain002Sample = fs.readFileSync(xmlFilePath, 'utf8');
         report = PaymentStatusReport.fromXML(pain002Sample);
         expect(report.statusInformations).toHaveLength(5);
-        expect(report.statusInformations[0].type).toEqual('group');
-        expect(report.statusInformations[0].status).toEqual(
+        expect(report.statusInformations[0]!.type).toEqual('group');
+        expect(report.statusInformations[0]!.status).toEqual(
           PaymentStatusCode.AcceptedTechnicalValidation,
         );
-        expect(report.statusInformations[2].status).toEqual(
+        expect(report.statusInformations[2]!.status).toEqual(
           PaymentStatusCode.AcceptedSettlementInProgress,
         );
       });
@@ -153,8 +153,8 @@ describe('PaymentStatusReport', () => {
         const pain002Sample = fs.readFileSync(xmlFilePath, 'utf8');
         report = PaymentStatusReport.fromXML(pain002Sample);
         expect(report.statusInformations).toHaveLength(1);
-        expect(report.statusInformations[0].type).toEqual('group');
-        expect(report.statusInformations[0].status).toEqual(
+        expect(report.statusInformations[0]!.type).toEqual('group');
+        expect(report.statusInformations[0]!.status).toEqual(
           PaymentStatusCode.Rejected,
         );
       });
@@ -166,8 +166,8 @@ describe('PaymentStatusReport', () => {
         const pain002Sample = fs.readFileSync(xmlFilePath, 'utf8');
         report = PaymentStatusReport.fromXML(pain002Sample);
         expect(report.statusInformations).toHaveLength(5);
-        expect(report.statusInformations[4].type).toEqual('transaction');
-        expect(report.statusInformations[4].status).toEqual(
+        expect(report.statusInformations[4]!.type).toEqual('transaction');
+        expect(report.statusInformations[4]!.status).toEqual(
           PaymentStatusCode.Rejected,
         );
       });

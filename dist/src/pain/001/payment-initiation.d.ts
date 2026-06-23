@@ -1,5 +1,5 @@
 import { XMLBuilder } from 'fast-xml-parser';
-import { Party, IBANAccount, Account, Agent, MandateInformation } from '../../lib/types';
+import type { Account, Agent, IBANAccount, MandateInformation, Party } from '../../lib/types';
 /**
  * Abstract base class for ISO20022 payment initiation (PAIN) messages.
  * @abstract
@@ -91,11 +91,6 @@ export declare abstract class PaymentInitiation {
      */
     agent(agent: Agent): {
         FinInstnId: {
-            BIC: string;
-            ClrSysMmbId?: undefined;
-        };
-    } | {
-        FinInstnId: {
             ClrSysMmbId: {
                 ClrSysId: {
                     Cd: string;
@@ -103,6 +98,11 @@ export declare abstract class PaymentInitiation {
                 MmbId: string;
             };
             BIC?: undefined;
+        };
+    } | {
+        FinInstnId: {
+            BIC: string;
+            ClrSysMmbId?: undefined;
         };
     };
     buildMandateRelatedInfo(mandate: MandateInformation): {

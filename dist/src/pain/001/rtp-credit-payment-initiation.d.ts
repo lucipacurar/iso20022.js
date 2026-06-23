@@ -1,4 +1,4 @@
-import { Party, RTPCreditPaymentInstruction } from '../../lib/types';
+import type { Party, RTPCreditPaymentInstruction } from '../../lib/types';
 import { PaymentInitiation } from './payment-initiation';
 type AtLeastOne<T> = [T, ...T[]];
 /**
@@ -83,11 +83,6 @@ export declare class RTPCreditPaymentInitiation extends PaymentInitiation {
         };
         CdtrAgt: {
             FinInstnId: {
-                BIC: string;
-                ClrSysMmbId?: undefined;
-            };
-        } | {
-            FinInstnId: {
                 ClrSysMmbId: {
                     ClrSysId: {
                         Cd: string;
@@ -95,6 +90,11 @@ export declare class RTPCreditPaymentInitiation extends PaymentInitiation {
                     MmbId: string;
                 };
                 BIC?: undefined;
+            };
+        } | {
+            FinInstnId: {
+                BIC: string;
+                ClrSysMmbId?: undefined;
             };
         };
         Cdtr: any;

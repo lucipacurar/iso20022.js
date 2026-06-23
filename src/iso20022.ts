@@ -1,28 +1,28 @@
 import {
-  Party,
-  SWIFTCreditPaymentInstruction,
-  SEPACreditPaymentInstruction,
-  RTPCreditPaymentInstruction,
+  type GenericISO20022Message,
+  getISO20022Implementation,
+  type ISO20022MessageTypeName,
+} from './lib/interfaces';
+import type {
   ACHCreditPaymentInstruction,
-  SEPADirectDebitPaymentInstruction,
+  Party,
+  RTPCreditPaymentInstruction,
+  SEPACreditPaymentInstruction,
+  SWIFTCreditPaymentInstruction,
 } from './lib/types.js';
-import { SWIFTCreditPaymentInitiation } from './pain/001/swift-credit-payment-initiation';
+import { ACHCreditPaymentInitiation } from './pain/001/ach-credit-payment-initiation';
+import { RTPCreditPaymentInitiation } from './pain/001/rtp-credit-payment-initiation';
 import { SEPACreditPaymentInitiation } from './pain/001/sepa-credit-payment-initiation';
 import {
   SEPAMultiCreditPaymentInitiation,
-  SEPAMultiCreditPaymentInstructionGroup,
+  type SEPAMultiCreditPaymentInstructionGroup,
 } from './pain/001/sepa-multi-credit-payment-initiation';
-import { RTPCreditPaymentInitiation } from './pain/001/rtp-credit-payment-initiation';
-import { ACHCreditPaymentInitiation } from './pain/001/ach-credit-payment-initiation';
+import { SWIFTCreditPaymentInitiation } from './pain/001/swift-credit-payment-initiation';
 import {
   SEPADirectDebitPaymentInitiation,
-  SEPADirectDebitPaymentInstructionGroup,
+  type SEPADirectDebitPaymentInstructionGroup,
 } from './pain/008/sepa-direct-debit-payment-initiation';
-import {
-  GenericISO20022Message,
-  getISO20022Implementation,
-  ISO20022MessageTypeName,
-} from './lib/interfaces';
+
 export * from './camt';
 export * from './lib';
 

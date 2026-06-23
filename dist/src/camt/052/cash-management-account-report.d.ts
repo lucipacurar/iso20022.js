@@ -1,6 +1,6 @@
-import { Balance, Entry, Statement, Transaction } from '../types';
-import { Party, StructuredAddress } from '../../lib/types';
-import { GenericISO20022Message, ISO20022MessageTypeName } from '../../lib/interfaces';
+import { type GenericISO20022Message, type ISO20022MessageTypeName } from '../../lib/interfaces';
+import type { Party, StructuredAddress } from '../../lib/types';
+import type { Balance, Entry, Statement, Transaction } from '../types';
 /**
  * Configuration interface for creating a CashManagementAccountReport instance.
  */

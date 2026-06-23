@@ -1,6 +1,13 @@
 import { XMLBuilder } from 'fast-xml-parser';
 
-type Currency = 'AED' | 'AFN' | 'ALL' | 'AMD' | 'ANG' | 'AOA' | 'ARS' | 'AUD' | 'AWG' | 'AZN' | 'BAM' | 'BBD' | 'BDT' | 'BGN' | 'BHD' | 'BIF' | 'BMD' | 'BND' | 'BOB' | 'BOV' | 'BRL' | 'BSD' | 'BTN' | 'BWP' | 'BYN' | 'BZD' | 'CAD' | 'CDF' | 'CHE' | 'CHF' | 'CHW' | 'CLF' | 'CLP' | 'CNY' | 'COP' | 'COU' | 'CRC' | 'CUC' | 'CUP' | 'CVE' | 'CZK' | 'DJF' | 'DKK' | 'DOP' | 'DZD' | 'EGP' | 'ERN' | 'ETB' | 'EUR' | 'FJD' | 'FKP' | 'GBP' | 'GEL' | 'GHS' | 'GIP' | 'GMD' | 'GNF' | 'GTQ' | 'GYD' | 'HKD' | 'HNL' | 'HTG' | 'HUF' | 'IDR' | 'ILS' | 'INR' | 'IQD' | 'IRR' | 'ISK' | 'JMD' | 'JOD' | 'JPY' | 'KES' | 'KGS' | 'KHR' | 'KMF' | 'KPW' | 'KRW' | 'KWD' | 'KYD' | 'KZT' | 'LAK' | 'LBP' | 'LKR' | 'LRD' | 'LSL' | 'LYD' | 'MAD' | 'MDL' | 'MGA' | 'MKD' | 'MMK' | 'MNT' | 'MOP' | 'MRU' | 'MUR' | 'MVR' | 'MWK' | 'MXN' | 'MXV' | 'MYR' | 'MZN' | 'NAD' | 'NGN' | 'NIO' | 'NOK' | 'NPR' | 'NZD' | 'OMR' | 'PAB' | 'PEN' | 'PGK' | 'PHP' | 'PKR' | 'PLN' | 'PYG' | 'QAR' | 'RON' | 'RSD' | 'RUB' | 'RWF' | 'SAR' | 'SBD' | 'SCR' | 'SDG' | 'SEK' | 'SGD' | 'SHP' | 'SLE' | 'SLL' | 'SOS' | 'SRD' | 'SSP' | 'STN' | 'SVC' | 'SYP' | 'SZL' | 'THB' | 'TJS' | 'TMT' | 'TND' | 'TOP' | 'TRY' | 'TTD' | 'TWD' | 'TZS' | 'UAH' | 'UGX' | 'USD' | 'USN' | 'UYI' | 'UYU' | 'UYW' | 'UZS' | 'VED' | 'VES' | 'VND' | 'VUV' | 'WST' | 'XAF' | 'XCD' | 'XOF' | 'XPF' | 'XSU' | 'XUA' | 'YER' | 'ZAR' | 'ZMW' | 'ZWL';
+type ISO20022MessageTypeName = `${string}.${string}`;
+interface GenericISO20022Message {
+    /** serialize to XML string */
+    serialize(): string;
+    /** export to a json object that can then be serialized */
+    toJSON(): any;
+    readonly data: any;
+}
 
 declare const Alpha2CountryCode: {
     readonly AF: "AF";
@@ -255,6 +262,8 @@ declare const Alpha2CountryCode: {
     readonly XK: "XK";
 };
 type Alpha2Country = (typeof Alpha2CountryCode)[keyof typeof Alpha2CountryCode];
+
+type Currency = 'AED' | 'AFN' | 'ALL' | 'AMD' | 'ANG' | 'AOA' | 'ARS' | 'AUD' | 'AWG' | 'AZN' | 'BAM' | 'BBD' | 'BDT' | 'BGN' | 'BHD' | 'BIF' | 'BMD' | 'BND' | 'BOB' | 'BOV' | 'BRL' | 'BSD' | 'BTN' | 'BWP' | 'BYN' | 'BZD' | 'CAD' | 'CDF' | 'CHE' | 'CHF' | 'CHW' | 'CLF' | 'CLP' | 'CNY' | 'COP' | 'COU' | 'CRC' | 'CUC' | 'CUP' | 'CVE' | 'CZK' | 'DJF' | 'DKK' | 'DOP' | 'DZD' | 'EGP' | 'ERN' | 'ETB' | 'EUR' | 'FJD' | 'FKP' | 'GBP' | 'GEL' | 'GHS' | 'GIP' | 'GMD' | 'GNF' | 'GTQ' | 'GYD' | 'HKD' | 'HNL' | 'HTG' | 'HUF' | 'IDR' | 'ILS' | 'INR' | 'IQD' | 'IRR' | 'ISK' | 'JMD' | 'JOD' | 'JPY' | 'KES' | 'KGS' | 'KHR' | 'KMF' | 'KPW' | 'KRW' | 'KWD' | 'KYD' | 'KZT' | 'LAK' | 'LBP' | 'LKR' | 'LRD' | 'LSL' | 'LYD' | 'MAD' | 'MDL' | 'MGA' | 'MKD' | 'MMK' | 'MNT' | 'MOP' | 'MRU' | 'MUR' | 'MVR' | 'MWK' | 'MXN' | 'MXV' | 'MYR' | 'MZN' | 'NAD' | 'NGN' | 'NIO' | 'NOK' | 'NPR' | 'NZD' | 'OMR' | 'PAB' | 'PEN' | 'PGK' | 'PHP' | 'PKR' | 'PLN' | 'PYG' | 'QAR' | 'RON' | 'RSD' | 'RUB' | 'RWF' | 'SAR' | 'SBD' | 'SCR' | 'SDG' | 'SEK' | 'SGD' | 'SHP' | 'SLE' | 'SLL' | 'SOS' | 'SRD' | 'SSP' | 'STN' | 'SVC' | 'SYP' | 'SZL' | 'THB' | 'TJS' | 'TMT' | 'TND' | 'TOP' | 'TRY' | 'TTD' | 'TWD' | 'TZS' | 'UAH' | 'UGX' | 'USD' | 'USN' | 'UYI' | 'UYU' | 'UYW' | 'UZS' | 'VED' | 'VES' | 'VND' | 'VUV' | 'WST' | 'XAF' | 'XCD' | 'XOF' | 'XPF' | 'XSU' | 'XUA' | 'YER' | 'ZAR' | 'ZMW' | 'ZWL';
 
 type AtLeastOne$6<T> = [T, ...T[]];
 /**
@@ -596,992 +605,6 @@ declare const SEPAReversalReasonCode: {
 type SEPAReversalReason = (typeof SEPAReversalReasonCode)[keyof typeof SEPAReversalReasonCode];
 
 /**
- * Abstract base class for ISO20022 payment initiation (PAIN) messages.
- * @abstract
- */
-declare abstract class PaymentInitiation {
-    type: 'swift' | 'rtp' | 'sepa' | 'ach';
-    constructor({ type }: {
-        type: 'swift' | 'rtp' | 'sepa' | 'ach';
-    });
-    /**
-     * The schema identifier for this message type (e.g. 'pain.007.001.02').
-     */
-    abstract get schemaId(): string;
-    /**
-     * Returns the full XML namespace URI for this message type
-     * (e.g. 'urn:iso:std:iso:20022:tech:xsd:pain.007.001.02').
-     */
-    get namespace(): string;
-    /**
-     * Serializes the payment initiation to a string format.
-     * @abstract
-     * @returns {string} The serialized payment initiation.
-     */
-    abstract serialize(): string;
-    /**
-     * Formats a party's information according to ISO20022 standards.
-     * @param {Party} party - The party's information.
-     * @returns {Object} Formatted XML party information.
-     */
-    party(party: Party): any;
-    /**
-     * Formats an account according to ISO20022 standards.
-     * This method handles both IBAN and non-IBAN accounts.
-     *
-     * @param {Account} account - The account to be formatted. Can be either an IBANAccount or a BaseAccount.
-     * @returns {Object} An object representing the formatted account information.
-     *                   For IBAN accounts, it returns an object with an IBAN identifier.
-     *                   For non-IBAN accounts, it returns an object with an 'Other' identifier.
-     *
-     * @example
-     * // For an IBAN account
-     * account({ iban: 'DE89370400440532013000' })
-     * // Returns: { Id: { IBAN: 'DE89370400440532013000' } }
-     *
-     * @example
-     * // For a non-IBAN account
-     * account({ accountNumber: '1234567890' })
-     * // Returns: { Id: { Othr: { Id: '1234567890' } } }
-     */
-    account(account: Account): {
-        Id: {
-            IBAN: string;
-        };
-    } | {
-        Id: {
-            Othr: {
-                Id: string;
-            };
-        };
-    };
-    /**
-     * Formats an IBAN account according to ISO20022 standards.
-     * @param {IBANAccount} account - The IBAN account information.
-     * @returns {Object} Formatted XML IBAN account information.
-     */
-    internationalAccount(account: IBANAccount): {
-        Id: {
-            IBAN: string;
-        };
-    };
-    /**
-     * Formats an agent according to ISO20022 standards.
-     * This method handles both BIC and ABA agents.
-     *
-     * @param {Agent} agent - The agent to be formatted. Can be either a BICAgent or an ABAAgent.
-     * @returns {Object} An object representing the formatted agent information.
-     *                   For BIC agents, it returns an object with a BIC identifier.
-     *                   For ABA agents, it returns an object with clearing system member identification.
-     *
-     * @example
-     * // For a BIC agent
-     * agent({ bic: 'BOFAUS3NXXX' })
-     * // Returns: { FinInstnId: { BIC: 'BOFAUS3NXXX' } }
-     *
-     * @example
-     * // For an ABA agent
-     * agent({ abaRoutingNumber: '026009593' })
-     * // Returns: { FinInstnId: { ClrSysMmbId: { MmbId: '026009593' } } }
-     */
-    agent(agent: Agent): {
-        FinInstnId: {
-            BIC: string;
-            ClrSysMmbId?: undefined;
-        };
-    } | {
-        FinInstnId: {
-            ClrSysMmbId: {
-                ClrSysId: {
-                    Cd: string;
-                };
-                MmbId: string;
-            };
-            BIC?: undefined;
-        };
-    };
-    buildMandateRelatedInfo(mandate: MandateInformation): {
-        AmdmntInfDtls?: {
-            OrgnlCdtrSchmeId?: {
-                Id?: {
-                    PrvtId: {
-                        Othr: {
-                            Id: string;
-                            SchmeNm: {
-                                Prtry: string;
-                            };
-                        };
-                    };
-                } | undefined;
-                Nm?: string | undefined;
-            } | undefined;
-            OrgnlMndtId?: string | undefined;
-        } | undefined;
-        MndtId: string;
-        DtOfSgntr: string;
-        AmdmntInd: boolean;
-    };
-    buildCreditorSchemeId(schemeId: string): {
-        Id: {
-            PrvtId: {
-                Othr: {
-                    Id: string;
-                    SchmeNm: {
-                        Prtry: string;
-                    };
-                };
-            };
-        };
-    };
-    /**
-     * Returns the string representation of the payment initiation.
-     * @returns {string} The serialized payment initiation.
-     */
-    toString(): string;
-    static getBuilder(): XMLBuilder;
-}
-
-type AtLeastOne$5<T> = [T, ...T[]];
-/**
- * Configuration for SWIFT Credit Payment Initiation.
- *
- * @property {Party} initiatingParty - The party initiating the payment.
- * @property {AtLeastOne<SWIFTCreditPaymentInstruction>} paymentInstructions - An array of payment instructions.
- * @property {string} [messageId] - Optional unique identifier for the message. If not provided, a UUID will be generated.
- * @property {Date} [creationDate] - Optional creation date for the message. If not provided, current date will be used.
- */
-interface SWIFTCreditPaymentInitiationConfig$1 {
-    /** The party initiating the payment. */
-    initiatingParty: Party;
-    /** An array of payment instructions. */
-    paymentInstructions: AtLeastOne$5<SWIFTCreditPaymentInstruction>;
-    /** Optional unique identifier for the message. If not provided, a UUID will be generated. */
-    messageId?: string;
-    /** Optional creation date for the message. If not provided, current date will be used. */
-    creationDate?: Date;
-}
-/**
- * Represents a SWIFT Credit Payment v3 Initiation message (pain.001.001.03).
- * @class
- * @extends PaymentInitiation
- * @param {SWIFTCreditPaymentInitiationConfig} config - The configuration for the SWIFT Credit Payment Initiation message.
- * @example
- * ```typescript
- * // Creating a payment message
- * const payment = new SWIFTCreditPaymentInitiation({
- *   ...
- * });
- * // Uploading to fiatwebservices.com
- * client.paymentTransfers.create(payment);
- * // Parsing from XML
- * const xml = '<xml>...</xml>';
- * const parsedTransfer = SWIFTCreditPaymentInitiation.fromXML(xml);
- * ```
- * @see {@link https://docs.iso20022js.com/pain/sepacredit} for more information.
- */
-declare class SWIFTCreditPaymentInitiation extends PaymentInitiation {
-    initiatingParty: Party;
-    messageId: string;
-    creationDate: Date;
-    paymentInstructions: SWIFTCreditPaymentInstruction[];
-    paymentInformationId: string;
-    get schemaId(): string;
-    /**
-     * Creates an instance of SWIFTCreditPaymentInitiation.
-     * @param {SWIFTCreditPaymentInitiationConfig} config - The configuration object.
-     */
-    constructor(config: SWIFTCreditPaymentInitiationConfig$1);
-    /**
-     * Validates the payment initiation data has the information required to create a valid XML file.
-     * @private
-     * @throws {Error} If messageId exceeds 35 characters.
-     * @throws {Error} If any creditor has incomplete address information.
-     */
-    private validate;
-    /**
-     * Generates payment information for a single payment instruction.
-     * @param {SWIFTCreditPaymentInstruction} paymentInstruction - The payment instruction.
-     * @returns {Object} The credit transfer object.
-     */
-    creditTransfer(paymentInstruction: SWIFTCreditPaymentInstruction): Record<string, any>;
-    /**
-     * Serializes the payment initiation to an XML string.
-     * @returns {string} The XML representation of the payment initiation.
-     */
-    static fromXML(rawXml: string): SWIFTCreditPaymentInitiation;
-    serialize(): string;
-}
-
-type AtLeastOne$4<T> = [T, ...T[]];
-/**
- * Configuration for SEPA Credit Payment Initiation.
- *
- * @property {Party} initiatingParty - The party initiating the SEPA credit transfer.
- * @property {AtLeastOne<SEPACreditPaymentInstruction>} paymentInstructions - An array containing at least one payment instruction for SEPA credit transfer.
- * @property {string} [messageId] - Optional unique identifier for the message. If not provided, a UUID will be generated.
- * @property {Date} [creationDate] - Optional creation date for the message. If not provided, current date will be used.
- * @property {ExternalCategoryPurpose} [categoryPurpose] - Optional category purpose code following ISO20022 ExternalCategoryPurpose1Code standard.
- */
-interface SEPACreditPaymentInitiationConfig$1 {
-    /** The party initiating the SEPA credit transfer. */
-    initiatingParty: Party;
-    /** An array containing at least one payment instruction for SEPA credit transfer. */
-    paymentInstructions: AtLeastOne$4<SEPACreditPaymentInstruction>;
-    /** Optional unique identifier for the message. If not provided, a UUID will be generated. */
-    messageId?: string;
-    /** Optional creation date for the message. If not provided, current date will be used. */
-    creationDate?: Date;
-    /** Optional category purpose code following ISO20022 ExternalCategoryPurpose1Code standard */
-    categoryPurpose?: ExternalCategoryPurpose;
-}
-/**
- * Represents a SEPA Credit Payment Initiation.
- * This class handles the creation and serialization of SEPA credit transfer messages
- * according to the ISO20022 standard.
- * @class
- * @extends PaymentInitiation
- * @param {SEPACreditPaymentInitiationConfig} config - The configuration for the SEPA Credit Payment Initiation message.
- * @example
- * ```typescript
- * // Creating a SEPA payment message
- * const payment = new SEPACreditPaymentInitiation({
- *   // configuration options
- * });
- * // Uploading the payment
- * client.paymentTransfers.create(payment);
- * // Parsing from XML
- * const xml = '<xml>...</xml>';
- * const parsedTransfer = SEPACreditPaymentInitiation.fromXML(xml);
- * ```
- * @see {@link https://docs.iso20022js.com/pain/sepacredit} for more information.
- */
-declare class SEPACreditPaymentInitiation extends PaymentInitiation {
-    initiatingParty: Party;
-    messageId: string;
-    creationDate: Date;
-    paymentInstructions: AtLeastOne$4<SEPACreditPaymentInstruction>;
-    paymentInformationId: string;
-    categoryPurpose?: ExternalCategoryPurpose;
-    private formattedPaymentSum;
-    get schemaId(): string;
-    /**
-     * Creates an instance of SEPACreditPaymentInitiation.
-     * @param {SEPACreditPaymentInitiationConfig} config - The configuration object for the SEPA credit transfer.
-     */
-    constructor(config: SEPACreditPaymentInitiationConfig$1);
-    /**
-     * Calculates the sum of all payment instructions.
-     * @private
-     * @param {AtLeastOne<SEPACreditPaymentInstruction>} instructions - Array of payment instructions.
-     * @returns {string} The total sum formatted as a string with 2 decimal places.
-     * @throws {Error} If payment instructions have different currencies.
-     */
-    private sumPaymentInstructions;
-    /**
-     * Validates the payment initiation data according to SEPA requirements.
-     * @private
-     * @throws {Error} If messageId exceeds 35 characters.
-     * @throws {Error} If payment instructions have different currencies.
-     * @throws {Error} If any creditor has incomplete address information.
-     */
-    private validate;
-    private validateAllInstructionsHaveSameCurrency;
-    /**
-     * Generates payment information for a single SEPA credit transfer instruction.
-     * @param {SEPACreditPaymentInstruction} instruction - The payment instruction.
-     * @returns {Object} The payment information object formatted according to SEPA specifications.
-     */
-    creditTransfer(instruction: SEPACreditPaymentInstruction): {
-        Cdtr: any;
-        CdtrAcct: {
-            Id: {
-                IBAN: string;
-            };
-            Ccy: "EUR";
-        };
-        RmtInf: {
-            Ustrd: string;
-        } | undefined;
-        CdtrAgt?: {
-            FinInstnId: {
-                BIC: string;
-                ClrSysMmbId?: undefined;
-            };
-        } | {
-            FinInstnId: {
-                ClrSysMmbId: {
-                    ClrSysId: {
-                        Cd: string;
-                    };
-                    MmbId: string;
-                };
-                BIC?: undefined;
-            };
-        } | undefined;
-        PmtId: {
-            InstrId: string;
-            EndToEndId: string;
-        };
-        Amt: {
-            InstdAmt: {
-                '#': string;
-                '@Ccy': "EUR";
-            };
-        };
-    };
-    /**
-     * Serializes the SEPA credit transfer initiation to an XML string.
-     * @returns {string} The XML representation of the SEPA credit transfer initiation.
-     */
-    serialize(): string;
-    static fromXML(rawXml: string): SEPACreditPaymentInitiation;
-}
-
-type AtLeastOne$3<T> = [T, ...T[]];
-/**
- * Represents a group of payment instructions for a single debtor (PmtInf block).
- *
- * @property {Party} initiatingParty - The party (debtor) for this specific payment information block.
- * @property {AtLeastOne<SEPACreditPaymentInstruction>} payments - An array containing at least one payment instruction for this debtor.
- * @property {ExternalCategoryPurpose} [categoryPurpose] - Optional category purpose code for this payment information block.
- */
-interface SEPAMultiCreditPaymentInstructionGroup {
-    /** The party (debtor) for this specific payment information block. */
-    initiatingParty: Party;
-    /** An array containing at least one payment instruction for this debtor. */
-    payments: AtLeastOne$3<SEPACreditPaymentInstruction>;
-    /** Optional category purpose code for this payment information block. */
-    categoryPurpose?: ExternalCategoryPurpose;
-    /** Indicates whether transactions should be booked in batch. Defaults to false. */
-    batchBooking?: boolean;
-}
-/**
- * Configuration for SEPA Multi Credit Payment Initiation.
- *
- * @property {Party} initiatingParty - The top-level party initiating the message (used in GrpHdr).
- * @property {AtLeastOne<SEPAMultiCreditPaymentInstructionGroup>} paymentInstructions - An array containing at least one payment instruction group.
- * @property {string} [messageId] - Optional unique identifier for the message. If not provided, a UUID will be generated.
- * @property {Date} [creationDate] - Optional creation date for the message. If not provided, current date will be used.
- */
-interface SEPAMultiCreditPaymentInitiationConfig$1 {
-    /** The top-level party initiating the message (used in GrpHdr). */
-    initiatingParty: Party;
-    /** An array containing at least one payment instruction group. */
-    paymentInstructions: AtLeastOne$3<SEPAMultiCreditPaymentInstructionGroup>;
-    /** Optional unique identifier for the message. If not provided, a UUID will be generated. */
-    messageId?: string;
-    /** Optional creation date for the message. If not provided, current date will be used. */
-    creationDate?: Date;
-}
-/**
- * Represents a SEPA Multi Credit Payment Initiation.
- * This class handles the creation and serialization of SEPA credit transfer messages
- * with multiple payment information blocks (multiple debtors) according to the ISO20022 standard.
- * @class
- * @extends PaymentInitiation
- * @param {SEPAMultiCreditPaymentInitiationConfig} config - The configuration for the SEPA Multi Credit Payment Initiation message.
- * @example
- * ```typescript
- * // Creating a SEPA multi-payment message
- * const payment = new SEPAMultiCreditPaymentInitiation({
- *   initiatingParty: { name: 'Company Ltd', id: '12345' },
- *   paymentInstructions: [
- *     {
- *       initiatingParty: debtor1,
- *       payments: [payment1, payment2]
- *     },
- *     {
- *       initiatingParty: debtor2,
- *       payments: [payment3]
- *     }
- *   ]
- * });
- * ```
- */
-declare class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
-    initiatingParty: Party;
-    messageId: string;
-    creationDate: Date;
-    paymentInstructions: AtLeastOne$3<SEPAMultiCreditPaymentInstructionGroup>;
-    private formattedPaymentSum;
-    private totalTransactionCount;
-    get schemaId(): string;
-    /**
-     * Creates an instance of SEPAMultiCreditPaymentInitiation.
-     * @param {SEPAMultiCreditPaymentInitiationConfig} config - The configuration object for the SEPA multi credit transfer.
-     */
-    constructor(config: SEPAMultiCreditPaymentInitiationConfig$1);
-    /**
-     * Counts the total number of transactions across all payment instruction groups.
-     * @private
-     * @returns {number} The total count of all transactions.
-     */
-    private countAllTransactions;
-    /**
-     * Calculates the sum of all payment instructions across all groups.
-     * @private
-     * @returns {string} The total sum formatted as a string with 2 decimal places.
-     */
-    private sumAllPayments;
-    /**
-     * Validates the payment initiation data according to SEPA requirements.
-     * @private
-     * @throws {Error} If messageId exceeds 35 characters.
-     * @throws {Error} If any group's payment instructions have different currencies.
-     */
-    private validate;
-    /**
-     * Validates that all payment instructions in a group have the same currency.
-     * @private
-     * @param {AtLeastOne<SEPACreditPaymentInstruction>} payments - Array of payment instructions.
-     * @throws {Error} If payment instructions have different currencies.
-     */
-    private validateGroupInstructionsHaveSameCurrency;
-    /**
-     * Generates payment information for a single SEPA credit transfer instruction.
-     * @param {SEPACreditPaymentInstruction} instruction - The payment instruction.
-     * @returns {Object} The payment information object formatted according to SEPA specifications.
-     */
-    creditTransfer(instruction: SEPACreditPaymentInstruction): {
-        Cdtr: any;
-        CdtrAcct: {
-            Id: {
-                IBAN: string;
-            };
-            Ccy: "EUR";
-        };
-        RmtInf: {
-            Ustrd: string;
-        } | undefined;
-        CdtrAgt?: {
-            FinInstnId: {
-                BIC: string;
-                ClrSysMmbId?: undefined;
-            };
-        } | {
-            FinInstnId: {
-                ClrSysMmbId: {
-                    ClrSysId: {
-                        Cd: string;
-                    };
-                    MmbId: string;
-                };
-                BIC?: undefined;
-            };
-        } | undefined;
-        PmtId: {
-            InstrId: string;
-            EndToEndId: string;
-        };
-        Amt: {
-            InstdAmt: {
-                '#': string;
-                '@Ccy': "EUR";
-            };
-        };
-    };
-    /**
-     * Serializes the SEPA multi credit transfer initiation to an XML string.
-     * @returns {string} The XML representation of the SEPA multi credit transfer initiation.
-     */
-    serialize(): string;
-    /**
-     * Parses an XML string and creates a SEPAMultiCreditPaymentInitiation instance.
-     * Supports multiple PmtInf blocks in the XML document.
-     * @param {string} rawXml - The XML string to parse.
-     * @returns {SEPAMultiCreditPaymentInitiation} A new instance created from the XML data.
-     * @throws {InvalidXmlError} If the XML format is invalid.
-     * @throws {InvalidXmlNamespaceError} If the namespace is not pain.001.001.03.
-     */
-    static fromXML(rawXml: string): SEPAMultiCreditPaymentInitiation;
-}
-
-type AtLeastOne$2<T> = [T, ...T[]];
-/**
- * Configuration for RTP Credit Payment Initiation.
- *
- * @property {Party} initiatingParty - The party initiating the RTP credit transfer.
- * @property {AtLeastOne<RTPCreditPaymentInstruction>} paymentInstructions - Array containing at least one payment instruction for the RTP credit transfer.
- * @property {string} [messageId] - Optional unique identifier for the message. If not provided, a UUID will be generated.
- * @property {Date} [creationDate] - Optional creation date for the message. If not provided, current date will be used.
- */
-interface RTPCreditPaymentInitiationConfig$1 {
-    /** The party initiating the RTP credit transfer. */
-    initiatingParty: Party;
-    /** Array containing at least one payment instruction for the RTP credit transfer. */
-    paymentInstructions: AtLeastOne$2<RTPCreditPaymentInstruction>;
-    /** Optional unique identifier for the message. If not provided, a UUID will be generated. */
-    messageId?: string;
-    /** Optional creation date for the message. If not provided, current date will be used. */
-    creationDate?: Date;
-}
-/**
- * Represents a RTP Credit Payment Initiation.
- * This class handles the creation and serialization of RTP credit transfer messages
- * according to the ISO20022 standard.
- * @class
- * @extends PaymentInitiation
- * @param {RTPCreditPaymentInitiationConfig} config - The configuration for the RTP Credit Payment Initiation message.
- * @example
- * ```typescript
- * // Creating a payment message
- * const payment = new RTPCreditPaymentInitiation({
- *   ...
- * });
- * // Uploading to fiatwebservices.com
- * client.paymentTransfers.create(payment);
- * // Parsing from XML
- * const xml = '<xml>...</xml>';
- * const parsedTransfer = RTPCreditPaymentInitiation.fromXML(xml);
- * ```
- * @see {@link https://docs.iso20022js.com/pain/rtpcredit} for more information.
- */
-declare class RTPCreditPaymentInitiation extends PaymentInitiation {
-    initiatingParty: Party;
-    paymentInstructions: AtLeastOne$2<RTPCreditPaymentInstruction>;
-    messageId: string;
-    creationDate: Date;
-    paymentInformationId: string;
-    private formattedPaymentSum;
-    get schemaId(): string;
-    constructor(config: RTPCreditPaymentInitiationConfig$1);
-    /**
-     * Calculates the sum of all payment instructions.
-     * @private
-     * @param {AtLeastOne<RTPCreditPaymentInstruction>} instructions - Array of payment instructions.
-     * @returns {string} The total sum formatted as a string with 2 decimal places.
-     * @throws {Error} If payment instructions have different currencies.
-     */
-    private sumPaymentInstructions;
-    /**
-     * Validates the payment initiation data according to SEPA requirements.
-     * @private
-     * @throws {Error} If messageId exceeds 35 characters.
-     * @throws {Error} If payment instructions have different currencies.
-     * @throws {Error} If any creditor has incomplete address information.
-     */
-    private validate;
-    /**
-     * Generates payment information for a single SEPA credit transfer instruction.
-     * @param {RTPCreditPaymentInstruction} instruction - The payment instruction.
-     * @returns {Object} The payment information object formatted according to SEPA specifications.
-     */
-    creditTransfer(instruction: RTPCreditPaymentInstruction): {
-        PmtId: {
-            InstrId: string;
-            EndToEndId: string;
-        };
-        Amt: {
-            InstdAmt: {
-                '#': string;
-                '@Ccy': "USD";
-            };
-        };
-        CdtrAgt: {
-            FinInstnId: {
-                BIC: string;
-                ClrSysMmbId?: undefined;
-            };
-        } | {
-            FinInstnId: {
-                ClrSysMmbId: {
-                    ClrSysId: {
-                        Cd: string;
-                    };
-                    MmbId: string;
-                };
-                BIC?: undefined;
-            };
-        };
-        Cdtr: any;
-        CdtrAcct: {
-            Id: {
-                Othr: {
-                    Id: string;
-                };
-            };
-        };
-        RmtInf: {
-            Ustrd: string;
-        } | undefined;
-    };
-    /**
-     * Serializes the RTP credit transfer initiation to an XML string.
-     * @returns {string} The XML representation of the RTP credit transfer initiation.
-     */
-    serialize(): string;
-    static fromXML(rawXml: string): RTPCreditPaymentInitiation;
-}
-
-type AtLeastOne$1<T> = [T, ...T[]];
-/**
- * Configuration for ACH Credit Payment Initiation.
- *
- * @property {Party} initiatingParty - The party initiating the ACH credit transfer.
- * @property {AtLeastOne<ACHCreditPaymentInstruction>} paymentInstructions - Array containing at least one payment instruction for the ACH credit transfer.
- * @property {string} [messageId] - Optional unique identifier for the message. If not provided, a UUID will be generated.
- * @property {Date} [creationDate] - Optional creation date for the message. If not provided, current date will be used.
- */
-interface ACHCreditPaymentInitiationConfig$1 {
-    /** The party initiating the ACH credit transfer. */
-    initiatingParty: Party;
-    /** Array containing at least one payment instruction for the ACH credit transfer. */
-    paymentInstructions: AtLeastOne$1<ACHCreditPaymentInstruction>;
-    /** Optional unique identifier for the message. If not provided, a UUID will be generated. */
-    messageId?: string;
-    /** Optional creation date for the message. If not provided, current date will be used. */
-    creationDate?: Date;
-    /** Optional local instrument code for the ACH credit transfer. If not provided, 'CCD' (Corporate Credit or Debit) will be used. */
-    localInstrument?: ACHLocalInstrument;
-}
-/**
- * Represents an ACH Credit Payment Initiation.
- * This class handles the creation and serialization of ACH credit transfer messages
- * according to the ISO20022 standard.
- * @class
- * @extends PaymentInitiation
- * @param {ACHCreditPaymentInitiationConfig} config - The configuration for the ACH Credit Payment Initiation message.
- * @example
- * ```typescript
- * // Creating a payment message
- * const payment = new ACHCreditPaymentInitiation({
- *   initiatingParty: {
- *     name: 'John Doe Corporation',
- *     id: 'JOHNDOE99',
- *     account: {
- *       accountNumber: '0123456789'
- *     },
- *     agent: {
- *       abaRoutingNumber: '123456789',
- *     }
- *   },
- *   paymentInstructions: [{
- *     type: 'ach',
- *     direction: 'credit',
- *     amount: 1000,
- *     currency: 'USD',
- *     creditor: {
- *       name: 'John Doe Funding LLC',
- *       account: {
- *         accountNumber: '0123456789'
- *       },
- *       agent: {
- *         abaRoutingNumber: '0123456789'
- *       }
- *     }
- *   }]
- * });
- *
- * // Serializing to XML
- * const xml = payment.serialize();
- *
- * // Parsing from XML
- * const parsedPayment = ACHCreditPaymentInitiation.fromXML(xml);
- * ```
- */
-declare class ACHCreditPaymentInitiation extends PaymentInitiation {
-    initiatingParty: Party;
-    paymentInstructions: AtLeastOne$1<ACHCreditPaymentInstruction>;
-    messageId: string;
-    creationDate: Date;
-    paymentInformationId: string;
-    localInstrument: string;
-    serviceLevel: string;
-    instructionPriority: string;
-    private formattedPaymentSum;
-    get schemaId(): string;
-    constructor(config: ACHCreditPaymentInitiationConfig$1);
-    /**
-     * Calculates the sum of all payment instructions.
-     * @private
-     * @param {AtLeastOne<ACHCreditPaymentInstruction>} instructions - Array of payment instructions.
-     * @returns {string} The total sum formatted as a string with 2 decimal places.
-     * @throws {Error} If payment instructions have different currencies.
-     */
-    private sumPaymentInstructions;
-    /**
-     * Validates the payment initiation data according to ACH requirements.
-     * @private
-     * @throws {Error} If messageId exceeds 35 characters.
-     * @throws {Error} If payment instructions have different currencies.
-     * @throws {Error} If any creditor has incomplete information.
-     */
-    private validate;
-    /**
-     * Generates payment information for a single ACH credit transfer instruction.
-     * @param {ACHCreditPaymentInstruction} instruction - The payment instruction.
-     * @returns {Object} The payment information object formatted according to ACH specifications.
-     */
-    creditTransfer(instruction: ACHCreditPaymentInstruction): {
-        PmtId: {
-            InstrId: string;
-            EndToEndId: string;
-        };
-        Amt: {
-            InstdAmt: {
-                '#': string;
-                '@Ccy': "USD";
-            };
-        };
-        CdtrAgt: {
-            FinInstnId: {
-                BIC: string;
-                ClrSysMmbId?: undefined;
-            };
-        } | {
-            FinInstnId: {
-                ClrSysMmbId: {
-                    ClrSysId: {
-                        Cd: string;
-                    };
-                    MmbId: string;
-                };
-                BIC?: undefined;
-            };
-        };
-        Cdtr: any;
-        CdtrAcct: {
-            Id: {
-                Othr: {
-                    Id: string;
-                };
-            };
-            Tp: {
-                Cd: string;
-            };
-            Ccy: "USD";
-        };
-        RmtInf: {
-            Ustrd: string;
-        } | undefined;
-    };
-    /**
-     * Serializes the ACH credit transfer initiation to an XML string.
-     * @returns {string} The XML representation of the ACH credit transfer initiation.
-     */
-    serialize(): string;
-    /**
-     * Creates an ACHCreditPaymentInitiation instance from an XML string.
-     * @param {string} rawXml - The XML string to parse.
-     * @returns {ACHCreditPaymentInitiation} A new ACHCreditPaymentInitiation instance.
-     * @throws {InvalidXmlError} If the XML format is invalid.
-     * @throws {InvalidXmlNamespaceError} If the XML namespace is invalid.
-     * @throws {Error} If multiple payment information blocks are found.
-     */
-    static fromXML(rawXml: string): ACHCreditPaymentInitiation;
-}
-
-/**
- * Represents a group of direct debit payment instructions for a single creditor (PmtInf block).
- *
- * @property {Party} creditor - The party collecting money from debtors.
- * @property {string} creditorSchemeId - The creditor's SEPA scheme identifier (e.g., "DE96ZZZ00000345986").
- * @property {AtLeastOne<SEPADirectDebitPaymentInstruction>} payments - An array containing at least one payment instruction for this creditor.
- * @property {Date} requestedCollectionDate - The date when funds should be collected from all debtors in this group.
- * @property {SEPASequenceType} sequenceType - Sequence type indicating the position in a series of direct debits (FRST, RCUR, OOFF, FNAL).
- * @property {SEPALocalInstrument} [localInstrument] - The SEPA direct debit scheme (CORE or B2B). Defaults to 'CORE'.
- * @property {ExternalCategoryPurpose} [categoryPurpose] - Optional category purpose code for this payment information block.
- * @property {boolean} [batchBooking] - Indicates whether transactions should be booked in batch. Defaults to false.
- */
-interface SEPADirectDebitPaymentInstructionGroup {
-    /** The party collecting money from debtors. */
-    creditor: Party;
-    /** The creditor's SEPA scheme identifier. */
-    creditorSchemeId: string;
-    /** An array containing at least one direct debit instruction. */
-    payments: AtLeastOne$6<SEPADirectDebitPaymentInstruction>;
-    /** The date when funds should be collected from all debtors. */
-    requestedCollectionDate: Date;
-    /** Sequence type for all transactions in this group (FRST, RCUR, OOFF, FNAL). */
-    sequenceType: SEPASequenceType;
-    /** The SEPA direct debit scheme (CORE or B2B). Defaults to 'CORE'. */
-    localInstrument?: SEPALocalInstrument;
-    /** Optional category purpose code for this payment information block. */
-    categoryPurpose?: ExternalCategoryPurpose;
-    /** Indicates whether transactions should be booked in batch. Defaults to false. */
-    batchBooking?: boolean;
-    /**
-     * Optional override for `<PmtInfId>`. When omitted, a UUID is generated.
-     * Max 35 characters. Required to echo as `OrgnlPmtInfId` in pain.007 reversals.
-     */
-    paymentInformationId?: string;
-}
-/**
- * Configuration for SEPA Direct Debit Payment Initiation.
- *
- * @property {Party} initiatingParty - The top-level party initiating the message (used in GrpHdr).
- * @property {AtLeastOne<SEPADirectDebitPaymentInstructionGroup>} paymentInstructions - An array containing at least one payment instruction group.
- * @property {string} [messageId] - Optional unique identifier for the message. If not provided, a UUID will be generated.
- * @property {Date} [creationDate] - Optional creation date for the message. If not provided, current date will be used.
- */
-interface SEPADirectDebitPaymentInitiationConfig$1 {
-    /** The top-level party initiating the message (used in GrpHdr). */
-    initiatingParty: Party;
-    /** An array containing at least one payment instruction group. */
-    paymentInstructions: AtLeastOne$6<SEPADirectDebitPaymentInstructionGroup>;
-    /** Optional unique identifier for the message. If not provided, a UUID will be generated. */
-    messageId?: string;
-    /** Optional creation date for the message. If not provided, current date will be used. */
-    creationDate?: Date;
-}
-/**
- * Represents a SEPA Direct Debit Payment Initiation.
- * This class handles the creation and serialization of SEPA direct debit messages
- * with multiple payment information blocks (multiple creditors) according to the ISO20022 pain.008 standard.
- * @class
- * @extends PaymentInitiation
- * @param {SEPADirectDebitPaymentInitiationConfig} config - The configuration for the SEPA Direct Debit Payment Initiation message.
- * @example
- * ```typescript
- * // Creating a SEPA direct debit message
- * const payment = new SEPADirectDebitPaymentInitiation({
- *   initiatingParty: { name: 'Company Ltd', id: '12345' },
- *   paymentInstructions: [
- *     {
- *       creditor: creditor1,
- *       creditorSchemeId: 'DE96ZZZ00000345986',
- *       requestedCollectionDate: new Date('2025-11-22'),
- *       sequenceType: 'RCUR',
- *       payments: [debit1, debit2]
- *     }
- *   ]
- * });
- * ```
- */
-declare class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
-    initiatingParty: Party;
-    messageId: string;
-    creationDate: Date;
-    paymentInstructions: AtLeastOne$6<SEPADirectDebitPaymentInstructionGroup>;
-    private formattedPaymentSum;
-    private totalTransactionCount;
-    get schemaId(): string;
-    /**
-     * Creates an instance of SEPADirectDebitPaymentInitiation.
-     * @param {SEPADirectDebitPaymentInitiationConfig} config - The configuration object for the SEPA direct debit.
-     */
-    constructor(config: SEPADirectDebitPaymentInitiationConfig$1);
-    /**
-     * Counts the total number of transactions across all payment instruction groups.
-     * @private
-     * @returns {number} The total count of all transactions.
-     */
-    private countAllTransactions;
-    /**
-     * Calculates the sum of all payment instructions across all groups.
-     * @private
-     * @returns {string} The total sum formatted as a string with 2 decimal places.
-     */
-    private sumAllPayments;
-    /**
-     * Validates the payment initiation data according to SEPA requirements.
-     * @private
-     * @throws {Error} If messageId exceeds 35 characters.
-     * @throws {Error} If any group's payment instructions have different currencies.
-     */
-    private validate;
-    /**
-     * Validates that all payment instructions in a group have the same currency (EUR).
-     * @private
-     * @param {AtLeastOne<SEPADirectDebitPaymentInstruction>} payments - Array of payment instructions.
-     * @throws {Error} If payment instructions have different currencies.
-     */
-    private validateGroupInstructionsHaveSameCurrency;
-    /**
-     * Generates payment information for a single SEPA direct debit transfer instruction.
-     * @param {SEPADirectDebitPaymentInstruction} instruction - The payment instruction.
-     * @returns {Object} The payment information object formatted according to SEPA direct debit specifications.
-     */
-    directDebitTransfer(instruction: SEPADirectDebitPaymentInstruction): {
-        RmtInf?: {
-            Ustrd: string;
-        } | undefined;
-        Dbtr: any;
-        DbtrAcct: {
-            Id: {
-                IBAN: string;
-            };
-        } | {
-            Id: {
-                Othr: {
-                    Id: string;
-                };
-            };
-        };
-        DbtrAgt?: {
-            FinInstnId: {
-                BIC: string;
-                ClrSysMmbId?: undefined;
-            };
-        } | {
-            FinInstnId: {
-                ClrSysMmbId: {
-                    ClrSysId: {
-                        Cd: string;
-                    };
-                    MmbId: string;
-                };
-                BIC?: undefined;
-            };
-        } | undefined;
-        PmtId: {
-            EndToEndId: string;
-            InstrId?: string | undefined;
-        };
-        InstdAmt: {
-            '#': string;
-            '@Ccy': "EUR";
-        };
-        DrctDbtTx: {
-            MndtRltdInf: {
-                AmdmntInfDtls?: {
-                    OrgnlCdtrSchmeId?: {
-                        Id?: {
-                            PrvtId: {
-                                Othr: {
-                                    Id: string;
-                                    SchmeNm: {
-                                        Prtry: string;
-                                    };
-                                };
-                            };
-                        } | undefined;
-                        Nm?: string | undefined;
-                    } | undefined;
-                    OrgnlMndtId?: string | undefined;
-                } | undefined;
-                MndtId: string;
-                DtOfSgntr: string;
-                AmdmntInd: boolean;
-            };
-        };
-    };
-    /**
-     * Serializes the SEPA direct debit initiation to an XML string.
-     * @returns {string} The XML representation of the SEPA direct debit initiation.
-     */
-    serialize(): string;
-    /**
-     * Parses an XML string and creates a SEPADirectDebitPaymentInitiation instance.
-     * Supports multiple PmtInf blocks in the XML document.
-     * @param {string} rawXml - The XML string to parse.
-     * @returns {SEPADirectDebitPaymentInitiation} A new instance created from the XML data.
-     * @throws {InvalidXmlError} If the XML format is invalid.
-     * @throws {InvalidXmlNamespaceError} If the namespace is not pain.008.
-     */
-    static fromXML(rawXml: string): SEPADirectDebitPaymentInitiation;
-}
-
-type ISO20022MessageTypeName = `${string}.${string}`;
-interface GenericISO20022Message {
-    /** serialize to XML string */
-    serialize(): string;
-    /** export to a json object that can then be serialized */
-    toJSON(): any;
-    readonly data: any;
-}
-
-/**
  * Represents a bank statement in the CAMT.053 format.
  */
 interface Statement {
@@ -1838,6 +861,1090 @@ declare class CashManagementAccountReport implements GenericISO20022Message {
      * @returns {Statement[]} An array of all statements in the report.
      */
     get statements(): Statement[];
+}
+
+/**
+ * Configuration interface for creating a CashManagementEndOfDayReport instance.
+ */
+interface CashManagementEndOfDayReportConfig {
+    /** Unique identifier for the message */
+    messageId: string;
+    /** Date and time when the report was created */
+    creationDate: Date;
+    /** Recipient (party without bank and institution) receiving the report */
+    recipient?: {
+        id?: string;
+        name?: string;
+        address?: StructuredAddress;
+    };
+    /** Array of bank statements included in the report */
+    statements: Statement[];
+}
+/**
+ * Represents a Cash Management End of Day Report (CAMT.053.x).
+ * This class encapsulates the data and functionality related to processing
+ * and accessing information from a CAMT.053 XML file.
+ */
+declare class CashManagementEndOfDayReport implements GenericISO20022Message {
+    private _messageId;
+    private _creationDate;
+    private _recipient?;
+    private _statements;
+    constructor(config: CashManagementEndOfDayReportConfig);
+    static supportedMessages(): ISO20022MessageTypeName[];
+    get data(): CashManagementEndOfDayReportConfig;
+    static fromDocumentObject(obj: {
+        Document: any;
+    }): CashManagementEndOfDayReport;
+    /**
+     * Creates a CashManagementEndOfDayReport instance from a raw XML string.
+     *
+     * @param {string} rawXml - The raw XML string containing the CAMT.053 data.
+     * @returns {CashManagementEndOfDayReport} A new instance of CashManagementEndOfDayReport.
+     * @throws {Error} If the XML parsing fails or required data is missing.
+     */
+    static fromXML(rawXml: string): CashManagementEndOfDayReport;
+    /**
+     *
+     * @param json - JSON string representing a CashManagementEndOfDayReport
+     * @returns {CashManagementEndOfDayReport} A new instance of CashManagementEndOfDayReport
+     * @throws {Error} If the JSON parsing fails or required data is missing.
+     */
+    static fromJSON(json: string): CashManagementEndOfDayReport;
+    toJSON(): any;
+    serialize(): string;
+    /**
+     * Retrieves all balances from all statements in the report.
+     * @returns {Balance[]} An array of all balances across all statements.
+     */
+    get balances(): Balance[];
+    /**
+     * Retrieves all transactions from all statements in the report.
+     * @returns {Transaction[]} An array of all transactions across all statements.
+     */
+    get transactions(): Transaction[];
+    /**
+     * Retrieves all entries from all statements in the report.
+     * @returns {Entry[]} An array of all entries across all statements.
+     */
+    get entries(): Entry[];
+    /**
+     * Gets the unique identifier for the message.
+     * @returns {string} The message ID.
+     */
+    get messageId(): string;
+    /**
+     * Gets the party receiving the report.
+     * @returns {Party | undefined} The recipient party information, or undefined if no recipient is set.
+     */
+    get recipient(): Party | undefined;
+    /**
+     * Gets the date and time when the report was created.
+     * @returns {Date} The creation date of the report.
+     */
+    get creationDate(): Date;
+    /**
+     * Gets all statements included in the report.
+     * @returns {Statement[]} An array of all statements in the report.
+     */
+    get statements(): Statement[];
+}
+
+/**
+ * Base error class for all ISO 20022 related errors in the library.
+ * Extends the native Error class with proper stack trace capture.
+ */
+declare class Iso20022JsError extends Error {
+    constructor(message: string);
+}
+/**
+ * Error thrown when XML parsing or validation fails.
+ * This error indicates that the provided XML is malformed or does not conform to expected structure.
+ */
+declare class InvalidXmlError extends Iso20022JsError {
+}
+/**
+ * Error thrown when XML namespace validation fails.
+ * This error indicates that the XML document contains invalid or missing required ISO 20022 namespaces.
+ */
+declare class InvalidXmlNamespaceError extends Iso20022JsError {
+}
+
+/**
+ * Abstract base class for ISO20022 payment initiation (PAIN) messages.
+ * @abstract
+ */
+declare abstract class PaymentInitiation {
+    type: 'swift' | 'rtp' | 'sepa' | 'ach';
+    constructor({ type }: {
+        type: 'swift' | 'rtp' | 'sepa' | 'ach';
+    });
+    /**
+     * The schema identifier for this message type (e.g. 'pain.007.001.02').
+     */
+    abstract get schemaId(): string;
+    /**
+     * Returns the full XML namespace URI for this message type
+     * (e.g. 'urn:iso:std:iso:20022:tech:xsd:pain.007.001.02').
+     */
+    get namespace(): string;
+    /**
+     * Serializes the payment initiation to a string format.
+     * @abstract
+     * @returns {string} The serialized payment initiation.
+     */
+    abstract serialize(): string;
+    /**
+     * Formats a party's information according to ISO20022 standards.
+     * @param {Party} party - The party's information.
+     * @returns {Object} Formatted XML party information.
+     */
+    party(party: Party): any;
+    /**
+     * Formats an account according to ISO20022 standards.
+     * This method handles both IBAN and non-IBAN accounts.
+     *
+     * @param {Account} account - The account to be formatted. Can be either an IBANAccount or a BaseAccount.
+     * @returns {Object} An object representing the formatted account information.
+     *                   For IBAN accounts, it returns an object with an IBAN identifier.
+     *                   For non-IBAN accounts, it returns an object with an 'Other' identifier.
+     *
+     * @example
+     * // For an IBAN account
+     * account({ iban: 'DE89370400440532013000' })
+     * // Returns: { Id: { IBAN: 'DE89370400440532013000' } }
+     *
+     * @example
+     * // For a non-IBAN account
+     * account({ accountNumber: '1234567890' })
+     * // Returns: { Id: { Othr: { Id: '1234567890' } } }
+     */
+    account(account: Account): {
+        Id: {
+            IBAN: string;
+        };
+    } | {
+        Id: {
+            Othr: {
+                Id: string;
+            };
+        };
+    };
+    /**
+     * Formats an IBAN account according to ISO20022 standards.
+     * @param {IBANAccount} account - The IBAN account information.
+     * @returns {Object} Formatted XML IBAN account information.
+     */
+    internationalAccount(account: IBANAccount): {
+        Id: {
+            IBAN: string;
+        };
+    };
+    /**
+     * Formats an agent according to ISO20022 standards.
+     * This method handles both BIC and ABA agents.
+     *
+     * @param {Agent} agent - The agent to be formatted. Can be either a BICAgent or an ABAAgent.
+     * @returns {Object} An object representing the formatted agent information.
+     *                   For BIC agents, it returns an object with a BIC identifier.
+     *                   For ABA agents, it returns an object with clearing system member identification.
+     *
+     * @example
+     * // For a BIC agent
+     * agent({ bic: 'BOFAUS3NXXX' })
+     * // Returns: { FinInstnId: { BIC: 'BOFAUS3NXXX' } }
+     *
+     * @example
+     * // For an ABA agent
+     * agent({ abaRoutingNumber: '026009593' })
+     * // Returns: { FinInstnId: { ClrSysMmbId: { MmbId: '026009593' } } }
+     */
+    agent(agent: Agent): {
+        FinInstnId: {
+            ClrSysMmbId: {
+                ClrSysId: {
+                    Cd: string;
+                };
+                MmbId: string;
+            };
+            BIC?: undefined;
+        };
+    } | {
+        FinInstnId: {
+            BIC: string;
+            ClrSysMmbId?: undefined;
+        };
+    };
+    buildMandateRelatedInfo(mandate: MandateInformation): {
+        AmdmntInfDtls?: {
+            OrgnlCdtrSchmeId?: {
+                Id?: {
+                    PrvtId: {
+                        Othr: {
+                            Id: string;
+                            SchmeNm: {
+                                Prtry: string;
+                            };
+                        };
+                    };
+                } | undefined;
+                Nm?: string | undefined;
+            } | undefined;
+            OrgnlMndtId?: string | undefined;
+        } | undefined;
+        MndtId: string;
+        DtOfSgntr: string;
+        AmdmntInd: boolean;
+    };
+    buildCreditorSchemeId(schemeId: string): {
+        Id: {
+            PrvtId: {
+                Othr: {
+                    Id: string;
+                    SchmeNm: {
+                        Prtry: string;
+                    };
+                };
+            };
+        };
+    };
+    /**
+     * Returns the string representation of the payment initiation.
+     * @returns {string} The serialized payment initiation.
+     */
+    toString(): string;
+    static getBuilder(): XMLBuilder;
+}
+
+type AtLeastOne$5<T> = [T, ...T[]];
+/**
+ * Configuration for ACH Credit Payment Initiation.
+ *
+ * @property {Party} initiatingParty - The party initiating the ACH credit transfer.
+ * @property {AtLeastOne<ACHCreditPaymentInstruction>} paymentInstructions - Array containing at least one payment instruction for the ACH credit transfer.
+ * @property {string} [messageId] - Optional unique identifier for the message. If not provided, a UUID will be generated.
+ * @property {Date} [creationDate] - Optional creation date for the message. If not provided, current date will be used.
+ */
+interface ACHCreditPaymentInitiationConfig$1 {
+    /** The party initiating the ACH credit transfer. */
+    initiatingParty: Party;
+    /** Array containing at least one payment instruction for the ACH credit transfer. */
+    paymentInstructions: AtLeastOne$5<ACHCreditPaymentInstruction>;
+    /** Optional unique identifier for the message. If not provided, a UUID will be generated. */
+    messageId?: string;
+    /** Optional creation date for the message. If not provided, current date will be used. */
+    creationDate?: Date;
+    /** Optional local instrument code for the ACH credit transfer. If not provided, 'CCD' (Corporate Credit or Debit) will be used. */
+    localInstrument?: ACHLocalInstrument;
+}
+/**
+ * Represents an ACH Credit Payment Initiation.
+ * This class handles the creation and serialization of ACH credit transfer messages
+ * according to the ISO20022 standard.
+ * @class
+ * @extends PaymentInitiation
+ * @param {ACHCreditPaymentInitiationConfig} config - The configuration for the ACH Credit Payment Initiation message.
+ * @example
+ * ```typescript
+ * // Creating a payment message
+ * const payment = new ACHCreditPaymentInitiation({
+ *   initiatingParty: {
+ *     name: 'John Doe Corporation',
+ *     id: 'JOHNDOE99',
+ *     account: {
+ *       accountNumber: '0123456789'
+ *     },
+ *     agent: {
+ *       abaRoutingNumber: '123456789',
+ *     }
+ *   },
+ *   paymentInstructions: [{
+ *     type: 'ach',
+ *     direction: 'credit',
+ *     amount: 1000,
+ *     currency: 'USD',
+ *     creditor: {
+ *       name: 'John Doe Funding LLC',
+ *       account: {
+ *         accountNumber: '0123456789'
+ *       },
+ *       agent: {
+ *         abaRoutingNumber: '0123456789'
+ *       }
+ *     }
+ *   }]
+ * });
+ *
+ * // Serializing to XML
+ * const xml = payment.serialize();
+ *
+ * // Parsing from XML
+ * const parsedPayment = ACHCreditPaymentInitiation.fromXML(xml);
+ * ```
+ */
+declare class ACHCreditPaymentInitiation extends PaymentInitiation {
+    initiatingParty: Party;
+    paymentInstructions: AtLeastOne$5<ACHCreditPaymentInstruction>;
+    messageId: string;
+    creationDate: Date;
+    paymentInformationId: string;
+    localInstrument: string;
+    serviceLevel: string;
+    instructionPriority: string;
+    private formattedPaymentSum;
+    get schemaId(): string;
+    constructor(config: ACHCreditPaymentInitiationConfig$1);
+    /**
+     * Calculates the sum of all payment instructions.
+     * @private
+     * @param {AtLeastOne<ACHCreditPaymentInstruction>} instructions - Array of payment instructions.
+     * @returns {string} The total sum formatted as a string with 2 decimal places.
+     * @throws {Error} If payment instructions have different currencies.
+     */
+    private sumPaymentInstructions;
+    /**
+     * Validates the payment initiation data according to ACH requirements.
+     * @private
+     * @throws {Error} If messageId exceeds 35 characters.
+     * @throws {Error} If payment instructions have different currencies.
+     * @throws {Error} If any creditor has incomplete information.
+     */
+    private validate;
+    /**
+     * Generates payment information for a single ACH credit transfer instruction.
+     * @param {ACHCreditPaymentInstruction} instruction - The payment instruction.
+     * @returns {Object} The payment information object formatted according to ACH specifications.
+     */
+    creditTransfer(instruction: ACHCreditPaymentInstruction): {
+        PmtId: {
+            InstrId: string;
+            EndToEndId: string;
+        };
+        Amt: {
+            InstdAmt: {
+                '#': string;
+                '@Ccy': "USD";
+            };
+        };
+        CdtrAgt: {
+            FinInstnId: {
+                ClrSysMmbId: {
+                    ClrSysId: {
+                        Cd: string;
+                    };
+                    MmbId: string;
+                };
+                BIC?: undefined;
+            };
+        } | {
+            FinInstnId: {
+                BIC: string;
+                ClrSysMmbId?: undefined;
+            };
+        };
+        Cdtr: any;
+        CdtrAcct: {
+            Id: {
+                Othr: {
+                    Id: string;
+                };
+            };
+            Tp: {
+                Cd: string;
+            };
+            Ccy: "USD";
+        };
+        RmtInf: {
+            Ustrd: string;
+        } | undefined;
+    };
+    /**
+     * Serializes the ACH credit transfer initiation to an XML string.
+     * @returns {string} The XML representation of the ACH credit transfer initiation.
+     */
+    serialize(): string;
+    /**
+     * Creates an ACHCreditPaymentInitiation instance from an XML string.
+     * @param {string} rawXml - The XML string to parse.
+     * @returns {ACHCreditPaymentInitiation} A new ACHCreditPaymentInitiation instance.
+     * @throws {InvalidXmlError} If the XML format is invalid.
+     * @throws {InvalidXmlNamespaceError} If the XML namespace is invalid.
+     * @throws {Error} If multiple payment information blocks are found.
+     */
+    static fromXML(rawXml: string): ACHCreditPaymentInitiation;
+}
+
+type AtLeastOne$4<T> = [T, ...T[]];
+/**
+ * Configuration for RTP Credit Payment Initiation.
+ *
+ * @property {Party} initiatingParty - The party initiating the RTP credit transfer.
+ * @property {AtLeastOne<RTPCreditPaymentInstruction>} paymentInstructions - Array containing at least one payment instruction for the RTP credit transfer.
+ * @property {string} [messageId] - Optional unique identifier for the message. If not provided, a UUID will be generated.
+ * @property {Date} [creationDate] - Optional creation date for the message. If not provided, current date will be used.
+ */
+interface RTPCreditPaymentInitiationConfig$1 {
+    /** The party initiating the RTP credit transfer. */
+    initiatingParty: Party;
+    /** Array containing at least one payment instruction for the RTP credit transfer. */
+    paymentInstructions: AtLeastOne$4<RTPCreditPaymentInstruction>;
+    /** Optional unique identifier for the message. If not provided, a UUID will be generated. */
+    messageId?: string;
+    /** Optional creation date for the message. If not provided, current date will be used. */
+    creationDate?: Date;
+}
+/**
+ * Represents a RTP Credit Payment Initiation.
+ * This class handles the creation and serialization of RTP credit transfer messages
+ * according to the ISO20022 standard.
+ * @class
+ * @extends PaymentInitiation
+ * @param {RTPCreditPaymentInitiationConfig} config - The configuration for the RTP Credit Payment Initiation message.
+ * @example
+ * ```typescript
+ * // Creating a payment message
+ * const payment = new RTPCreditPaymentInitiation({
+ *   ...
+ * });
+ * // Uploading to fiatwebservices.com
+ * client.paymentTransfers.create(payment);
+ * // Parsing from XML
+ * const xml = '<xml>...</xml>';
+ * const parsedTransfer = RTPCreditPaymentInitiation.fromXML(xml);
+ * ```
+ * @see {@link https://docs.iso20022js.com/pain/rtpcredit} for more information.
+ */
+declare class RTPCreditPaymentInitiation extends PaymentInitiation {
+    initiatingParty: Party;
+    paymentInstructions: AtLeastOne$4<RTPCreditPaymentInstruction>;
+    messageId: string;
+    creationDate: Date;
+    paymentInformationId: string;
+    private formattedPaymentSum;
+    get schemaId(): string;
+    constructor(config: RTPCreditPaymentInitiationConfig$1);
+    /**
+     * Calculates the sum of all payment instructions.
+     * @private
+     * @param {AtLeastOne<RTPCreditPaymentInstruction>} instructions - Array of payment instructions.
+     * @returns {string} The total sum formatted as a string with 2 decimal places.
+     * @throws {Error} If payment instructions have different currencies.
+     */
+    private sumPaymentInstructions;
+    /**
+     * Validates the payment initiation data according to SEPA requirements.
+     * @private
+     * @throws {Error} If messageId exceeds 35 characters.
+     * @throws {Error} If payment instructions have different currencies.
+     * @throws {Error} If any creditor has incomplete address information.
+     */
+    private validate;
+    /**
+     * Generates payment information for a single SEPA credit transfer instruction.
+     * @param {RTPCreditPaymentInstruction} instruction - The payment instruction.
+     * @returns {Object} The payment information object formatted according to SEPA specifications.
+     */
+    creditTransfer(instruction: RTPCreditPaymentInstruction): {
+        PmtId: {
+            InstrId: string;
+            EndToEndId: string;
+        };
+        Amt: {
+            InstdAmt: {
+                '#': string;
+                '@Ccy': "USD";
+            };
+        };
+        CdtrAgt: {
+            FinInstnId: {
+                ClrSysMmbId: {
+                    ClrSysId: {
+                        Cd: string;
+                    };
+                    MmbId: string;
+                };
+                BIC?: undefined;
+            };
+        } | {
+            FinInstnId: {
+                BIC: string;
+                ClrSysMmbId?: undefined;
+            };
+        };
+        Cdtr: any;
+        CdtrAcct: {
+            Id: {
+                Othr: {
+                    Id: string;
+                };
+            };
+        };
+        RmtInf: {
+            Ustrd: string;
+        } | undefined;
+    };
+    /**
+     * Serializes the RTP credit transfer initiation to an XML string.
+     * @returns {string} The XML representation of the RTP credit transfer initiation.
+     */
+    serialize(): string;
+    static fromXML(rawXml: string): RTPCreditPaymentInitiation;
+}
+
+type AtLeastOne$3<T> = [T, ...T[]];
+/**
+ * Configuration for SEPA Credit Payment Initiation.
+ *
+ * @property {Party} initiatingParty - The party initiating the SEPA credit transfer.
+ * @property {AtLeastOne<SEPACreditPaymentInstruction>} paymentInstructions - An array containing at least one payment instruction for SEPA credit transfer.
+ * @property {string} [messageId] - Optional unique identifier for the message. If not provided, a UUID will be generated.
+ * @property {Date} [creationDate] - Optional creation date for the message. If not provided, current date will be used.
+ * @property {ExternalCategoryPurpose} [categoryPurpose] - Optional category purpose code following ISO20022 ExternalCategoryPurpose1Code standard.
+ */
+interface SEPACreditPaymentInitiationConfig$1 {
+    /** The party initiating the SEPA credit transfer. */
+    initiatingParty: Party;
+    /** An array containing at least one payment instruction for SEPA credit transfer. */
+    paymentInstructions: AtLeastOne$3<SEPACreditPaymentInstruction>;
+    /** Optional unique identifier for the message. If not provided, a UUID will be generated. */
+    messageId?: string;
+    /** Optional creation date for the message. If not provided, current date will be used. */
+    creationDate?: Date;
+    /** Optional category purpose code following ISO20022 ExternalCategoryPurpose1Code standard */
+    categoryPurpose?: ExternalCategoryPurpose;
+}
+/**
+ * Represents a SEPA Credit Payment Initiation.
+ * This class handles the creation and serialization of SEPA credit transfer messages
+ * according to the ISO20022 standard.
+ * @class
+ * @extends PaymentInitiation
+ * @param {SEPACreditPaymentInitiationConfig} config - The configuration for the SEPA Credit Payment Initiation message.
+ * @example
+ * ```typescript
+ * // Creating a SEPA payment message
+ * const payment = new SEPACreditPaymentInitiation({
+ *   // configuration options
+ * });
+ * // Uploading the payment
+ * client.paymentTransfers.create(payment);
+ * // Parsing from XML
+ * const xml = '<xml>...</xml>';
+ * const parsedTransfer = SEPACreditPaymentInitiation.fromXML(xml);
+ * ```
+ * @see {@link https://docs.iso20022js.com/pain/sepacredit} for more information.
+ */
+declare class SEPACreditPaymentInitiation extends PaymentInitiation {
+    initiatingParty: Party;
+    messageId: string;
+    creationDate: Date;
+    paymentInstructions: AtLeastOne$3<SEPACreditPaymentInstruction>;
+    paymentInformationId: string;
+    categoryPurpose?: ExternalCategoryPurpose;
+    private formattedPaymentSum;
+    get schemaId(): string;
+    /**
+     * Creates an instance of SEPACreditPaymentInitiation.
+     * @param {SEPACreditPaymentInitiationConfig} config - The configuration object for the SEPA credit transfer.
+     */
+    constructor(config: SEPACreditPaymentInitiationConfig$1);
+    /**
+     * Calculates the sum of all payment instructions.
+     * @private
+     * @param {AtLeastOne<SEPACreditPaymentInstruction>} instructions - Array of payment instructions.
+     * @returns {string} The total sum formatted as a string with 2 decimal places.
+     * @throws {Error} If payment instructions have different currencies.
+     */
+    private sumPaymentInstructions;
+    /**
+     * Validates the payment initiation data according to SEPA requirements.
+     * @private
+     * @throws {Error} If messageId exceeds 35 characters.
+     * @throws {Error} If payment instructions have different currencies.
+     * @throws {Error} If any creditor has incomplete address information.
+     */
+    private validate;
+    private validateAllInstructionsHaveSameCurrency;
+    /**
+     * Generates payment information for a single SEPA credit transfer instruction.
+     * @param {SEPACreditPaymentInstruction} instruction - The payment instruction.
+     * @returns {Object} The payment information object formatted according to SEPA specifications.
+     */
+    creditTransfer(instruction: SEPACreditPaymentInstruction): {
+        Cdtr: any;
+        CdtrAcct: {
+            Id: {
+                IBAN: string;
+            };
+            Ccy: "EUR";
+        };
+        RmtInf: {
+            Ustrd: string;
+        } | undefined;
+        CdtrAgt?: {
+            FinInstnId: {
+                ClrSysMmbId: {
+                    ClrSysId: {
+                        Cd: string;
+                    };
+                    MmbId: string;
+                };
+                BIC?: undefined;
+            };
+        } | {
+            FinInstnId: {
+                BIC: string;
+                ClrSysMmbId?: undefined;
+            };
+        } | undefined;
+        PmtId: {
+            InstrId: string;
+            EndToEndId: string;
+        };
+        Amt: {
+            InstdAmt: {
+                '#': string;
+                '@Ccy': "EUR";
+            };
+        };
+    };
+    /**
+     * Serializes the SEPA credit transfer initiation to an XML string.
+     * @returns {string} The XML representation of the SEPA credit transfer initiation.
+     */
+    serialize(): string;
+    static fromXML(rawXml: string): SEPACreditPaymentInitiation;
+}
+
+type AtLeastOne$2<T> = [T, ...T[]];
+/**
+ * Represents a group of payment instructions for a single debtor (PmtInf block).
+ *
+ * @property {Party} initiatingParty - The party (debtor) for this specific payment information block.
+ * @property {AtLeastOne<SEPACreditPaymentInstruction>} payments - An array containing at least one payment instruction for this debtor.
+ * @property {ExternalCategoryPurpose} [categoryPurpose] - Optional category purpose code for this payment information block.
+ */
+interface SEPAMultiCreditPaymentInstructionGroup {
+    /** The party (debtor) for this specific payment information block. */
+    initiatingParty: Party;
+    /** An array containing at least one payment instruction for this debtor. */
+    payments: AtLeastOne$2<SEPACreditPaymentInstruction>;
+    /** Optional category purpose code for this payment information block. */
+    categoryPurpose?: ExternalCategoryPurpose;
+    /** Indicates whether transactions should be booked in batch. Defaults to false. */
+    batchBooking?: boolean;
+}
+/**
+ * Configuration for SEPA Multi Credit Payment Initiation.
+ *
+ * @property {Party} initiatingParty - The top-level party initiating the message (used in GrpHdr).
+ * @property {AtLeastOne<SEPAMultiCreditPaymentInstructionGroup>} paymentInstructions - An array containing at least one payment instruction group.
+ * @property {string} [messageId] - Optional unique identifier for the message. If not provided, a UUID will be generated.
+ * @property {Date} [creationDate] - Optional creation date for the message. If not provided, current date will be used.
+ */
+interface SEPAMultiCreditPaymentInitiationConfig$1 {
+    /** The top-level party initiating the message (used in GrpHdr). */
+    initiatingParty: Party;
+    /** An array containing at least one payment instruction group. */
+    paymentInstructions: AtLeastOne$2<SEPAMultiCreditPaymentInstructionGroup>;
+    /** Optional unique identifier for the message. If not provided, a UUID will be generated. */
+    messageId?: string;
+    /** Optional creation date for the message. If not provided, current date will be used. */
+    creationDate?: Date;
+}
+/**
+ * Represents a SEPA Multi Credit Payment Initiation.
+ * This class handles the creation and serialization of SEPA credit transfer messages
+ * with multiple payment information blocks (multiple debtors) according to the ISO20022 standard.
+ * @class
+ * @extends PaymentInitiation
+ * @param {SEPAMultiCreditPaymentInitiationConfig} config - The configuration for the SEPA Multi Credit Payment Initiation message.
+ * @example
+ * ```typescript
+ * // Creating a SEPA multi-payment message
+ * const payment = new SEPAMultiCreditPaymentInitiation({
+ *   initiatingParty: { name: 'Company Ltd', id: '12345' },
+ *   paymentInstructions: [
+ *     {
+ *       initiatingParty: debtor1,
+ *       payments: [payment1, payment2]
+ *     },
+ *     {
+ *       initiatingParty: debtor2,
+ *       payments: [payment3]
+ *     }
+ *   ]
+ * });
+ * ```
+ */
+declare class SEPAMultiCreditPaymentInitiation extends PaymentInitiation {
+    initiatingParty: Party;
+    messageId: string;
+    creationDate: Date;
+    paymentInstructions: AtLeastOne$2<SEPAMultiCreditPaymentInstructionGroup>;
+    private formattedPaymentSum;
+    private totalTransactionCount;
+    get schemaId(): string;
+    /**
+     * Creates an instance of SEPAMultiCreditPaymentInitiation.
+     * @param {SEPAMultiCreditPaymentInitiationConfig} config - The configuration object for the SEPA multi credit transfer.
+     */
+    constructor(config: SEPAMultiCreditPaymentInitiationConfig$1);
+    /**
+     * Counts the total number of transactions across all payment instruction groups.
+     * @private
+     * @returns {number} The total count of all transactions.
+     */
+    private countAllTransactions;
+    /**
+     * Calculates the sum of all payment instructions across all groups.
+     * @private
+     * @returns {string} The total sum formatted as a string with 2 decimal places.
+     */
+    private sumAllPayments;
+    /**
+     * Validates the payment initiation data according to SEPA requirements.
+     * @private
+     * @throws {Error} If messageId exceeds 35 characters.
+     * @throws {Error} If any group's payment instructions have different currencies.
+     */
+    private validate;
+    /**
+     * Validates that all payment instructions in a group have the same currency.
+     * @private
+     * @param {AtLeastOne<SEPACreditPaymentInstruction>} payments - Array of payment instructions.
+     * @throws {Error} If payment instructions have different currencies.
+     */
+    private validateGroupInstructionsHaveSameCurrency;
+    /**
+     * Generates payment information for a single SEPA credit transfer instruction.
+     * @param {SEPACreditPaymentInstruction} instruction - The payment instruction.
+     * @returns {Object} The payment information object formatted according to SEPA specifications.
+     */
+    creditTransfer(instruction: SEPACreditPaymentInstruction): {
+        Cdtr: any;
+        CdtrAcct: {
+            Id: {
+                IBAN: string;
+            };
+            Ccy: "EUR";
+        };
+        RmtInf: {
+            Ustrd: string;
+        } | undefined;
+        CdtrAgt?: {
+            FinInstnId: {
+                ClrSysMmbId: {
+                    ClrSysId: {
+                        Cd: string;
+                    };
+                    MmbId: string;
+                };
+                BIC?: undefined;
+            };
+        } | {
+            FinInstnId: {
+                BIC: string;
+                ClrSysMmbId?: undefined;
+            };
+        } | undefined;
+        PmtId: {
+            InstrId: string;
+            EndToEndId: string;
+        };
+        Amt: {
+            InstdAmt: {
+                '#': string;
+                '@Ccy': "EUR";
+            };
+        };
+    };
+    /**
+     * Serializes the SEPA multi credit transfer initiation to an XML string.
+     * @returns {string} The XML representation of the SEPA multi credit transfer initiation.
+     */
+    serialize(): string;
+    /**
+     * Parses an XML string and creates a SEPAMultiCreditPaymentInitiation instance.
+     * Supports multiple PmtInf blocks in the XML document.
+     * @param {string} rawXml - The XML string to parse.
+     * @returns {SEPAMultiCreditPaymentInitiation} A new instance created from the XML data.
+     * @throws {InvalidXmlError} If the XML format is invalid.
+     * @throws {InvalidXmlNamespaceError} If the namespace is not pain.001.001.03.
+     */
+    static fromXML(rawXml: string): SEPAMultiCreditPaymentInitiation;
+}
+
+type AtLeastOne$1<T> = [T, ...T[]];
+/**
+ * Configuration for SWIFT Credit Payment Initiation.
+ *
+ * @property {Party} initiatingParty - The party initiating the payment.
+ * @property {AtLeastOne<SWIFTCreditPaymentInstruction>} paymentInstructions - An array of payment instructions.
+ * @property {string} [messageId] - Optional unique identifier for the message. If not provided, a UUID will be generated.
+ * @property {Date} [creationDate] - Optional creation date for the message. If not provided, current date will be used.
+ */
+interface SWIFTCreditPaymentInitiationConfig$1 {
+    /** The party initiating the payment. */
+    initiatingParty: Party;
+    /** An array of payment instructions. */
+    paymentInstructions: AtLeastOne$1<SWIFTCreditPaymentInstruction>;
+    /** Optional unique identifier for the message. If not provided, a UUID will be generated. */
+    messageId?: string;
+    /** Optional creation date for the message. If not provided, current date will be used. */
+    creationDate?: Date;
+}
+/**
+ * Represents a SWIFT Credit Payment v3 Initiation message (pain.001.001.03).
+ * @class
+ * @extends PaymentInitiation
+ * @param {SWIFTCreditPaymentInitiationConfig} config - The configuration for the SWIFT Credit Payment Initiation message.
+ * @example
+ * ```typescript
+ * // Creating a payment message
+ * const payment = new SWIFTCreditPaymentInitiation({
+ *   ...
+ * });
+ * // Uploading to fiatwebservices.com
+ * client.paymentTransfers.create(payment);
+ * // Parsing from XML
+ * const xml = '<xml>...</xml>';
+ * const parsedTransfer = SWIFTCreditPaymentInitiation.fromXML(xml);
+ * ```
+ * @see {@link https://docs.iso20022js.com/pain/sepacredit} for more information.
+ */
+declare class SWIFTCreditPaymentInitiation extends PaymentInitiation {
+    initiatingParty: Party;
+    messageId: string;
+    creationDate: Date;
+    paymentInstructions: SWIFTCreditPaymentInstruction[];
+    paymentInformationId: string;
+    get schemaId(): string;
+    /**
+     * Creates an instance of SWIFTCreditPaymentInitiation.
+     * @param {SWIFTCreditPaymentInitiationConfig} config - The configuration object.
+     */
+    constructor(config: SWIFTCreditPaymentInitiationConfig$1);
+    /**
+     * Validates the payment initiation data has the information required to create a valid XML file.
+     * @private
+     * @throws {Error} If messageId exceeds 35 characters.
+     * @throws {Error} If any creditor has incomplete address information.
+     */
+    private validate;
+    /**
+     * Generates payment information for a single payment instruction.
+     * @param {SWIFTCreditPaymentInstruction} paymentInstruction - The payment instruction.
+     * @returns {Object} The credit transfer object.
+     */
+    creditTransfer(paymentInstruction: SWIFTCreditPaymentInstruction): Record<string, any>;
+    /**
+     * Serializes the payment initiation to an XML string.
+     * @returns {string} The XML representation of the payment initiation.
+     */
+    static fromXML(rawXml: string): SWIFTCreditPaymentInitiation;
+    serialize(): string;
+}
+
+/**
+ * Represents a group of direct debit payment instructions for a single creditor (PmtInf block).
+ *
+ * @property {Party} creditor - The party collecting money from debtors.
+ * @property {string} creditorSchemeId - The creditor's SEPA scheme identifier (e.g., "DE96ZZZ00000345986").
+ * @property {AtLeastOne<SEPADirectDebitPaymentInstruction>} payments - An array containing at least one payment instruction for this creditor.
+ * @property {Date} requestedCollectionDate - The date when funds should be collected from all debtors in this group.
+ * @property {SEPASequenceType} sequenceType - Sequence type indicating the position in a series of direct debits (FRST, RCUR, OOFF, FNAL).
+ * @property {SEPALocalInstrument} [localInstrument] - The SEPA direct debit scheme (CORE or B2B). Defaults to 'CORE'.
+ * @property {ExternalCategoryPurpose} [categoryPurpose] - Optional category purpose code for this payment information block.
+ * @property {boolean} [batchBooking] - Indicates whether transactions should be booked in batch. Defaults to false.
+ */
+interface SEPADirectDebitPaymentInstructionGroup {
+    /** The party collecting money from debtors. */
+    creditor: Party;
+    /** The creditor's SEPA scheme identifier. */
+    creditorSchemeId: string;
+    /** An array containing at least one direct debit instruction. */
+    payments: AtLeastOne$6<SEPADirectDebitPaymentInstruction>;
+    /** The date when funds should be collected from all debtors. */
+    requestedCollectionDate: Date;
+    /** Sequence type for all transactions in this group (FRST, RCUR, OOFF, FNAL). */
+    sequenceType: SEPASequenceType;
+    /** The SEPA direct debit scheme (CORE or B2B). Defaults to 'CORE'. */
+    localInstrument?: SEPALocalInstrument;
+    /** Optional category purpose code for this payment information block. */
+    categoryPurpose?: ExternalCategoryPurpose;
+    /** Indicates whether transactions should be booked in batch. Defaults to false. */
+    batchBooking?: boolean;
+    /**
+     * Optional override for `<PmtInfId>`. When omitted, a UUID is generated.
+     * Max 35 characters. Required to echo as `OrgnlPmtInfId` in pain.007 reversals.
+     */
+    paymentInformationId?: string;
+}
+/**
+ * Configuration for SEPA Direct Debit Payment Initiation.
+ *
+ * @property {Party} initiatingParty - The top-level party initiating the message (used in GrpHdr).
+ * @property {AtLeastOne<SEPADirectDebitPaymentInstructionGroup>} paymentInstructions - An array containing at least one payment instruction group.
+ * @property {string} [messageId] - Optional unique identifier for the message. If not provided, a UUID will be generated.
+ * @property {Date} [creationDate] - Optional creation date for the message. If not provided, current date will be used.
+ */
+interface SEPADirectDebitPaymentInitiationConfig$1 {
+    /** The top-level party initiating the message (used in GrpHdr). */
+    initiatingParty: Party;
+    /** An array containing at least one payment instruction group. */
+    paymentInstructions: AtLeastOne$6<SEPADirectDebitPaymentInstructionGroup>;
+    /** Optional unique identifier for the message. If not provided, a UUID will be generated. */
+    messageId?: string;
+    /** Optional creation date for the message. If not provided, current date will be used. */
+    creationDate?: Date;
+}
+/**
+ * Represents a SEPA Direct Debit Payment Initiation.
+ * This class handles the creation and serialization of SEPA direct debit messages
+ * with multiple payment information blocks (multiple creditors) according to the ISO20022 pain.008 standard.
+ * @class
+ * @extends PaymentInitiation
+ * @param {SEPADirectDebitPaymentInitiationConfig} config - The configuration for the SEPA Direct Debit Payment Initiation message.
+ * @example
+ * ```typescript
+ * // Creating a SEPA direct debit message
+ * const payment = new SEPADirectDebitPaymentInitiation({
+ *   initiatingParty: { name: 'Company Ltd', id: '12345' },
+ *   paymentInstructions: [
+ *     {
+ *       creditor: creditor1,
+ *       creditorSchemeId: 'DE96ZZZ00000345986',
+ *       requestedCollectionDate: new Date('2025-11-22'),
+ *       sequenceType: 'RCUR',
+ *       payments: [debit1, debit2]
+ *     }
+ *   ]
+ * });
+ * ```
+ */
+declare class SEPADirectDebitPaymentInitiation extends PaymentInitiation {
+    initiatingParty: Party;
+    messageId: string;
+    creationDate: Date;
+    paymentInstructions: AtLeastOne$6<SEPADirectDebitPaymentInstructionGroup>;
+    private formattedPaymentSum;
+    private totalTransactionCount;
+    get schemaId(): string;
+    /**
+     * Creates an instance of SEPADirectDebitPaymentInitiation.
+     * @param {SEPADirectDebitPaymentInitiationConfig} config - The configuration object for the SEPA direct debit.
+     */
+    constructor(config: SEPADirectDebitPaymentInitiationConfig$1);
+    /**
+     * Counts the total number of transactions across all payment instruction groups.
+     * @private
+     * @returns {number} The total count of all transactions.
+     */
+    private countAllTransactions;
+    /**
+     * Calculates the sum of all payment instructions across all groups.
+     * @private
+     * @returns {string} The total sum formatted as a string with 2 decimal places.
+     */
+    private sumAllPayments;
+    /**
+     * Validates the payment initiation data according to SEPA requirements.
+     * @private
+     * @throws {Error} If messageId exceeds 35 characters.
+     * @throws {Error} If any group's payment instructions have different currencies.
+     */
+    private validate;
+    /**
+     * Validates that all payment instructions in a group have the same currency (EUR).
+     * @private
+     * @param {AtLeastOne<SEPADirectDebitPaymentInstruction>} payments - Array of payment instructions.
+     * @throws {Error} If payment instructions have different currencies.
+     */
+    private validateGroupInstructionsHaveSameCurrency;
+    /**
+     * Generates payment information for a single SEPA direct debit transfer instruction.
+     * @param {SEPADirectDebitPaymentInstruction} instruction - The payment instruction.
+     * @returns {Object} The payment information object formatted according to SEPA direct debit specifications.
+     */
+    directDebitTransfer(instruction: SEPADirectDebitPaymentInstruction): {
+        RmtInf?: {
+            Ustrd: string;
+        } | undefined;
+        Dbtr: any;
+        DbtrAcct: {
+            Id: {
+                IBAN: string;
+            };
+        } | {
+            Id: {
+                Othr: {
+                    Id: string;
+                };
+            };
+        };
+        DbtrAgt?: {
+            FinInstnId: {
+                ClrSysMmbId: {
+                    ClrSysId: {
+                        Cd: string;
+                    };
+                    MmbId: string;
+                };
+                BIC?: undefined;
+            };
+        } | {
+            FinInstnId: {
+                BIC: string;
+                ClrSysMmbId?: undefined;
+            };
+        } | undefined;
+        PmtId: {
+            EndToEndId: string;
+            InstrId?: string | undefined;
+        };
+        InstdAmt: {
+            '#': string;
+            '@Ccy': "EUR";
+        };
+        DrctDbtTx: {
+            MndtRltdInf: {
+                AmdmntInfDtls?: {
+                    OrgnlCdtrSchmeId?: {
+                        Id?: {
+                            PrvtId: {
+                                Othr: {
+                                    Id: string;
+                                    SchmeNm: {
+                                        Prtry: string;
+                                    };
+                                };
+                            };
+                        } | undefined;
+                        Nm?: string | undefined;
+                    } | undefined;
+                    OrgnlMndtId?: string | undefined;
+                } | undefined;
+                MndtId: string;
+                DtOfSgntr: string;
+                AmdmntInd: boolean;
+            };
+        };
+    };
+    /**
+     * Serializes the SEPA direct debit initiation to an XML string.
+     * @returns {string} The XML representation of the SEPA direct debit initiation.
+     */
+    serialize(): string;
+    /**
+     * Parses an XML string and creates a SEPADirectDebitPaymentInitiation instance.
+     * Supports multiple PmtInf blocks in the XML document.
+     * @param {string} rawXml - The XML string to parse.
+     * @returns {SEPADirectDebitPaymentInitiation} A new instance created from the XML data.
+     * @throws {InvalidXmlError} If the XML format is invalid.
+     * @throws {InvalidXmlNamespaceError} If the namespace is not pain.008.
+     */
+    static fromXML(rawXml: string): SEPADirectDebitPaymentInitiation;
 }
 
 type AtLeastOne<T> = [T, ...T[]];
@@ -2619,115 +2726,6 @@ declare class SEPADirectDebitPaymentReversal extends PaymentInitiation {
         creationDate?: Date;
         initiatingParty?: Party;
     }): SEPADirectDebitPaymentReversal;
-}
-
-/**
- * Configuration interface for creating a CashManagementEndOfDayReport instance.
- */
-interface CashManagementEndOfDayReportConfig {
-    /** Unique identifier for the message */
-    messageId: string;
-    /** Date and time when the report was created */
-    creationDate: Date;
-    /** Recipient (party without bank and institution) receiving the report */
-    recipient?: {
-        id?: string;
-        name?: string;
-        address?: StructuredAddress;
-    };
-    /** Array of bank statements included in the report */
-    statements: Statement[];
-}
-/**
- * Represents a Cash Management End of Day Report (CAMT.053.x).
- * This class encapsulates the data and functionality related to processing
- * and accessing information from a CAMT.053 XML file.
- */
-declare class CashManagementEndOfDayReport implements GenericISO20022Message {
-    private _messageId;
-    private _creationDate;
-    private _recipient?;
-    private _statements;
-    constructor(config: CashManagementEndOfDayReportConfig);
-    static supportedMessages(): ISO20022MessageTypeName[];
-    get data(): CashManagementEndOfDayReportConfig;
-    static fromDocumentObject(obj: {
-        Document: any;
-    }): CashManagementEndOfDayReport;
-    /**
-     * Creates a CashManagementEndOfDayReport instance from a raw XML string.
-     *
-     * @param {string} rawXml - The raw XML string containing the CAMT.053 data.
-     * @returns {CashManagementEndOfDayReport} A new instance of CashManagementEndOfDayReport.
-     * @throws {Error} If the XML parsing fails or required data is missing.
-     */
-    static fromXML(rawXml: string): CashManagementEndOfDayReport;
-    /**
-     *
-     * @param json - JSON string representing a CashManagementEndOfDayReport
-     * @returns {CashManagementEndOfDayReport} A new instance of CashManagementEndOfDayReport
-     * @throws {Error} If the JSON parsing fails or required data is missing.
-     */
-    static fromJSON(json: string): CashManagementEndOfDayReport;
-    toJSON(): any;
-    serialize(): string;
-    /**
-     * Retrieves all balances from all statements in the report.
-     * @returns {Balance[]} An array of all balances across all statements.
-     */
-    get balances(): Balance[];
-    /**
-     * Retrieves all transactions from all statements in the report.
-     * @returns {Transaction[]} An array of all transactions across all statements.
-     */
-    get transactions(): Transaction[];
-    /**
-     * Retrieves all entries from all statements in the report.
-     * @returns {Entry[]} An array of all entries across all statements.
-     */
-    get entries(): Entry[];
-    /**
-     * Gets the unique identifier for the message.
-     * @returns {string} The message ID.
-     */
-    get messageId(): string;
-    /**
-     * Gets the party receiving the report.
-     * @returns {Party | undefined} The recipient party information, or undefined if no recipient is set.
-     */
-    get recipient(): Party | undefined;
-    /**
-     * Gets the date and time when the report was created.
-     * @returns {Date} The creation date of the report.
-     */
-    get creationDate(): Date;
-    /**
-     * Gets all statements included in the report.
-     * @returns {Statement[]} An array of all statements in the report.
-     */
-    get statements(): Statement[];
-}
-
-/**
- * Base error class for all ISO 20022 related errors in the library.
- * Extends the native Error class with proper stack trace capture.
- */
-declare class Iso20022JsError extends Error {
-    constructor(message: string);
-}
-/**
- * Error thrown when XML parsing or validation fails.
- * This error indicates that the provided XML is malformed or does not conform to expected structure.
- */
-declare class InvalidXmlError extends Iso20022JsError {
-    constructor(message: string);
-}
-/**
- * Error thrown when XML namespace validation fails.
- * This error indicates that the XML document contains invalid or missing required ISO 20022 namespaces.
- */
-declare class InvalidXmlNamespaceError extends Iso20022JsError {
-    constructor(message: string);
 }
 
 export { ACHCreditPaymentInitiation, ACHLocalInstrumentCode, ACHLocalInstrumentCodeDescriptionMap, BalanceTypeCode, BalanceTypeCodeDescriptionMap, CashManagementAccountReport, CashManagementEndOfDayReport, ISO20022, InvalidXmlError, InvalidXmlNamespaceError, Iso20022JsError, PaymentStatusCode, PaymentStatusReport, RTPCreditPaymentInitiation, SEPACreditPaymentInitiation, SEPADirectDebitPaymentInitiation, SEPADirectDebitPaymentReversal, SEPAMultiCreditPaymentInitiation, SEPAReversalReasonCode, SWIFTCreditPaymentInitiation };

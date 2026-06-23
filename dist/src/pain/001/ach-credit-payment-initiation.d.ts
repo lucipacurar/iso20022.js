@@ -1,4 +1,4 @@
-import { ACHCreditPaymentInstruction, ACHLocalInstrument, Party } from '../../lib/types';
+import { type ACHCreditPaymentInstruction, type ACHLocalInstrument, type Party } from '../../lib/types';
 import { PaymentInitiation } from './payment-initiation';
 type AtLeastOne<T> = [T, ...T[]];
 /**
@@ -112,11 +112,6 @@ export declare class ACHCreditPaymentInitiation extends PaymentInitiation {
         };
         CdtrAgt: {
             FinInstnId: {
-                BIC: string;
-                ClrSysMmbId?: undefined;
-            };
-        } | {
-            FinInstnId: {
                 ClrSysMmbId: {
                     ClrSysId: {
                         Cd: string;
@@ -124,6 +119,11 @@ export declare class ACHCreditPaymentInitiation extends PaymentInitiation {
                     MmbId: string;
                 };
                 BIC?: undefined;
+            };
+        } | {
+            FinInstnId: {
+                BIC: string;
+                ClrSysMmbId?: undefined;
             };
         };
         Cdtr: any;

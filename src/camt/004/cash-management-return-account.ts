@@ -1,13 +1,14 @@
-import { BalanceInReport, BusinessError } from '../types';
 import { InvalidStructureError, InvalidXmlNamespaceError } from '../../errors';
+import type { Currency } from '../../lib/currencies';
 import {
-  GenericISO20022Message,
+  type GenericISO20022Message,
+  getXmlBuilder,
+  getXmlParser,
   ISO20022Messages,
-  ISO20022MessageTypeName,
+  type ISO20022MessageTypeName,
   registerISO20022Implementation,
-  XML,
 } from '../../lib/interfaces';
-import {
+import type {
   AccountIdentification,
   CashAccountType,
   MessageHeader,
@@ -18,13 +19,13 @@ import {
   parseAccountIdentification,
   parseMessageHeader,
 } from '../../parseUtils';
+import type { BalanceInReport, BusinessError } from '../types';
 import {
   exportBalanceReport,
   exportBusinessError,
   parseBalanceReport,
   parseBusinessError,
 } from '../utils';
-import { Currency } from '../../lib/currencies';
 
 export interface AccountReport {
   currency: Currency;
@@ -61,7 +62,7 @@ export class CashManagementReturnAccount implements GenericISO20022Message {
     return [ISO20022Messages.CAMT_004];
   }
 
-  static fromDocumentOject(doc: any): CashManagementReturnAccount {
+  static fromDocumentObject(doc: any): CashManagementReturnAccount {
     const rawHeader = doc.Document?.RtrAcct?.MsgHdr;
     if (!rawHeader) {
       throw new InvalidStructureError(
@@ -72,13 +73,15 @@ export class CashManagementReturnAccount implements GenericISO20022Message {
 
     // interpret the report
     let rawReports = doc.Document?.RtrAcct?.RptOrErr?.AcctRpt;
-    if (!Array.isArray(rawReports)) rawReports = [rawReports];
+    if (!Array.isArray(rawReports)) {
+      rawReports = [rawReports];
+    }
     rawReports = rawReports.filter((r: any) => !!r); // remove null/undefined
 
     const reports: AccountReportOrError[] = rawReports.map((r: any) => {
       const accountId = parseAccountIdentification(r.AcctId);
-      let report: AccountReport | undefined = undefined;
-      let error: BusinessError | undefined = undefined;
+      let report: AccountReport | undefined;
+      let error: BusinessError | undefined;
 
       if (r.AcctOrErr?.Acct) {
         // report
@@ -88,7 +91,9 @@ export class CashManagementReturnAccount implements GenericISO20022Message {
           );
         }
         let rawMulBal = r.AcctOrErr.Acct.MulBal;
-        if (!Array.isArray(rawMulBal)) rawMulBal = [rawMulBal];
+        if (!Array.isArray(rawMulBal)) {
+          rawMulBal = [rawMulBal];
+        }
         rawMulBal = rawMulBal.filter((b: any) => !!b);
 
         report = {
@@ -122,7 +127,7 @@ export class CashManagementReturnAccount implements GenericISO20022Message {
   }
 
   static fromXML(xml: string): CashManagementReturnAccount {
-    const parser = XML.getParser();
+    const parser = getXmlParser();
     const doc = parser.parse(xml);
 
     if (!doc.Document) {
@@ -134,21 +139,21 @@ export class CashManagementReturnAccount implements GenericISO20022Message {
     if (!namespace.startsWith('urn:iso:std:iso:20022:tech:xsd:camt.004.001.')) {
       throw new InvalidXmlNamespaceError('Invalid CAMT.004 namespace');
     }
-    return CashManagementReturnAccount.fromDocumentOject(doc);
+    return CashManagementReturnAccount.fromDocumentObject(doc);
   }
 
   static fromJSON(json: string): CashManagementReturnAccount {
-    const obj = JSON.parse(json);
+    const obj = JSON.parse(json) as { Document: any };
 
     if (!obj.Document) {
       throw new Error('Invalid JSON format');
     }
 
-    return CashManagementReturnAccount.fromDocumentOject(obj);
+    return CashManagementReturnAccount.fromDocumentObject(obj);
   }
 
   serialize(): string {
-    const builder = XML.getBuilder();
+    const builder = getXmlBuilder();
     const obj = this.toJSON();
     obj.Document['@_xmlns'] = 'urn:iso:std:iso:20022:tech:xsd:camt.004.001.02';
     obj.Document['@_xmlns:xsi'] = 'http://www.w3.org/2001/XMLSchema-instance';

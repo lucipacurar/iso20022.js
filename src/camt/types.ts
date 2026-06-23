@@ -1,7 +1,7 @@
 // Types related to CAMT 053
 
-import { Currency } from '../lib/currencies';
-import { Account, Agent, Party } from '../lib/types';
+import type { Currency } from '../lib/currencies';
+import type { Account, Agent, Party } from '../lib/types';
 
 /**
  * Represents a bank statement in the CAMT.053 format.

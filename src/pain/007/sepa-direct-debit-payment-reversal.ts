@@ -1,3 +1,10 @@
+import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
+import { formatMinorUnits } from '../../lib/currencies';
+import {
+  getXmlParser,
+  ISO20022SchemaId,
+  XMLNS_PREFIX,
+} from '../../lib/interfaces';
 import type {
   Account,
   Agent,
@@ -9,17 +16,14 @@ import type {
   SEPAReversalReason,
   SEPASequenceType,
 } from '../../lib/types';
-import { PaymentInitiation } from '../001/payment-initiation';
-import { generateId } from '../../utils/format';
-import { formatMinorUnits } from '../../lib/currencies';
-import { XML, XMLNS_PREFIX, ISO20022SchemaId } from '../../lib/interfaces';
-import { InvalidXmlError, InvalidXmlNamespaceError } from '../../errors';
 import {
   parseAccount,
   parseAgent,
   parseAmountToMinorUnits,
   parseMandate,
 } from '../../parseUtils';
+import { generateId } from '../../utils/format';
+import { PaymentInitiation } from '../001/payment-initiation';
 import type { SEPADirectDebitPaymentInitiation } from '../008/sepa-direct-debit-payment-initiation';
 
 export interface OriginalMessageReference {
@@ -70,11 +74,11 @@ export interface SEPADirectDebitPaymentReversalConfig {
 }
 
 export class SEPADirectDebitPaymentReversal extends PaymentInitiation {
-  public initiatingParty: Party;
-  public messageId: string;
-  public creationDate: Date;
-  public originalMessage: OriginalMessageReference;
-  public reversalInstructions: AtLeastOne<SEPADirectDebitReversalInstructionGroup>;
+  initiatingParty: Party;
+  messageId: string;
+  creationDate: Date;
+  originalMessage: OriginalMessageReference;
+  reversalInstructions: AtLeastOne<SEPADirectDebitReversalInstructionGroup>;
   private formattedReversedSum: string;
   private totalTransactionCount: number;
 
@@ -103,9 +107,10 @@ export class SEPADirectDebitPaymentReversal extends PaymentInitiation {
   }
 
   private countAllReversals(): number {
-    return this.reversalInstructions.reduce((total, group) => {
-      return total + group.reversals.length;
-    }, 0);
+    return this.reversalInstructions.reduce(
+      (total, group) => total + group.reversals.length,
+      0,
+    );
   }
 
   private sumAllReversedAmounts(): string {
@@ -267,15 +272,22 @@ export class SEPADirectDebitPaymentReversal extends PaymentInitiation {
     };
   }
 
-  public serialize(): string {
+  serialize(): string {
     const builder = PaymentInitiation.getBuilder();
 
     const orgnlPmtInfAndRvslEntries = this.reversalInstructions.map(group => {
       const orgnlPmtInfId = group.reversals[0].originalReference.pmtInfId;
+      const groupTxCount = group.reversals.length;
+      const groupCtrlSum = formatMinorUnits(
+        group.reversals.reduce((sum, r) => sum + r.reversedAmount, 0),
+        'EUR',
+      );
 
       return {
-        RvslPmtInfId: group.paymentInformationId,
         OrgnlPmtInfId: orgnlPmtInfId,
+        OrgnlNbOfTxs: groupTxCount.toString(),
+        OrgnlCtrlSum: groupCtrlSum,
+        PmtInfRvsl: 'false',
         TxInf: group.reversals.map(reversal =>
           this.buildTxInf(reversal, group),
         ),
@@ -297,6 +309,7 @@ export class SEPADirectDebitPaymentReversal extends PaymentInitiation {
             CreDtTm: this.creationDate.toISOString(),
             NbOfTxs: this.totalTransactionCount.toString(),
             CtrlSum: this.formattedReversedSum,
+            GrpRvsl: 'false',
             InitgPty: {
               Nm: this.initiatingParty.name,
               ...(this.initiatingParty.id && {
@@ -323,8 +336,8 @@ export class SEPADirectDebitPaymentReversal extends PaymentInitiation {
     return builder.build(xml);
   }
 
-  public static fromXML(rawXml: string): SEPADirectDebitPaymentReversal {
-    const parser = XML.getParser();
+  static fromXML(rawXml: string): SEPADirectDebitPaymentReversal {
+    const parser = getXmlParser();
     const xml = parser.parse(rawXml);
 
     if (!xml.Document) {
@@ -454,7 +467,7 @@ export class SEPADirectDebitPaymentReversal extends PaymentInitiation {
     });
   }
 
-  public static fromOriginalInitiation(
+  static fromOriginalInitiation(
     original: SEPADirectDebitPaymentInitiation,
     reversals: Array<{
       endToEndId: string;

@@ -1,5 +1,5 @@
-import { GenericISO20022Message, ISO20022MessageTypeName } from '../../lib/interfaces';
-import { MessageHeader } from '../../lib/types';
+import { type GenericISO20022Message, type ISO20022MessageTypeName } from '../../lib/interfaces';
+import type { MessageHeader } from '../../lib/types';
 export interface CashManagementGetTransactionCriterium {
     type: string;
     msgIdsEqualTo?: string[];
@@ -18,7 +18,7 @@ export declare class CashManagementGetTransaction implements GenericISO20022Mess
     constructor(data: CashManagementGetTransactionData);
     get data(): CashManagementGetTransactionData;
     static supportedMessages(): ISO20022MessageTypeName[];
-    static fromDocumentOject(doc: any): CashManagementGetTransaction;
+    static fromDocumentObject(doc: any): CashManagementGetTransaction;
     static fromXML(xml: string): CashManagementGetTransaction;
     static fromJSON(json: string): CashManagementGetTransaction;
     serialize(): string;

@@ -1,5 +1,3 @@
-import { Party } from '../../lib/types';
-
 /**
  * Represents the original group information in a payment status report.
  */
